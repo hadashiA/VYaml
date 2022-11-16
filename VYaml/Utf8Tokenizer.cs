@@ -22,26 +22,33 @@ namespace VYaml
         public Marker Start;
     }
 
-
     struct Token
     {
         public readonly TokenType Type;
         public readonly Marker Start;
         public Scalar? Scalar;
+        public Tag? Tag;
 
-        public Token(TokenType type, in Marker start)
-        {
-            Type = type;
-            Start = start;
-            Scalar = default;
-        }
-
-        public Token(TokenType type, in Marker start, Scalar scalar)
+        public Token(
+            TokenType type,
+            in Marker start,
+            Scalar scalar = null,
+            Tag tag = null)
         {
             Type = type;
             Start = start;
             Scalar = scalar;
+            Tag = tag;
         }
+
+        public Scalar TakeScalar()
+        {
+            var scalar = Scalar!;
+            Scalar = null;
+            return scalar;
+        }
+
+        public override string ToString() => $"{Type} \"{Scalar}\"";
     }
 
     public ref partial struct Utf8Tokenizer
@@ -119,6 +126,7 @@ namespace VYaml
                 ScalarPool.Shared.Return(scalar);
             }
             currentToken = tokens.Dequeue();
+            System.Console.WriteLine($"  TOKEN {currentToken}");
             tokenAvailable = false;
             tokensParsed += 1;
 
@@ -129,12 +137,7 @@ namespace VYaml
             return true;
         }
 
-        internal Scalar TakeCurrentScalar()
-        {
-            var scalar = currentToken.Scalar;
-            currentToken.Scalar = null;
-            return scalar!;
-        }
+        internal Scalar TakeCurrentScalar() => currentToken.TakeScalar();
 
         void ConsumeMoreTokens()
         {
@@ -452,6 +455,54 @@ namespace VYaml
         void ConsumeTag()
         {
             throw new NotImplementedException();
+            SaveSimpleKeyCandidate();
+            simpleKeyAllowed = false;
+
+            var tagHandle = ScalarPool.Shared.Rent();
+            var secondary = false;
+            // let mut suffix;
+
+            // Check if the tag is in the canonical form (verbatim).
+            if (reader.TryPeek(1L, out var nextCode) && nextCode == '<')
+            {
+                // Eat '!<'
+                Advance(2);
+                // ConsumeTagUri(false, false);
+            }
+            else
+            {
+
+            }
+            //     // The tag has either the '!suffix' or the '!handle!suffix'
+            //     handle = self.scan_tag_handle(false, &start_mark)?;
+            //     // Check if it is, indeed, handle.
+            //     if handle.len() >= 2 && handle.starts_with('!') && handle.ends_with('!') {
+            //         if handle == "!!" {
+            //             secondary = true;
+            //         }
+            //         suffix = self.scan_tag_uri(false, secondary, &String::new(), &start_mark)?;
+            //     } else {
+            //         suffix = self.scan_tag_uri(false, false, &handle, &start_mark)?;
+            //         handle = "!".to_owned();
+            //         // A special case: the '!' tag.  Set the handle to '' and the
+            //         // suffix to '!'.
+            //         if suffix.is_empty() {
+            //             handle.clear();
+            //             suffix = "!".to_owned();
+            //         }
+            //     }
+            // }
+            //
+            // self.lookahead(1);
+            // if is_blankz(self.ch()) {
+            //     // XXX: ex 7.2, an empty scalar can follow a secondary tag
+            //     Ok(Token(start_mark, TokenType::Tag(handle, suffix)))
+            // } else {
+            //     Err(ScanError::new(
+            //         start_mark,
+            //         "while scanning a tag, did not find expected whitespace or line break",
+            //     ))
+            // }
         }
 
         void ConsumeBlockScaler(bool literal)

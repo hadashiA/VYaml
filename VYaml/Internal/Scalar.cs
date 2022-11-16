@@ -1,9 +1,8 @@
 using System;
 using System.Buffers.Text;
 using System.Collections.Concurrent;
-using VYaml.Internal;
 
-namespace VYaml
+namespace VYaml.Internal
 {
     class ScalarPool
     {

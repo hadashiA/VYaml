@@ -219,11 +219,13 @@ namespace VYaml
             }
 
             currentEvent = StateMachine();
+            System.Console.WriteLine($"EVENT {currentEvent.Type}");
             return true;
         }
 
         ParseEvent StateMachine()
         {
+            System.Console.WriteLine($"STATE {currentState}");
             switch (currentState)
             {
                 case ParseState.StreamStart:
@@ -622,7 +624,7 @@ namespace VYaml
                 else
                 {
                     throw new YamlParserException(CurrentMark,
-                        "while parsing a flow mapping, did not find expected ',' or '}'");
+                        "While parsing a flow mapping, did not find expected ',' or '}'");
                 }
             }
 
@@ -644,6 +646,11 @@ namespace VYaml
                 case TokenType.ValueStart:
                     currentState = ParseState.FlowMappingValue;
                     return EmptyScalar();
+
+                case TokenType.FlowMappingEnd:
+                    PopState();
+                    tokenizer.Read();
+                    return new ParseEvent(ParseEventType.MappingEnd, CurrentMark);
 
                 default:
                     PushState(ParseState.FlowMappingEmptyValue);

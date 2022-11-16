@@ -433,29 +433,6 @@ public class SpecTest
         });
     }
 
-    // [Test]
-    // [Ignore("Not supported zero starts \"0x00\", \"0o00\" style integers")]
-    // public void Ex2_19_Integers()
-    // {
-    //     AssertParseEvents(SpecExamples.Ex2_19, new []
-    //     {
-    //         Expect(ParseEventType.StreamStart),
-    //         Expect(ParseEventType.DocumentStart),
-    //         Expect(ParseEventType.MappingStart),
-    //         Expect(ParseEventType.Scalar, "canonical"),
-    //         Expect(ParseEventType.Scalar, 12345),
-    //         Expect(ParseEventType.Scalar, "decimal"),
-    //         Expect(ParseEventType.Scalar, 12345),
-    //         Expect(ParseEventType.Scalar, "octal"),
-    //         Expect(ParseEventType.Scalar, 12), // 0o14
-    //         Expect(ParseEventType.Scalar, "hexadecimal"),
-    //         Expect(ParseEventType.Scalar, 0x0C),
-    //         Expect(ParseEventType.MappingEnd),
-    //         Expect(ParseEventType.DocumentEnd),
-    //         Expect(ParseEventType.StreamEnd),
-    //     });
-    // }
-
     [Test]
     public void Ex2_23_VariousExplicitTags()
     {
@@ -665,7 +642,7 @@ public class SpecTest
             Expect(ParseEventType.Scalar, "line"),
             Expect(ParseEventType.Scalar, 23),
             Expect(ParseEventType.Scalar, "code"),
-            Expect(ParseEventType.Scalar, "x = MoreObject(\"345\\n\")"),
+            Expect(ParseEventType.Scalar, "x = MoreObject(\"345\\n\")\n"),
             Expect(ParseEventType.MappingEnd),
             Expect(ParseEventType.MappingStart),
             Expect(ParseEventType.Scalar, "file"),
