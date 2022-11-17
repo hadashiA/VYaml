@@ -655,7 +655,7 @@ public static class SpecExamples
         "{\n" +
         "\"adjacent\":value,\n" +
         "\"readable\":value,\n" +
-        "\"empty\":\n" +
+        "\"empty\": \n" +
         "}";
 
     public const string Ex7_19 =

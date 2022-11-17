@@ -208,7 +208,7 @@ namespace VYaml
         {
             if (currentScalar != null)
             {
-                ScalarPool.Shared.Return(currentScalar);
+                tokenizer.ReturnScalarToPool(currentScalar);
             }
             currentScalar = null;
 

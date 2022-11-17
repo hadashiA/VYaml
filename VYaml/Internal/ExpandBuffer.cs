@@ -96,7 +96,6 @@ namespace VYaml.Internal
             if (Capacity >= newCapacity) return;
 
             var newBuffer = new T[newCapacity];
-            buffer.AsSpan().CopyTo(newBuffer.AsSpan());
             Array.Copy(buffer, 0, newBuffer, 0, Length);
             buffer = newBuffer;
         }

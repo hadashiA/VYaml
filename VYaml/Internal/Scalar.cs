@@ -6,20 +6,21 @@ namespace VYaml.Internal
 {
     class ScalarPool
     {
-        public static readonly ScalarPool Shared = new();
-
         readonly ConcurrentQueue<Scalar> queue = new();
 
         public Scalar Rent()
         {
-            return queue.TryDequeue(out var scalar)
-                ? scalar
-                : new Scalar(2048);
+            if (queue.TryDequeue(out var scalar))
+            {
+                scalar.Clear();
+                return scalar;
+            }
+            return new Scalar(2048);
         }
 
         public void Return(Scalar scalar)
         {
-            scalar.Clear();
+            // scalar.Clear();
             queue.Enqueue(scalar);
         }
     }

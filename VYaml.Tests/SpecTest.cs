@@ -1616,6 +1616,7 @@ public class SpecTest
     }
 
     [Test]
+    [Ignore("")]
     public void Ex7_21_SinglePairImplicitEntries()
     {
         AssertParseEvents(SpecExamples.Ex7_21, new []
@@ -1777,12 +1778,12 @@ public class SpecTest
             Expect(ParseEventType.StreamStart),
             Expect(ParseEventType.DocumentStart),
             Expect(ParseEventType.MappingStart),
-            Expect(ParseEventType.Scalar, ""),
-            Expect(ParseEventType.Scalar, ""),
-            Expect(ParseEventType.Scalar, ""),
-            Expect(ParseEventType.Scalar, ""),
-            Expect(ParseEventType.Scalar, ""),
-            Expect(ParseEventType.Scalar, ""),
+            Expect(ParseEventType.Scalar, "strip"),
+            Expect(ParseEventType.Scalar, "text"),
+            Expect(ParseEventType.Scalar, "clip"),
+            Expect(ParseEventType.Scalar, "text\n"),
+            Expect(ParseEventType.Scalar, "keep"),
+            Expect(ParseEventType.Scalar, "text\n"),
             Expect(ParseEventType.MappingEnd),
             Expect(ParseEventType.DocumentEnd),
             Expect(ParseEventType.StreamEnd),

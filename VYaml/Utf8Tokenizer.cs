@@ -82,6 +82,7 @@ namespace VYaml
         readonly ExpandBuffer<SimpleKeyState> simpleKeyCandidates;
         readonly ExpandBuffer<int> indents;
         readonly ExpandBuffer<byte> whitespaces;
+        readonly ScalarPool scalarPool;
 
         public Utf8Tokenizer(in ReadOnlySequence<byte> sequence)
         {
@@ -96,6 +97,7 @@ namespace VYaml
             simpleKeyCandidates = new ExpandBuffer<SimpleKeyState>(16);
             indents = new ExpandBuffer<int>(16);
             whitespaces = new ExpandBuffer<byte>(256);
+            scalarPool = new ScalarPool();
 
             indent = -1;
             flowLevel = 0;
@@ -123,7 +125,7 @@ namespace VYaml
 
             if (currentToken.Scalar is { } scalar)
             {
-                ScalarPool.Shared.Return(scalar);
+                scalarPool.Return(scalar);
             }
             currentToken = tokens.Dequeue();
             System.Console.WriteLine($"  TOKEN {currentToken}");
@@ -138,6 +140,7 @@ namespace VYaml
         }
 
         internal Scalar TakeCurrentScalar() => currentToken.TakeScalar();
+        internal void ReturnScalarToPool(Scalar scalar) => scalarPool.Return(scalar);
 
         void ConsumeMoreTokens()
         {
@@ -418,7 +421,7 @@ namespace VYaml
 
         void ConsumeAnchor(bool alias)
         {
-            var scalar = ScalarPool.Shared.Rent();
+            var scalar = scalarPool.Rent();
             Advance(1);
 
             while (reader.TryPeek(out var code) && YamlCodes.IsAlphaNumericDashOrUnderscore(code))
@@ -458,7 +461,7 @@ namespace VYaml
             SaveSimpleKeyCandidate();
             simpleKeyAllowed = false;
 
-            var tagHandle = ScalarPool.Shared.Rent();
+            var tagHandle = scalarPool.Rent();
             var secondary = false;
             // let mut suffix;
 
@@ -521,7 +524,7 @@ namespace VYaml
             var leadingBreak = LineBreakState.None;
             var trailingBreak = LineBreakState.None;
 
-            var scalar = ScalarPool.Shared.Rent();
+            var scalar = scalarPool.Rent();
             whitespaces.Clear();
 
             // skip '|' or '>'
@@ -569,7 +572,7 @@ namespace VYaml
 
             if (reader.TryPeek(out code) && code == YamlCodes.Comment)
             {
-                while (reader.TryPeek(out code) && !YamlCodes.IsEmpty(code))
+                while (reader.TryPeek(out code) && !YamlCodes.IsLineBreak(code))
                 {
                     Advance(1);
                 }
@@ -701,7 +704,7 @@ namespace VYaml
             var leadingBreak = default(LineBreakState);
             var trailingBreak = default(LineBreakState);
             var isLeadingBlanks = false;
-            var scalar = ScalarPool.Shared.Rent();
+            var scalar = scalarPool.Rent();
             whitespaces.Clear();
 
             // Eat the left quote
@@ -914,6 +917,10 @@ namespace VYaml
             Advance(1);
             simpleKeyAllowed = isLeadingBlanks;
 
+            // From spec: To ensure JSON compatibility, if a key inside a flow mapping is JSON-like,
+            // YAML allows the following value to be specified adjacent to the “:”.
+            adjacentValueAllowedAt = mark.Position;
+
             tokens.Enqueue(new Token(singleQuote
                 ? TokenType.SingleQuotedScaler
                 : TokenType.DoubleQuotedScaler,
@@ -931,7 +938,7 @@ namespace VYaml
             var leadingBreak = default(LineBreakState);
             var trailingBreak = default(LineBreakState);
             var isLeadingBlanks = false;
-            var scalar = ScalarPool.Shared.Rent();
+            var scalar = scalarPool.Rent();
 
             whitespaces.Clear();
 
