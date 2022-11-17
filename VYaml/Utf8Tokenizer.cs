@@ -81,7 +81,8 @@ namespace VYaml
         readonly InsertionQueue<Token> tokens;
         readonly ExpandBuffer<SimpleKeyState> simpleKeyCandidates;
         readonly ExpandBuffer<int> indents;
-        readonly ExpandBuffer<byte> whitespaces;
+        readonly ExpandBuffer<byte> whitespaceBuffer;
+        readonly ExpandBuffer<byte> lineBreakBuffer;
         readonly ScalarPool scalarPool;
 
         public Utf8Tokenizer(in ReadOnlySequence<byte> sequence)
@@ -96,7 +97,8 @@ namespace VYaml
             tokens = new InsertionQueue<Token>(16);
             simpleKeyCandidates = new ExpandBuffer<SimpleKeyState>(16);
             indents = new ExpandBuffer<int>(16);
-            whitespaces = new ExpandBuffer<byte>(256);
+            whitespaceBuffer = new ExpandBuffer<byte>(256);
+            lineBreakBuffer = new ExpandBuffer<byte>(256);
             scalarPool = new ScalarPool();
 
             indent = -1;
@@ -435,7 +437,8 @@ namespace VYaml
                 throw new YamlTokenizerException(mark,
                     "while scanning an anchor or alias, did not find expected alphabetic or numeric character");
             }
-            var lastCode = scalar.AsSpan()[^1];
+
+            reader.TryPeek(out var lastCode);
             if (!YamlCodes.IsBlank(lastCode) &&
                 lastCode != '?' &&
                 lastCode != ':' &&
@@ -520,12 +523,13 @@ namespace VYaml
 
             var trailingBlank = false;
             var leadingBlank = false;
-
             var leadingBreak = LineBreakState.None;
-            var trailingBreak = LineBreakState.None;
+            var trailingBreaks = lineBreakBuffer;
 
             var scalar = scalarPool.Rent();
-            whitespaces.Clear();
+
+            trailingBreaks.Clear();
+            whitespaceBuffer.Clear();
 
             // skip '|' or '>'
             Advance(1);
@@ -596,7 +600,7 @@ namespace VYaml
             }
 
             // Scan the leading line breaks and determine the indentation level if needed.
-            ConsumeBlockScalarBreaks(ref blockIndent, ref trailingBreak);
+            ConsumeBlockScalarBreaks(ref blockIndent, trailingBreaks);
 
             while (mark.Col == blockIndent && reader.TryPeek(out code))
             {
@@ -607,7 +611,7 @@ namespace VYaml
                     !leadingBlank &&
                     !trailingBlank)
                 {
-                    if (trailingBreak == LineBreakState.None)
+                    if (trailingBreaks.Length <= 0)
                     {
                         scalar.Write(YamlCodes.Space);
                     }
@@ -617,10 +621,10 @@ namespace VYaml
                     scalar.Write(leadingBreak);
                 }
 
-                scalar.Write(trailingBreak);
-                leadingBreak = LineBreakState.None;
-                trailingBreak = LineBreakState.None;
+                scalar.Write(trailingBreaks.AsSpan());
                 leadingBlank = YamlCodes.IsBlank(code);
+                leadingBreak = LineBreakState.None;
+                trailingBreaks.Clear();
 
                 while (reader.TryPeek(out code) && !YamlCodes.IsLineBreak(code))
                 {
@@ -632,7 +636,7 @@ namespace VYaml
 
                 leadingBreak = ConsumeLineBreaks();
                 // Eat the following indentation spaces and line breaks.
-                ConsumeBlockScalarBreaks(ref blockIndent, ref trailingBreak);
+                ConsumeBlockScalarBreaks(ref blockIndent, trailingBreaks);
             }
 
             // Chomp the tail.
@@ -642,14 +646,14 @@ namespace VYaml
             }
             if (chomping == 1)
             {
-                scalar.Write(trailingBreak);
+                scalar.Write(trailingBreaks.AsSpan());
             }
 
             var tokenType = literal ? TokenType.LiteralScalar : TokenType.FoldedScalar;
             tokens.Enqueue(new Token(tokenType, startMark, scalar));
         }
 
-        void ConsumeBlockScalarBreaks(ref int blockIndent, ref LineBreakState lineBreak)
+        void ConsumeBlockScalarBreaks(ref int blockIndent, ExpandBuffer<byte> blockLineBreaks)
         {
             var maxIndent = 0;
             while (true)
@@ -678,7 +682,20 @@ namespace VYaml
                 {
                     break;
                 }
-                lineBreak = ConsumeLineBreaks();
+
+                switch (ConsumeLineBreaks())
+                {
+                    case LineBreakState.Lf:
+                        blockLineBreaks.Add(YamlCodes.Lf);
+                        break;
+                    case LineBreakState.CrLf:
+                        blockLineBreaks.Add(YamlCodes.Cr);
+                        blockLineBreaks.Add(YamlCodes.Lf);
+                        break;
+                    case LineBreakState.Cr:
+                        blockLineBreaks.Add(YamlCodes.Cr);
+                        break;
+                }
             }
 
             if (blockIndent == 0)
@@ -705,7 +722,7 @@ namespace VYaml
             var trailingBreak = default(LineBreakState);
             var isLeadingBlanks = false;
             var scalar = scalarPool.Rent();
-            whitespaces.Clear();
+            whitespaceBuffer.Clear();
 
             // Eat the left quote
             Advance(1);
@@ -863,7 +880,7 @@ namespace VYaml
                         // Consume a space or a tab character.
                         if (!isLeadingBlanks)
                         {
-                            whitespaces.Add(code);
+                            whitespaceBuffer.Add(code);
                         }
                         Advance(1);
                     }
@@ -876,7 +893,7 @@ namespace VYaml
                         }
                         else
                         {
-                            whitespaces.Clear();
+                            whitespaceBuffer.Clear();
                             leadingBreak = ConsumeLineBreaks();
                             isLeadingBlanks = true;
                         }
@@ -907,8 +924,8 @@ namespace VYaml
                 }
                 else
                 {
-                    scalar.Write(whitespaces.AsSpan());
-                    whitespaces.Clear();
+                    scalar.Write(whitespaceBuffer.AsSpan());
+                    whitespaceBuffer.Clear();
                 }
             }
 
@@ -940,7 +957,7 @@ namespace VYaml
             var isLeadingBlanks = false;
             var scalar = scalarPool.Rent();
 
-            whitespaces.Clear();
+            whitespaceBuffer.Clear();
 
             while (true)
             {
@@ -974,7 +991,7 @@ namespace VYaml
                         break;
                     }
 
-                    if (isLeadingBlanks || whitespaces.Length > 0)
+                    if (isLeadingBlanks || whitespaceBuffer.Length > 0)
                     {
                         if (isLeadingBlanks)
                         {
@@ -1000,8 +1017,8 @@ namespace VYaml
                         }
                         else
                         {
-                            scalar.Write(whitespaces.AsSpan());
-                            whitespaces.Clear();
+                            scalar.Write(whitespaceBuffer.AsSpan());
+                            whitespaceBuffer.Clear();
                         }
                     }
 
@@ -1026,7 +1043,7 @@ namespace VYaml
                             throw new YamlTokenizerException(mark, "While scanning a plain scaler, found a tab");
                         }
                         if (!isLeadingBlanks)
-                            whitespaces.Add(code);
+                            whitespaceBuffer.Add(code);
                         Advance(1);
                     }
                     // line-break
@@ -1041,7 +1058,7 @@ namespace VYaml
                         {
                             leadingBreak = ConsumeLineBreaks();
                             isLeadingBlanks = true;
-                            whitespaces.Clear();
+                            whitespaceBuffer.Clear();
                         }
                     }
                 }

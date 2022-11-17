@@ -861,7 +861,7 @@ public static class SpecExamples
         "folded:\n" +
         "   !foo\n" +
         "  >1\n" +
-        " value\n";
+        " value";
 
     public const string Ex8_22 =
         "sequence: !!seq\n" +
@@ -870,4 +870,12 @@ public static class SpecExamples
         " - nested\n" +
         "mapping: !!map\n" +
         " foo: bar\n";
+
+    public const string Ex10_8 =
+        "A null: null\n" +
+        "Booleans: [ true, false ]\n" +
+        "Integers: [ 0, -0, 3, -19 ]\n" +
+        "Floats: [ 0., -0.0, 12e03, -2E+05 ]\n" +
+        "Invalid: [ True, Null,\n" +
+        "0o7, 0x3A, +12.3 ]";
 }

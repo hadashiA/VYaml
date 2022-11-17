@@ -10,17 +10,14 @@ namespace VYaml.Internal
 
         public Scalar Rent()
         {
-            if (queue.TryDequeue(out var scalar))
-            {
-                scalar.Clear();
-                return scalar;
-            }
-            return new Scalar(2048);
+            return queue.TryDequeue(out var scalar)
+                ? scalar
+                : new Scalar(2048);
         }
 
         public void Return(Scalar scalar)
         {
-            // scalar.Clear();
+            scalar.Clear();
             queue.Enqueue(scalar);
         }
     }
@@ -77,9 +74,8 @@ namespace VYaml.Internal
 
         public void Write(ReadOnlySpan<byte> codes)
         {
-            var sizeBefore = buffer.Length;
-            buffer.Grow(sizeBefore + codes.Length);
-            codes.CopyTo(buffer.AsSpan(sizeBefore, codes.Length));
+            buffer.Grow(buffer.Length + codes.Length);
+            codes.CopyTo(buffer.AsSpan(buffer.Length, codes.Length));
             buffer.Length += codes.Length;
         }
 
@@ -102,7 +98,7 @@ namespace VYaml.Internal
         /// <remarks>
         /// null | Null | NULL | ~
         /// </remarks>
-        /// <returns></returns>
+        /// <see href="https://yaml.org/type/null.html"/>
         public bool IsNull()
         {
             var span = buffer.AsSpan();
@@ -124,6 +120,7 @@ namespace VYaml.Internal
         /// tag:yaml.org,2002:bool
         /// true | True | TRUE | false | False | FALSE
         /// </remarks>
+        /// <see href="https://yaml.org/type/bool.html" />
         public bool TryGetBool(out bool value)
         {
             var span = buffer.AsSpan();
