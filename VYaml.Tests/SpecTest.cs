@@ -433,6 +433,73 @@ public class SpecTest
     }
 
     [Test]
+    public void Ex2_19_Integers()
+    {
+        AssertParseEvents(SpecExamples.Ex2_19, new []
+        {
+            Expect(ParseEventType.StreamStart),
+            Expect(ParseEventType.DocumentStart),
+            Expect(ParseEventType.MappingStart),
+            Expect(ParseEventType.Scalar, "canonical"),
+            Expect(ParseEventType.Scalar, 12345),
+            Expect(ParseEventType.Scalar, "decimal"),
+            Expect(ParseEventType.Scalar, +12345),
+            Expect(ParseEventType.Scalar, "octal"),
+            Expect(ParseEventType.Scalar, 12), // 0x12
+            Expect(ParseEventType.Scalar, "hexadecimal"),
+            Expect(ParseEventType.Scalar, 0xC),
+            Expect(ParseEventType.MappingEnd),
+            Expect(ParseEventType.DocumentEnd),
+            Expect(ParseEventType.StreamEnd),
+        });
+    }
+
+    [Test]
+    public void Ex2_21_Miscellaneous()
+    {
+        AssertParseEvents(SpecExamples.Ex2_21, new []
+        {
+            Expect(ParseEventType.StreamStart),
+            Expect(ParseEventType.DocumentStart),
+            Expect(ParseEventType.MappingStart),
+            Expect(ParseEventType.Scalar, null),
+            Expect(ParseEventType.Scalar, null),
+            Expect(ParseEventType.Scalar, "booleans"),
+            Expect(ParseEventType.SequenceStart),
+            Expect(ParseEventType.Scalar, true),
+            Expect(ParseEventType.Scalar, false),
+            Expect(ParseEventType.SequenceEnd),
+            Expect(ParseEventType.Scalar, "string"),
+            Expect(ParseEventType.Scalar, "012345"),
+            Expect(ParseEventType.MappingEnd),
+            Expect(ParseEventType.DocumentEnd),
+            Expect(ParseEventType.StreamEnd),
+        });
+    }
+
+    [Test]
+    public void Ex2_22_Timestamps()
+    {
+        AssertParseEvents(SpecExamples.Ex2_22, new []
+        {
+            Expect(ParseEventType.StreamStart),
+            Expect(ParseEventType.DocumentStart),
+            Expect(ParseEventType.MappingStart),
+            Expect(ParseEventType.Scalar, "canonical"),
+            Expect(ParseEventType.Scalar, "2001-12-15T02:59:43.1Z"),
+            Expect(ParseEventType.Scalar, "iso8601"),
+            Expect(ParseEventType.Scalar, "2001-12-14t21:59:43.10-05:00"),
+            Expect(ParseEventType.Scalar, "spaced"),
+            Expect(ParseEventType.Scalar, "2001-12-14 21:59:43.10 -5"),
+            Expect(ParseEventType.Scalar, "date"),
+            Expect(ParseEventType.Scalar, "2002-12-14"),
+            Expect(ParseEventType.MappingEnd),
+            Expect(ParseEventType.DocumentEnd),
+            Expect(ParseEventType.StreamEnd),
+        });
+    }
+
+    [Test]
     public void Ex2_23_VariousExplicitTags()
     {
         AssertParseEvents(SpecExamples.Ex2_23, new []
@@ -2194,7 +2261,7 @@ public class SpecTest
                 if (expect.ExpectScalarDataType == typeof(int))
                 {
                     expect.Scalar.TryGetInt32(out var expectValue);
-                    if (parser.TryGetScalarAsInt32(out var actualValue) && expectValue != actualValue)
+                    if (!parser.TryGetScalarAsInt32(out var actualValue) || expectValue != actualValue)
                     {
                         Assert.Fail($"Expected {expectValue} ({expect}) at {i}\n" +
                                     $"  But was: {actualValue}");
@@ -2204,7 +2271,7 @@ public class SpecTest
                          expect.ExpectScalarDataType == typeof(double))
                 {
                     expect.Scalar.TryGetDouble(out var expectValue);
-                    if (parser.TryGetScalarAsDouble(out var actualValue) && Math.Abs(expectValue - actualValue) > 0.001)
+                    if (!parser.TryGetScalarAsDouble(out var actualValue) || Math.Abs(expectValue - actualValue) > 0.001)
                     {
                         Assert.Fail($"Expected {expectValue} of {expect} at {i}\n" +
                                     $"  But was: {actualValue}");
@@ -2213,7 +2280,7 @@ public class SpecTest
                 else if (expect.ExpectScalarDataType == typeof(bool))
                 {
                     expect.Scalar.TryGetBool(out var expectValue);
-                    if (parser.TryGetScalarAsBool(out var actualValue) && actualValue != expectValue)
+                    if (!parser.TryGetScalarAsBool(out var actualValue) || actualValue != expectValue)
                     {
                         Assert.Fail($"Expected {expectValue} of {expect} at {i}\n" +
                                     $"  But was: {actualValue} of {parser.GetScalarAsString()}");

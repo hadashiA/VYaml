@@ -16,4 +16,10 @@
       <ProjectReference Include="..\VYaml\VYaml.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <Content Include="Examples\*.yaml">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
 </Project>

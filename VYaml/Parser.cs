@@ -219,13 +219,11 @@ namespace VYaml
             }
 
             currentEvent = StateMachine();
-            System.Console.WriteLine($"EVENT {currentEvent.Type}");
             return true;
         }
 
         ParseEvent StateMachine()
         {
-            System.Console.WriteLine($"STATE {currentState}");
             switch (currentState)
             {
                 case ParseState.StreamStart:

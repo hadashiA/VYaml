@@ -8,47 +8,36 @@ using VYaml;
 using VYaml.Formatters;
 
 [MemoryDiagnoser]
-public class ParserBenchmark
+public class SimpleParsingBenchmark
 {
     byte[] yamlBytes;
     string yamlString;
 
-    public ParserBenchmark()
+    [GlobalSetup]
+    public void Setup()
     {
-        var data = new[]
+        var path = Path.Combine(Directory.GetCurrentDirectory(), "Examples", "sample_envoy.yaml");
+        yamlBytes = File.ReadAllBytes(path);
+        yamlString = Encoding.UTF8.GetString(yamlBytes);
+    }
+
+    [Benchmark]
+    public void YamlDotNet_Parser()
+    {
+        using var reader = new StringReader(yamlString);
+        var parser = new YamlDotNet.Core.Parser(reader);
+        while (parser.MoveNext())
         {
-            "- item 1",
-            "- item 2",
-            "-",
-            "  - item 3.1",
-            "  - item 3.2",
-            "-",
-            "  key 1: value 1",
-            "  key 2: value 2",
-            "  key 3: { a: [{x: 100, y: 200}, {x: 300, y: 400}] }"
-        };
-        yamlString = string.Join('\n', data);
-        yamlBytes = Encoding.UTF8.GetBytes(yamlString);
+        }
     }
 
     [Benchmark]
-    public void YamlDotNet_Scanner()
+    public void VYaml_Parser()
     {
-        // var scanner = new Scanner(new StreamReader(new MemoryStream(yamlBytes)));
-        // while (scanner.MoveNext())
-        // {
-        // }
-        var deserializer = new YamlDotNet.Serialization.DeserializerBuilder().Build();
-        var result = deserializer.Deserialize<object>(yamlString);
-
-    }
-
-    [Benchmark]
-    public void VYaml_Utf8YamlReader()
-    {
-        var reader = new Utf8Tokenizer(new ReadOnlySequence<byte>(yamlBytes));
-        reader.SkipAfter(TokenType.DocumentStart);
-        var result = new PrimitiveObjectFormatter().Deserialize(ref reader);
+        var parser = Parser.FromBytes(yamlBytes);
+        while (parser.Read())
+        {
+        }
     }
 }
 
@@ -56,7 +45,7 @@ static class Program
 {
     static int Main()
     {
-        BenchmarkRunner.Run<ParserBenchmark>();
+        BenchmarkRunner.Run<SimpleParsingBenchmark>();
         return 0;
     }
 }

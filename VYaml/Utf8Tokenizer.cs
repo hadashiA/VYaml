@@ -130,7 +130,6 @@ namespace VYaml
                 scalarPool.Return(scalar);
             }
             currentToken = tokens.Dequeue();
-            System.Console.WriteLine($"  TOKEN {currentToken}");
             tokenAvailable = false;
             tokensParsed += 1;
 
