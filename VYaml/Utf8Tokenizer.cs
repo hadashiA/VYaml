@@ -58,7 +58,7 @@ namespace VYaml
         public override string ToString() => $"{Type} \"{Scalar}\"";
     }
 
-    public ref partial struct Utf8Tokenizer
+    public ref struct Utf8Tokenizer
     {
         public TokenType CurrentTokenType
         {
@@ -252,10 +252,8 @@ namespace VYaml
                     ConsumeComplexKeyStart();
                     break;
                 case YamlCodes.MapValueIndent
-                    when !reader.TryPeek(1L, out var nextCode) ||
-                         YamlCodes.IsEmpty(nextCode) ||
-                        (flowLevel > 0 && (YamlCodes.IsAnyFlowSymbol(nextCode) ||
-                                           mark.Position == adjacentValueAllowedAt)):
+                    when (reader.TryPeek(1L, out var nextCode) && YamlCodes.IsEmpty(nextCode)) ||
+                         (flowLevel > 0 && (YamlCodes.IsAnyFlowSymbol(nextCode) || mark.Position == adjacentValueAllowedAt)):
                     ConsumeValueStart();
                     break;
                 case YamlCodes.Alias:
@@ -886,11 +884,11 @@ namespace VYaml
                 // Consume non-blank characters
                 while (!reader.End && !YamlCodes.IsBlank(currentCode) && !YamlCodes.IsLineBreak(currentCode))
                 {
-                    reader.TryPeek(1L, out var nextCode);
                     switch (currentCode)
                     {
                         // Check for an escaped single quote
-                        case YamlCodes.SingleQuote when nextCode == YamlCodes.SingleQuote && singleQuote:
+                        case YamlCodes.SingleQuote when reader.TryPeek(1L, out var nextCode) &&
+                                                        nextCode == YamlCodes.SingleQuote && singleQuote:
                             scalar.Write((byte)'\'');
                             Advance(2);
                             break;
@@ -899,7 +897,9 @@ namespace VYaml
                         case YamlCodes.DoubleQuote when !singleQuote:
                             goto LOOPEND;
                         // Check for an escaped line break.
-                        case (byte)'\\' when !singleQuote && YamlCodes.IsLineBreak(nextCode):
+                        case (byte)'\\' when !singleQuote &&
+                                             reader.TryPeek(1L, out var nextCode) &&
+                                             YamlCodes.IsLineBreak(nextCode):
                             Advance(1);
                             ConsumeLineBreaks();
                             isLeadingBlanks = true;
@@ -907,7 +907,8 @@ namespace VYaml
                         // Check for an escape sequence.
                         case (byte)'\\' when !singleQuote:
                             var codeLength = 0;
-                            switch (nextCode)
+                            reader.TryPeek(1L, out var escaped);
+                            switch (escaped)
                             {
                                 case (byte)'0':
                                     scalar.Write((byte)'\0');
@@ -1173,7 +1174,7 @@ namespace VYaml
                     // whitespaces
                     if (YamlCodes.IsBlank(currentCode))
                     {
-                        if (isLeadingBlanks && mark.Col < currentIndent && currentIndent == YamlCodes.Tab)
+                        if (isLeadingBlanks && mark.Col < currentIndent && currentCode == YamlCodes.Tab)
                         {
                             throw new YamlTokenizerException(mark, "While scanning a plain scaler, found a tab");
                         }
