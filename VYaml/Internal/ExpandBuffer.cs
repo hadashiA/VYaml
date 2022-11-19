@@ -58,6 +58,18 @@ namespace VYaml.Internal
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryPop(out T value)
+        {
+            if (Length == 0)
+            {
+                value = default!;
+                return false;
+            }
+            value = Pop();
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Add(T item)
         {
             if (Length == buffer.Length)

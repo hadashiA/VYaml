@@ -147,6 +147,7 @@ namespace VYaml
         ParseState currentState;
         ParseEvent currentEvent;
         Scalar? currentScalar;
+        // int lastAnchorId;
         readonly Dictionary<string, int> anchors;
         readonly ExpandBuffer<ParseState> stateStack;
 
@@ -395,7 +396,11 @@ namespace VYaml
                     throw new NotImplementedException();
 
                 case TokenType.Tag:
+                    tokenizer.Read();
+                    ThrowIfCurrentTokenUnless(TokenType.Anchor);
                     throw new NotImplementedException();
+                    tokenizer.Read();
+                    break;
             }
 
             switch (CurrentTokenType)
@@ -779,6 +784,11 @@ namespace VYaml
                 }
                 tokenizer.Read();
             }
+        }
+
+        void RegisterAnchor()
+        {
+
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

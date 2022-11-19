@@ -1,15 +1,14 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
-using System.Buffers;
 using System.Text;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
 using VYaml;
-using VYaml.Formatters;
 
 [MemoryDiagnoser]
 public class SimpleParsingBenchmark
 {
+    const int N = 100;
     byte[] yamlBytes;
     string yamlString;
 
@@ -26,8 +25,11 @@ public class SimpleParsingBenchmark
     {
         using var reader = new StringReader(yamlString);
         var parser = new YamlDotNet.Core.Parser(reader);
-        while (parser.MoveNext())
+        for (var i = 0; i < N; i++)
         {
+            while (parser.MoveNext())
+            {
+            }
         }
     }
 
@@ -35,8 +37,11 @@ public class SimpleParsingBenchmark
     public void VYaml_Parser()
     {
         var parser = Parser.FromBytes(yamlBytes);
-        while (parser.Read())
+        for (var i = 0; i < N; i++)
         {
+            while (parser.Read())
+            {
+            }
         }
     }
 }

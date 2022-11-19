@@ -1,24 +1,27 @@
 using System;
 using System.Buffers.Text;
-using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 
 namespace VYaml.Internal
 {
     class ScalarPool
     {
-        readonly ConcurrentQueue<Scalar> queue = new();
+        // readonly ConcurrentQueue<Scalar> queue = new();
+        readonly ExpandBuffer<Scalar> queue = new(32);
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Scalar Rent()
         {
-            return queue.TryDequeue(out var scalar)
+            return queue.TryPop(out var scalar)
                 ? scalar
                 : new Scalar(2048);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Return(Scalar scalar)
         {
             scalar.Clear();
-            queue.Enqueue(scalar);
+            queue.Add(scalar);
         }
     }
 
@@ -44,13 +47,19 @@ namespace VYaml.Internal
             Write(content);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ReadOnlySpan<byte> AsSpan() => buffer.AsSpan();
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ReadOnlySpan<byte> AsSpan(int start, int length) => buffer.AsSpan(start, length);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(byte code)
         {
             buffer.Add(code);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(LineBreakState lineBreak)
         {
             switch (lineBreak)
@@ -72,6 +81,7 @@ namespace VYaml.Internal
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(ReadOnlySpan<byte> codes)
         {
             buffer.Grow(buffer.Length + codes.Length);
@@ -79,6 +89,7 @@ namespace VYaml.Internal
             buffer.Length += codes.Length;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteUnicodeCodepoint(int codepoint)
         {
             Span<char> chars = stackalloc char[] { (char)codepoint };
@@ -88,6 +99,7 @@ namespace VYaml.Internal
             Write(utf8Bytes);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()
         {
             buffer.Clear();
