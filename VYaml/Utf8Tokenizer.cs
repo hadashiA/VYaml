@@ -78,6 +78,7 @@ namespace VYaml
 
         bool streamStartProduced;
         bool streamEndProduced;
+        byte currentCode;
         int indent;
         bool simpleKeyAllowed;
         int adjacentValueAllowedAt;
@@ -118,6 +119,8 @@ namespace VYaml
             tokenAvailable = false;
 
             currentToken = default;
+
+            reader.TryPeek(out currentCode);
         }
 
         public bool Read()
@@ -198,7 +201,7 @@ namespace VYaml
             StaleSimpleKeyCandidates();
             UnrollIndent(mark.Col);
 
-            if (!reader.TryPeek(out var code))
+            if (reader.End)
             {
                 ConsumeStreamEnd();
                 return;
@@ -206,7 +209,7 @@ namespace VYaml
 
             if (mark.Col == 0)
             {
-                if (code == YamlCodes.DirectiveLine)
+                if (currentCode == YamlCodes.DirectiveLine)
                 {
                     ConsumeDirective();
                     return;
@@ -223,7 +226,7 @@ namespace VYaml
                 }
             }
 
-            switch (code)
+            switch (currentCode)
             {
                 case YamlCodes.FlowSequenceStart:
                     ConsumeFlowCollectionStart(TokenType.FlowSequenceStart);
@@ -287,7 +290,7 @@ namespace VYaml
                     ConsumePlainScaler();
                     break;
                 case (byte)'%' or (byte)'@' or (byte)'`':
-                    throw new YamlTokenizerException(in mark, $"Unexpected character: '{code}'");
+                    throw new YamlTokenizerException(in mark, $"Unexpected character: '{currentCode}'");
                 default:
                     ConsumePlainScaler();
                     break;
@@ -440,9 +443,9 @@ namespace VYaml
             var scalar = scalarPool.Rent();
             Advance(1);
 
-            while (reader.TryPeek(out var code) && YamlCodes.IsAlphaNumericDashOrUnderscore(code))
+            while (YamlCodes.IsAlphaNumericDashOrUnderscore(currentCode))
             {
-                scalar.Write(code);
+                scalar.Write(currentCode);
                 Advance(1);
             }
 
@@ -452,16 +455,15 @@ namespace VYaml
                     "while scanning an anchor or alias, did not find expected alphabetic or numeric character");
             }
 
-            reader.TryPeek(out var lastCode);
-            if (!YamlCodes.IsBlank(lastCode) &&
-                lastCode != '?' &&
-                lastCode != ':' &&
-                lastCode != ',' &&
-                lastCode != ']' &&
-                lastCode != '}' &&
-                lastCode != '%' &&
-                lastCode != '@' &&
-                lastCode != '`')
+            if (!YamlCodes.IsBlank(currentCode) &&
+                currentCode != '?' &&
+                currentCode != ':' &&
+                currentCode != ',' &&
+                currentCode != ']' &&
+                currentCode != '}' &&
+                currentCode != '%' &&
+                currentCode != '@' &&
+                currentCode != '`')
             {
                 throw new YamlTokenizerException(mark,
                     "while scanning an anchor or alias, did not find expected alphabetic or numeric character");
@@ -487,7 +489,7 @@ namespace VYaml
                 Advance(2);
                 ConsumeTagUri(false, tag);
 
-                if (!reader.TryPeek(out var code) || code != '>')
+                if (currentCode != '>')
                 {
                     throw new YamlTokenizerException(mark, "While scanning a tag, did not find the expected '>'");
                 }
@@ -522,7 +524,7 @@ namespace VYaml
                 }
             }
 
-            if (!reader.TryPeek(out var lastCode) || YamlCodes.IsBlank(lastCode))
+            if (YamlCodes.IsBlank(currentCode))
             {
                 // ex 7.2, an empty scalar can follow a secondary tag
                 tokens.Enqueue(new Token(TokenType.Tag, startMark, null, tag));
@@ -536,25 +538,25 @@ namespace VYaml
 
         void ConsumeTagHandle(bool directive, Tag tag)
         {
-            if (!reader.TryPeek(out var code) || code != '!')
+            if (currentCode != '!')
             {
                 throw new YamlTokenizerException(mark,
                     "While scanning a tag, did not find expected '!'");
             }
 
-            tag.Handle.Write(code);
+            tag.Handle.Write(currentCode);
             Advance(1);
 
-            while (reader.TryPeek(out code) && YamlCodes.IsAlphaNumericDashOrUnderscore(code))
+            while (YamlCodes.IsAlphaNumericDashOrUnderscore(currentCode))
             {
-                tag.Handle.Write(code);
+                tag.Handle.Write(currentCode);
                 Advance(1);
             }
 
             // Check if the trailing character is '!' and copy it.
-            if (reader.TryPeek(out code) && code == '!')
+            if (currentCode == '!')
             {
-                tag.Handle.Write(code);
+                tag.Handle.Write(currentCode);
                 Advance(1);
             }
             else if (directive)
@@ -580,20 +582,19 @@ namespace VYaml
             }
 
             // The set of characters that may appear in URI is as follows:
-            while (reader.TryPeek(out var code) &&
-                   (code is
+            while (currentCode is
                        (byte)';' or (byte)'/' or (byte)'?' or (byte)':' or (byte)':' or (byte)'@' or (byte)'&' or
                        (byte)'=' or (byte)'+' or (byte)'$' or (byte)',' or (byte)'.' or (byte)'!' or (byte)'!' or
                        (byte)'~' or (byte)'*' or (byte)'\'' or (byte)'(' or (byte)')' or (byte)'[' or (byte)']' ||
-                   YamlCodes.IsAlphaNumericDashOrUnderscore(code)))
+                   YamlCodes.IsAlphaNumericDashOrUnderscore(currentCode))
             {
-                if (code == '%')
+                if (currentCode == '%')
                 {
                     result.Suffix.WriteUnicodeCodepoint(ConsumeUriEscapes(directive));
                 }
                 else
                 {
-                    result.Suffix.Write(code);
+                    result.Suffix.Write(currentCode);
                     Advance(1);
                 }
 
@@ -606,11 +607,11 @@ namespace VYaml
             var width = 0;
             var codepoint = 0;
 
-            while (reader.TryPeek(out var code))
+            while (!reader.End)
             {
                 reader.TryPeek(1L, out var hexcode0);
                 reader.TryPeek(2L, out var hexcode1);
-                if (!(code == '%' && YamlCodes.IsHex(hexcode0) && YamlCodes.IsHex(hexcode1)))
+                if (!(currentCode == '%' && YamlCodes.IsHex(hexcode0) && YamlCodes.IsHex(hexcode1)))
                 {
                     throw new YamlTokenizerException(mark, "While parsing a tag, did not find URI escaped octet");
                 }
@@ -635,7 +636,7 @@ namespace VYaml
                         throw new YamlTokenizerException(mark,
                             "While parsing a tag, found an incorrect trailing utf8 octet");
                     }
-                    codepoint = (code << 8) + octet;
+                    codepoint = (currentCode << 8) + octet;
                 }
 
                 Advance(3);
@@ -673,62 +674,61 @@ namespace VYaml
             // skip '|' or '>'
             Advance(1);
 
-            reader.TryPeek(out var code);
-            if (code is (byte)'+' or (byte)'-')
+            if (currentCode is (byte)'+' or (byte)'-')
             {
-                chomping = code == (byte)'+' ? 1 : -1;
+                chomping = currentCode == (byte)'+' ? 1 : -1;
                 Advance(1);
-                if (reader.TryPeek(out code) && YamlCodes.IsNumber(code))
+                if (YamlCodes.IsNumber(currentCode))
                 {
-                    if (code == (byte)'0')
+                    if (currentCode == (byte)'0')
                     {
                         throw new YamlTokenizerException(in mark,
                             "While scanning a block scalar, found an indentation indicator equal to 0");
                     }
 
-                    increment = YamlCodes.AsHex(code);
+                    increment = YamlCodes.AsHex(currentCode);
                     Advance(1);
                 }
             }
-            else if (YamlCodes.IsNumber(code))
+            else if (YamlCodes.IsNumber(currentCode))
             {
-                if (code == (byte)'0')
+                if (currentCode == (byte)'0')
                 {
                     throw new YamlTokenizerException(in mark,
                         "While scanning a block scalar, found an indentation indicator equal to 0");
                 }
-                increment = YamlCodes.AsHex(code);
+                increment = YamlCodes.AsHex(currentCode);
                 Advance(1);
 
-                if (reader.TryPeek(out code) && code is (byte)'+' or (byte)'-')
+                if (currentCode is (byte)'+' or (byte)'-')
                 {
-                    chomping = code == (byte)'+' ? 1 : -1;
+                    chomping = currentCode == (byte)'+' ? 1 : -1;
                     Advance(1);
                 }
             }
 
             // Eat whitespaces and comments to the end of the line.
-            while (reader.TryPeek(out code) && YamlCodes.IsBlank(code))
+            while (YamlCodes.IsBlank(currentCode))
             {
                 Advance(1);
             }
 
-            if (reader.TryPeek(out code) && code == YamlCodes.Comment)
+            if (currentCode == YamlCodes.Comment)
             {
-                while (reader.TryPeek(out code) && !YamlCodes.IsLineBreak(code))
+                while (!YamlCodes.IsLineBreak(currentCode))
                 {
                     Advance(1);
                 }
             }
 
             // Check if we are at the end of the line.
-            if (!reader.TryPeek(out code) && !YamlCodes.IsLineBreak(code))
+            if (!reader.End && !YamlCodes.IsLineBreak(currentCode))
             {
                 throw new YamlTokenizerException(in mark,
                     "While scanning a block scalar, did not find expected commnet or line break");
             }
 
-            if (YamlCodes.IsLineBreak(code))
+            if (YamlCodes.IsLineBreak(currentCode))
             {
                 ConsumeLineBreaks();
             }
@@ -741,10 +741,10 @@ namespace VYaml
             // Scan the leading line breaks and determine the indentation level if needed.
             ConsumeBlockScalarBreaks(ref blockIndent, trailingBreaks);
 
-            while (mark.Col == blockIndent && reader.TryPeek(out code))
+            while (mark.Col == blockIndent)
             {
                 // We are at the beginning of a non-empty line.
-                trailingBlank = YamlCodes.IsBlank(code);
+                trailingBlank = YamlCodes.IsBlank(currentCode);
                 if (!literal &&
                     leadingBreak != LineBreakState.None &&
                     !leadingBlank &&
@@ -761,13 +761,13 @@ namespace VYaml
                 }
 
                 scalar.Write(trailingBreaks.AsSpan());
-                leadingBlank = YamlCodes.IsBlank(code);
+                leadingBlank = YamlCodes.IsBlank(currentCode);
                 leadingBreak = LineBreakState.None;
                 trailingBreaks.Clear();
 
-                while (reader.TryPeek(out code) && !YamlCodes.IsLineBreak(code))
+                while (!reader.End && !YamlCodes.IsLineBreak(currentCode))
                 {
-                    scalar.Write(code);
+                    scalar.Write(currentCode);
                     Advance(1);
                 }
                 // break on EOF
@@ -797,10 +797,8 @@ namespace VYaml
             var maxIndent = 0;
             while (true)
             {
-                byte code;
-                while (reader.TryPeek(out code) &&
-                       (blockIndent == 0 || mark.Col < blockIndent) &&
-                       code == YamlCodes.Space)
+                while ((blockIndent == 0 || mark.Col < blockIndent) &&
+                       currentCode == YamlCodes.Space)
                 {
                     Advance(1);
                 }
@@ -811,13 +809,13 @@ namespace VYaml
                 }
 
                 // Check for a tab character messing the indentation.
-                if ((blockIndent == 0 || mark.Col < blockIndent) && code == YamlCodes.Tab)
+                if ((blockIndent == 0 || mark.Col < blockIndent) && currentCode == YamlCodes.Tab)
                 {
                     throw new YamlTokenizerException(in mark,
                         "while scanning a block scalar, found a tab character where an indentation space is expected");
                 }
 
-                if (!YamlCodes.IsLineBreak(code))
+                if (!YamlCodes.IsLineBreak(currentCode))
                 {
                     break;
                 }
@@ -886,11 +884,10 @@ namespace VYaml
                 isLeadingBlanks = false;
 
                 // Consume non-blank characters
-                byte code;
-                while (reader.TryPeek(out code) && !YamlCodes.IsBlank(code) && !YamlCodes.IsLineBreak(code))
+                while (!reader.End && !YamlCodes.IsBlank(currentCode) && !YamlCodes.IsLineBreak(currentCode))
                 {
                     reader.TryPeek(1L, out var nextCode);
-                    switch (code)
+                    switch (currentCode)
                     {
                         // Check for an escaped single quote
                         case YamlCodes.SingleQuote when nextCode == YamlCodes.SingleQuote && singleQuote:
@@ -1004,22 +1001,21 @@ namespace VYaml
                             Advance(codeLength);
                             break;
                         default:
-                            scalar.Write(code);
+                            scalar.Write(currentCode);
                             Advance(1);
                             break;
                     }
                 }
 
                 // Consume blank characters.
-                while (reader.TryPeek(out code) &&
-                       (YamlCodes.IsBlank(code) || YamlCodes.IsLineBreak(code)))
+                while (YamlCodes.IsBlank(currentCode) || YamlCodes.IsLineBreak(currentCode))
                 {
-                    if (YamlCodes.IsBlank(code))
+                    if (YamlCodes.IsBlank(currentCode))
                     {
                         // Consume a space or a tab character.
                         if (!isLeadingBlanks)
                         {
-                            whitespaceBuffer.Add(code);
+                            whitespaceBuffer.Add(currentCode);
                         }
                         Advance(1);
                     }
@@ -1108,14 +1104,14 @@ namespace VYaml
                     break;
                 }
 
-                if (reader.TryPeek(out var code) && code == YamlCodes.Comment)
+                if (currentCode == YamlCodes.Comment)
                 {
                     break;
                 }
 
-                while (reader.TryPeek(out code) && !YamlCodes.IsEmpty(code))
+                while (!reader.End && !YamlCodes.IsEmpty(currentCode))
                 {
-                    if (code == YamlCodes.MapValueIndent)
+                    if (currentCode == YamlCodes.MapValueIndent)
                     {
                         var hasNext = reader.TryPeek(1, out var nextCode);
                         if (!hasNext ||
@@ -1125,7 +1121,7 @@ namespace VYaml
                             break;
                         }
                     }
-                    else if (YamlCodes.IsAnyFlowSymbol(code) && flowLevel > 0)
+                    else if (YamlCodes.IsAnyFlowSymbol(currentCode) && flowLevel > 0)
                     {
                         break;
                     }
@@ -1161,28 +1157,28 @@ namespace VYaml
                         }
                     }
 
-                    scalar.Write(code);
+                    scalar.Write(currentCode);
                     Advance(1);
                 }
 
                 // is the end?
-                if (!YamlCodes.IsEmpty(code))
+                if (!YamlCodes.IsEmpty(currentCode))
                 {
                     break;
                 }
 
                 // whitespaces or line-breaks
-                while (reader.TryPeek(out code) && YamlCodes.IsEmpty(code))
+                while (YamlCodes.IsEmpty(currentCode))
                 {
                     // whitespaces
-                    if (YamlCodes.IsBlank(code))
+                    if (YamlCodes.IsBlank(currentCode))
                     {
-                        if (isLeadingBlanks && mark.Col < currentIndent && code == YamlCodes.Tab)
+                        if (isLeadingBlanks && mark.Col < currentIndent && currentIndent == YamlCodes.Tab)
                         {
                             throw new YamlTokenizerException(mark, "While scanning a plain scaler, found a tab");
                         }
                         if (!isLeadingBlanks)
-                            whitespaceBuffer.Add(code);
+                            whitespaceBuffer.Add(currentCode);
                         Advance(1);
                     }
                     // line-break
@@ -1215,9 +1211,9 @@ namespace VYaml
 
         void SkipToNextToken()
         {
-            while (reader.TryPeek(out var code))
+            while (true)
             {
-                switch (code)
+                switch (currentCode)
                 {
                     case YamlCodes.Space:
                         Advance(1);
@@ -1231,10 +1227,9 @@ namespace VYaml
                         if (flowLevel == 0) simpleKeyAllowed = true;
                         break;
                     case YamlCodes.Comment:
-                        while (!reader.End && !YamlCodes.IsLineBreak(code))
+                        while (!reader.End && !YamlCodes.IsLineBreak(currentCode))
                         {
                             Advance(1);
-                            reader.TryPeek(out code);
                         }
                         break;
                     case 0xFE when reader.IsNext(YamlCodes.Bom):
@@ -1251,9 +1246,8 @@ namespace VYaml
         {
             for (var i = 0; i < offset; i++)
             {
-                EnsureMoreData(reader.TryRead(out var code));
                 mark.Position += 1;
-                if (code == YamlCodes.Lf)
+                if (currentCode == YamlCodes.Lf)
                 {
                     mark.Line += 1;
                     mark.Col = 0;
@@ -1262,18 +1256,20 @@ namespace VYaml
                 {
                     mark.Col += 1;
                 }
+                reader.Advance(1);
+                reader.TryPeek(out currentCode);
             }
         }
 
         LineBreakState ConsumeLineBreaks()
         {
-            if (!reader.TryPeek(out var code))
+            if (reader.End)
                 return LineBreakState.None;
 
-            switch (code)
+            switch (currentCode)
             {
                 case YamlCodes.Cr:
-                    if (reader.TryPeek(out var secondCode) && secondCode == YamlCodes.Lf)
+                    if (reader.TryPeek(1L, out var secondCode) && secondCode == YamlCodes.Lf)
                     {
                         Advance(2);
                         return LineBreakState.CrLf;
