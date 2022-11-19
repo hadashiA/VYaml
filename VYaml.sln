@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VYaml.Tests", "VYaml.Tests\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VYaml.Benchmark", "VYaml.Benchmark\VYaml.Benchmark.csproj", "{D4FB8270-6E93-447C-B97F-851E711CEC4B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleVYaml", "SampleVYaml\SampleVYaml.csproj", "{841BE69D-C2B1-468E-88BF-F05F9ECB0492}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{D4FB8270-6E93-447C-B97F-851E711CEC4B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D4FB8270-6E93-447C-B97F-851E711CEC4B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D4FB8270-6E93-447C-B97F-851E711CEC4B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{841BE69D-C2B1-468E-88BF-F05F9ECB0492}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{841BE69D-C2B1-468E-88BF-F05F9ECB0492}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{841BE69D-C2B1-468E-88BF-F05F9ECB0492}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{841BE69D-C2B1-468E-88BF-F05F9ECB0492}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

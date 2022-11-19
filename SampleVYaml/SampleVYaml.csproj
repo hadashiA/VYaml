@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net7.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Content Include="*.yaml">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\VYaml\VYaml.csproj" />
+    </ItemGroup>
+
+</Project>
