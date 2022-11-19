@@ -6,13 +6,20 @@ namespace VYaml.Internal
 {
     class ScalarPool
     {
-        // readonly ConcurrentQueue<Scalar> queue = new();
-        readonly ExpandBuffer<Scalar> queue = new(32);
+        readonly ExpandBuffer<Scalar> buf = new(32);
+
+        public ScalarPool()
+        {
+            buf.Add(new Scalar(2048));
+            buf.Add(new Scalar(2048));
+            buf.Add(new Scalar(2048));
+            buf.Add(new Scalar(2048));
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Scalar Rent()
         {
-            return queue.TryPop(out var scalar)
+            return buf.TryPop(out var scalar)
                 ? scalar
                 : new Scalar(2048);
         }
@@ -21,7 +28,7 @@ namespace VYaml.Internal
         public void Return(Scalar scalar)
         {
             scalar.Clear();
-            queue.Add(scalar);
+            buf.Add(scalar);
         }
     }
 

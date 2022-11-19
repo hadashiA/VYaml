@@ -1336,7 +1336,7 @@ namespace VYaml
             last.Possible = false;
         }
 
-        void RollIndent(int colTo, in Token nextToken, int insertNumber = -1)
+        void RollIndent(int colTo, Token nextToken, int insertNumber = -1)
         {
             if (flowLevel > 0 || indent >= colTo)
             {
