@@ -45,26 +45,25 @@ namespace VYaml
         Foled,
     }
 
-    readonly struct ParseEvent
-    {
-        public readonly ParseEventType Type;
-        public readonly Marker Mark;
-        public readonly int AnchorId;
-        public readonly ScalarStyle ScalarStyle;
-
-        public ParseEvent(
-            ParseEventType type,
-            Marker mark,
-            int anchorId = 0,
-            ScalarStyle scalarStyle = default,
-            Scalar? scalar = null)
-        {
-            Type = type;
-            Mark = mark;
-            AnchorId = anchorId;
-            ScalarStyle = scalarStyle;
-        }
-    }
+    // readonly struct ParseEvent
+    // {
+    //     public readonly ParseEventType Type;
+    //     public readonly Marker Mark;
+    //     public readonly int AnchorId;
+    //     public readonly ScalarStyle ScalarStyle;
+    //
+    //     public ParseEvent(
+    //         ParseEventType type,
+    //         Marker mark,
+    //         int anchorId = 0,
+    //         ScalarStyle scalarStyle = default)
+    //     {
+    //         Type = type;
+    //         Mark = mark;
+    //         AnchorId = anchorId;
+    //         ScalarStyle = scalarStyle;
+    //     }
+    // }
 
     enum ParseState
     {
@@ -125,17 +124,15 @@ namespace VYaml
             return new Parser(tokenizer);
         }
 
-        public ParseEventType CurrentEventType
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => currentEvent.Type;
-        }
+        public ParseEventType CurrentEventType { get; private set; }
 
         public Marker CurrentMark
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => tokenizer.CurrentMark;
         }
+
+        public int CurrentAnchorId { get; private set; }
 
         TokenType CurrentTokenType
         {
@@ -145,9 +142,8 @@ namespace VYaml
 
         Utf8Tokenizer tokenizer;
         ParseState currentState;
-        ParseEvent currentEvent;
         Scalar? currentScalar;
-        // int lastAnchorId;
+        int lastAnchorId;
         readonly Dictionary<string, int> anchors;
         readonly ExpandBuffer<ParseState> stateStack;
 
@@ -155,10 +151,12 @@ namespace VYaml
         {
             this.tokenizer = tokenizer;
             currentState = ParseState.StreamStart;
-            currentEvent = default;
+            CurrentEventType = default;
+            CurrentAnchorId = -1;
             anchors = new Dictionary<string, int>();
             stateStack = new ExpandBuffer<ParseState>(24);
             currentScalar = null;
+            lastAnchorId = -1;
         }
 
         public readonly bool IsNullScalar()
@@ -207,23 +205,23 @@ namespace VYaml
 
         public bool Read()
         {
-            if (currentScalar != null)
+            if (currentScalar is { } scalar)
             {
-                tokenizer.ReturnScalarToPool(currentScalar);
+                tokenizer.ReturnScalarToPool(scalar);
+                currentScalar = null;
             }
-            currentScalar = null;
 
             if (currentState == ParseState.End)
             {
-                currentEvent = new ParseEvent(ParseEventType.StreamEnd, tokenizer.CurrentMark);
+                CurrentEventType = ParseEventType.StreamEnd;
                 return false;
             }
 
-            currentEvent = StateMachine();
+            CurrentEventType = StateMachine();
             return true;
         }
 
-        ParseEvent StateMachine()
+        ParseEventType StateMachine()
         {
             switch (currentState)
             {
@@ -296,7 +294,7 @@ namespace VYaml
             }
         }
 
-        ParseEvent ParseStreamStart()
+        ParseEventType ParseStreamStart()
         {
             if (CurrentTokenType == TokenType.None)
             {
@@ -305,10 +303,10 @@ namespace VYaml
             ThrowIfCurrentTokenUnless(TokenType.StreamStart);
             currentState = ParseState.ImplicitDocumentStart;
             tokenizer.Read();
-            return new ParseEvent(ParseEventType.StreamStart, CurrentMark);
+            return ParseEventType.StreamStart;
         }
 
-        ParseEvent ParseDocumentStart(bool implicitStarted)
+        ParseEventType ParseDocumentStart(bool implicitStarted)
         {
             if (!implicitStarted)
             {
@@ -323,7 +321,7 @@ namespace VYaml
                 case TokenType.StreamEnd:
                     currentState = ParseState.End;
                     tokenizer.Read();
-                    return new ParseEvent(ParseEventType.StreamEnd, CurrentMark);
+                    return ParseEventType.StreamEnd;
 
                 case TokenType.VersionDirective:
                 case TokenType.TagDirective:
@@ -336,23 +334,23 @@ namespace VYaml
                         ProcessDirectives();
                         PushState(ParseState.DocumentEnd);
                         currentState = ParseState.BlockNode;
-                        return new ParseEvent(ParseEventType.DocumentStart, CurrentMark);
+                        return ParseEventType.DocumentStart;
                     }
                     return ParseExplicitDocumentStart();
             }
         }
 
-        ParseEvent ParseExplicitDocumentStart()
+        ParseEventType ParseExplicitDocumentStart()
         {
             ProcessDirectives();
             ThrowIfCurrentTokenUnless(TokenType.DocumentStart);
             PushState(ParseState.DocumentEnd);
             currentState = ParseState.DocumentContent;
             tokenizer.Read();
-            return new ParseEvent(ParseEventType.DocumentStart, CurrentMark);
+            return ParseEventType.DocumentStart;
         }
 
-        ParseEvent ParseDocumentContent()
+        ParseEventType ParseDocumentContent()
         {
             switch (tokenizer.CurrentTokenType)
             {
@@ -368,7 +366,7 @@ namespace VYaml
             }
         }
 
-        ParseEvent ParseDocumentEnd()
+        ParseEventType ParseDocumentEnd()
         {
             var _implicit = true;
             if (CurrentTokenType == TokenType.DocumentEnd)
@@ -379,10 +377,10 @@ namespace VYaml
 
             // TODO tag handling
             currentState = ParseState.DocumentStart;
-            return new ParseEvent(ParseEventType.DocumentEnd, CurrentMark);
+            return ParseEventType.DocumentEnd;
         }
 
-        ParseEvent ParseNode(bool block, bool indentlessSequence)
+        ParseEventType ParseNode(bool block, bool indentlessSequence)
         {
             var anchorId = 0;
             var tag = default(TokenType);
@@ -399,61 +397,47 @@ namespace VYaml
                     tokenizer.Read();
                     ThrowIfCurrentTokenUnless(TokenType.Anchor);
                     throw new NotImplementedException();
-                    tokenizer.Read();
-                    break;
+                    // tokenizer.Read();
+                    // break;
             }
 
             switch (CurrentTokenType)
             {
                 case TokenType.BlockEntryStart when indentlessSequence:
                     currentState = ParseState.IndentlessSequenceEntry;
-                    return new ParseEvent(ParseEventType.SequenceStart, CurrentMark, anchorId);
+                    CurrentAnchorId = anchorId;
+                    return ParseEventType.SequenceStart;
 
                 case TokenType.PlainScalar:
-                    PopState();
-                    currentScalar = tokenizer.TakeCurrentScalar();
-                    tokenizer.Read();
-                    return new ParseEvent(ParseEventType.Scalar, CurrentMark, anchorId, ScalarStyle.Plain);
-
                 case TokenType.FoldedScalar:
-                    PopState();
-                    currentScalar = tokenizer.TakeCurrentScalar();
-                    tokenizer.Read();
-                    return new ParseEvent(ParseEventType.Scalar, CurrentMark, anchorId, ScalarStyle.Foled);
-
                 case TokenType.LiteralScalar:
-                    PopState();
-                    currentScalar = tokenizer.TakeCurrentScalar();
-                    tokenizer.Read();
-                    return new ParseEvent(ParseEventType.Scalar, CurrentMark, anchorId, ScalarStyle.Literal);
-
                 case TokenType.SingleQuotedScaler:
-                    PopState();
-                    currentScalar = tokenizer.TakeCurrentScalar();
-                    tokenizer.Read();
-                    return new ParseEvent(ParseEventType.Scalar, CurrentMark, anchorId, ScalarStyle.SingleQuoted);
-
                 case TokenType.DoubleQuotedScaler:
                     PopState();
                     currentScalar = tokenizer.TakeCurrentScalar();
+                    CurrentAnchorId = anchorId;
                     tokenizer.Read();
-                    return new ParseEvent(ParseEventType.Scalar, CurrentMark, anchorId, ScalarStyle.DoubleQuoted);
+                    return ParseEventType.Scalar;
 
                 case TokenType.FlowSequenceStart:
                     currentState = ParseState.FlowSequenceFirstEntry;
-                    return new ParseEvent(ParseEventType.SequenceStart, CurrentMark, anchorId);
+                    CurrentAnchorId = anchorId;
+                    return ParseEventType.SequenceStart;
 
                 case TokenType.FlowMappingStart:
                     currentState = ParseState.FlowMappingFirstKey;
-                    return new ParseEvent(ParseEventType.MappingStart, CurrentMark, anchorId);
+                    CurrentAnchorId = anchorId;
+                    return ParseEventType.MappingStart;
 
                 case TokenType.BlockSequenceStart when block:
                     currentState = ParseState.BlockSequenceFirstEntry;
-                    return new ParseEvent(ParseEventType.SequenceStart, CurrentMark, anchorId);
+                    CurrentAnchorId = anchorId;
+                    return ParseEventType.SequenceStart;
 
                 case TokenType.BlockMappingStart when block:
                     currentState = ParseState.BlockMappingFirstKey;
-                    return new ParseEvent(ParseEventType.MappingStart, CurrentMark, anchorId);
+                    CurrentAnchorId = anchorId;
+                    return ParseEventType.MappingStart;
 
                 default:
                     // ex 7.2, an empty scalar can follow a secondary tag
@@ -465,7 +449,7 @@ namespace VYaml
             }
         }
 
-        ParseEvent ParseBlockMappingKey(bool first)
+        ParseEventType ParseBlockMappingKey(bool first)
         {
             // skip BlockMappingStart
             if (first)
@@ -495,7 +479,7 @@ namespace VYaml
                 case TokenType.BlockEnd:
                     PopState();
                     tokenizer.Read();
-                    return new ParseEvent(ParseEventType.MappingEnd, CurrentMark);
+                    return ParseEventType.MappingEnd;
 
                 default:
                     throw new YamlParserException(CurrentMark,
@@ -503,7 +487,7 @@ namespace VYaml
             }
         }
 
-        ParseEvent ParseBlockMappingValue()
+        ParseEventType ParseBlockMappingValue()
         {
             if (CurrentTokenType == TokenType.ValueStart)
             {
@@ -525,7 +509,7 @@ namespace VYaml
             return EmptyScalar();
         }
 
-        ParseEvent ParseBlockSequenceEntry(bool first)
+        ParseEventType ParseBlockSequenceEntry(bool first)
         {
             // BLOCK-SEQUENCE-START
             if (first)
@@ -538,7 +522,7 @@ namespace VYaml
                 case TokenType.BlockEnd:
                     PopState();
                     tokenizer.Read();
-                    return new ParseEvent(ParseEventType.SequenceEnd, CurrentMark);
+                    return ParseEventType.SequenceEnd;
 
                 case TokenType.BlockEntryStart:
                     tokenizer.Read();
@@ -557,7 +541,7 @@ namespace VYaml
             }
         }
 
-        ParseEvent ParseFlowSequenceEntry(bool first)
+        ParseEventType ParseFlowSequenceEntry(bool first)
         {
             // skip FlowMappingStart
             if (first)
@@ -570,7 +554,7 @@ namespace VYaml
                 case TokenType.FlowSequenceEnd:
                     PopState();
                     tokenizer.Read();
-                    return new ParseEvent(ParseEventType.SequenceEnd, CurrentMark);
+                    return ParseEventType.SequenceEnd;
 
                 case TokenType.FlowEntryStart when !first:
                     tokenizer.Read();
@@ -590,12 +574,12 @@ namespace VYaml
                 case TokenType.FlowSequenceEnd:
                     PopState();
                     tokenizer.Read();
-                    return new ParseEvent(ParseEventType.SequenceEnd, CurrentMark);
+                    return ParseEventType.SequenceEnd;
 
                 case TokenType.KeyStart:
                     currentState = ParseState.FlowSequenceEntryMappingKey;
                     tokenizer.Read();
-                    return new ParseEvent(ParseEventType.MappingStart, CurrentMark);
+                    return ParseEventType.MappingStart;
 
                 default:
                     PushState(ParseState.FlowSequenceEntry);
@@ -604,7 +588,7 @@ namespace VYaml
             }
         }
 
-        ParseEvent ParseFlowMappingKey(bool first)
+        ParseEventType ParseFlowMappingKey(bool first)
         {
             if (first)
             {
@@ -615,7 +599,7 @@ namespace VYaml
             {
                 PopState();
                 tokenizer.Read();
-                return new ParseEvent(ParseEventType.MappingEnd, CurrentMark);
+                return ParseEventType.MappingEnd;
             }
 
             if (!first)
@@ -653,7 +637,7 @@ namespace VYaml
                 case TokenType.FlowMappingEnd:
                     PopState();
                     tokenizer.Read();
-                    return new ParseEvent(ParseEventType.MappingEnd, CurrentMark);
+                    return ParseEventType.MappingEnd;
 
                 default:
                     PushState(ParseState.FlowMappingEmptyValue);
@@ -661,7 +645,7 @@ namespace VYaml
             }
         }
 
-        ParseEvent ParseFlowMappingValue(bool empty)
+        ParseEventType ParseFlowMappingValue(bool empty)
         {
             if (empty)
             {
@@ -684,12 +668,12 @@ namespace VYaml
             return EmptyScalar();
         }
 
-        ParseEvent ParseIndentlessSequenceEntry()
+        ParseEventType ParseIndentlessSequenceEntry()
         {
             if (CurrentTokenType != TokenType.BlockEntryStart)
             {
                 PopState();
-                return new ParseEvent(ParseEventType.SequenceEnd, CurrentMark);
+                return ParseEventType.SequenceEnd;
             }
 
             tokenizer.Read();
@@ -707,7 +691,7 @@ namespace VYaml
             return ParseNode(true, false);
         }
 
-        ParseEvent ParseFlowSequenceEntryMappingKey()
+        ParseEventType ParseFlowSequenceEntryMappingKey()
         {
             if (CurrentTokenType is
                 TokenType.ValueStart or
@@ -722,7 +706,7 @@ namespace VYaml
             return ParseNode(false, false);
         }
 
-        ParseEvent ParseFlowSequenceEntryMappingValue()
+        ParseEventType ParseFlowSequenceEntryMappingValue()
         {
             if (CurrentTokenType == TokenType.ValueStart)
             {
@@ -743,10 +727,10 @@ namespace VYaml
             return EmptyScalar();
         }
 
-        ParseEvent ParseFlowSequenceEntryMappingEnd()
+        ParseEventType ParseFlowSequenceEntryMappingEnd()
         {
             currentState = ParseState.FlowSequenceEntry;
-            return new ParseEvent(ParseEventType.MappingEnd, CurrentMark);
+            return ParseEventType.MappingEnd;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -761,10 +745,12 @@ namespace VYaml
             stateStack.Add(state);
         }
 
-        ParseEvent EmptyScalar()
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        ParseEventType EmptyScalar()
         {
             currentScalar = Scalar.Null;
-            return new ParseEvent(ParseEventType.Scalar, CurrentMark);
+            return ParseEventType.Scalar;
         }
 
         void ProcessDirectives()

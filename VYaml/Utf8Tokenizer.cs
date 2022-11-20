@@ -22,37 +22,23 @@ namespace VYaml
         public Marker Start;
     }
 
-    struct Token
+    readonly struct Token
     {
         public readonly TokenType Type;
         public readonly Marker Start;
-        public Scalar? Scalar;
-        public Tag? Tag;
+        public readonly Scalar? Scalar;
+        // public Tag? Tag;
 
         public Token(
             TokenType type,
             in Marker start,
-            Scalar? scalar = null,
-            Tag? tag = null)
+            Scalar? scalar = null)
+            // Tag? tag = null)
         {
             Type = type;
             Start = start;
             Scalar = scalar;
-            Tag = tag;
-        }
-
-        public Scalar TakeScalar()
-        {
-            var scalar = Scalar!;
-            Scalar = null;
-            return scalar;
-        }
-
-        public Tag TakeTag()
-        {
-            var tag = Tag!;
-            Tag = null;
-            return tag;
+            // Tag = tag;
         }
 
         public override string ToString() => $"{Type} \"{Scalar}\"";
@@ -136,16 +122,7 @@ namespace VYaml
             }
 
             if (currentToken.Scalar is { } scalar)
-            {
-                scalarPool.Return(scalar);
-            }
-
-            if (currentToken.Tag is { } tag)
-            {
-                scalarPool.Return(tag.Handle);
-                scalarPool.Return(tag.Suffix);
-            }
-
+                ReturnScalarToPool(scalar);
             currentToken = tokens.Dequeue();
             tokenAvailable = false;
             tokensParsed += 1;
@@ -157,9 +134,20 @@ namespace VYaml
             return true;
         }
 
-        internal Scalar TakeCurrentScalar() => currentToken.TakeScalar();
-        internal Tag TakeCurrentTag() => currentToken.TakeTag();
-        internal void ReturnScalarToPool(Scalar scalar) => scalarPool.Return(scalar);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void ReturnScalarToPool(Scalar scalar)
+        {
+            scalarPool.Return(scalar);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal Scalar TakeCurrentScalar()
+        {
+            var result = currentToken;
+            currentToken = default;
+            return result.Scalar!;
+        }
 
         void ConsumeMoreTokens()
         {
@@ -525,7 +513,7 @@ namespace VYaml
             if (YamlCodes.IsBlank(currentCode))
             {
                 // ex 7.2, an empty scalar can follow a secondary tag
-                tokens.Enqueue(new Token(TokenType.Tag, startMark, null, tag));
+                // tokens.Enqueue(new Token(TokenType.Tag, startMark));
             }
             else
             {
