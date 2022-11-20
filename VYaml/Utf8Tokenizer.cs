@@ -657,10 +657,10 @@ namespace VYaml
                 }
             }
 
-            if (YamlCodes.IsBlank(currentCode))
+            if (YamlCodes.IsEmpty(currentCode) || reader.End)
             {
                 // ex 7.2, an empty scalar can follow a secondary tag
-                // tokens.Enqueue(new Token(TokenType.Tag, startMark));
+                tokens.Enqueue(new Token(TokenType.Tag, tag));
             }
             else
             {

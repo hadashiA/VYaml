@@ -514,13 +514,13 @@ public class SpecTest
             Expect(ParseEventType.Scalar, "R0lGODlhDAAMAIQAAP//9/X\n" +
                                           "17unp5WZmZgAAAOfn515eXv\n" +
                                           "Pz7Y6OjuDg4J+fn5OTk6enp\n" +
-                                          "56enmleECcgggoBADs="),
+                                          "56enmleECcgggoBADs=\n"),
             Expect(ParseEventType.Scalar, "application specific tag"),
             Expect(ParseEventType.Scalar, "The semantics of the tag\n" +
                                           "above may be different for\n" +
                                           "different documents."),
             Expect(ParseEventType.MappingEnd),
-            Expect(ParseEventType.StreamEnd),
+            Expect(ParseEventType.DocumentEnd),
             Expect(ParseEventType.StreamEnd),
         });
     }

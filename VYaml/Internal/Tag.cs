@@ -1,9 +1,9 @@
 namespace VYaml.Internal
 {
-    readonly struct Tag : ITokenContent
+    class Tag : ITokenContent
     {
-        public readonly Scalar Handle;
-        public readonly Scalar Suffix;
+        public Scalar Handle { get; }
+        public Scalar Suffix { get; }
 
         public Tag(Scalar handle, Scalar suffix)
         {
