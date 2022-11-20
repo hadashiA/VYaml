@@ -33,7 +33,7 @@ namespace VYaml
         public Marker CurrentMark
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => currentToken.Start;
+            get => mark;
         }
 
         SequenceReader<byte> reader;
@@ -266,7 +266,7 @@ namespace VYaml
             indent = -1;
             streamStartProduced = true;
             simpleKeyAllowed = true;
-            tokens.Enqueue(new Token(TokenType.StreamStart, in mark));
+            tokens.Enqueue(new Token(TokenType.StreamStart));
             simpleKeyCandidates.Add(new SimpleKeyState());
         }
 
@@ -281,7 +281,7 @@ namespace VYaml
             UnrollIndent(-1);
             RemoveSimpleKeyCandidate();
             simpleKeyAllowed = false;
-            tokens.Enqueue(new Token(TokenType.StreamEnd, in mark));
+            tokens.Enqueue(new Token(TokenType.StreamEnd));
         }
 
         void ConsumeDirective()
@@ -299,7 +299,7 @@ namespace VYaml
             RemoveSimpleKeyCandidate();
             simpleKeyAllowed = false;
             Advance(3);
-            tokens.Enqueue(new Token(tokenType, mark));
+            tokens.Enqueue(new Token(tokenType));
         }
 
         void ConsumeFlowCollectionStart(TokenType tokenType)
@@ -311,7 +311,7 @@ namespace VYaml
             simpleKeyAllowed = true;
 
             Advance(1);
-            tokens.Enqueue(new Token(tokenType, in mark));
+            tokens.Enqueue(new Token(tokenType));
         }
 
         void ConsumeFlowCollectionEnd(TokenType tokenType)
@@ -322,7 +322,7 @@ namespace VYaml
             simpleKeyAllowed = false;
 
             Advance(1);
-            tokens.Enqueue(new Token(tokenType, in mark));
+            tokens.Enqueue(new Token(tokenType));
         }
 
         void ConsumeFlowEntryStart()
@@ -331,7 +331,7 @@ namespace VYaml
             simpleKeyAllowed = true;
 
             Advance(1);
-            tokens.Enqueue(new Token(TokenType.FlowEntryStart, in mark));
+            tokens.Enqueue(new Token(TokenType.FlowEntryStart));
         }
 
         void ConsumeBlockEntry()
@@ -345,11 +345,11 @@ namespace VYaml
             {
                 throw new YamlTokenizerException(in mark, "Block sequence entries are not allowed in this context");
             }
-            RollIndent(mark.Col, new Token(TokenType.BlockSequenceStart, in mark));
+            RollIndent(mark.Col, new Token(TokenType.BlockSequenceStart));
             RemoveSimpleKeyCandidate();
             simpleKeyAllowed = true;
             Advance(1);
-            tokens.Enqueue(new Token(TokenType.BlockEntryStart, in mark));
+            tokens.Enqueue(new Token(TokenType.BlockEntryStart));
         }
 
         void ConsumeComplexKeyStart()
@@ -361,13 +361,13 @@ namespace VYaml
                 {
                     throw new YamlTokenizerException(in mark, "Mapping keys are not allowed in this context");
                 }
-                RollIndent(mark.Col, new Token(TokenType.BlockMappingStart, in mark));
+                RollIndent(mark.Col, new Token(TokenType.BlockMappingStart));
             }
             RemoveSimpleKeyCandidate();
 
             simpleKeyAllowed = flowLevel == 0;
             Advance(1);
-            tokens.Enqueue(new Token(TokenType.KeyStart, in mark));
+            tokens.Enqueue(new Token(TokenType.KeyStart));
         }
 
         void ConsumeValueStart()
@@ -376,11 +376,11 @@ namespace VYaml
             if (simpleKey.Possible)
             {
                 // insert simple key
-                var token = new Token(TokenType.KeyStart, simpleKey.Start);
+                var token = new Token(TokenType.KeyStart);
                 tokens.Insert(simpleKey.TokenNumber - tokensParsed, token);
 
                 // Add the BLOCK-MAPPING-START token if needed
-                RollIndent(simpleKey.Start.Col, new Token(TokenType.BlockMappingStart, in mark), simpleKey.TokenNumber);
+                RollIndent(simpleKey.Start.Col, new Token(TokenType.BlockMappingStart), simpleKey.TokenNumber);
                 ref var lastKey = ref simpleKeyCandidates[^1];
                 lastKey.Possible = false;
                 simpleKeyAllowed = false;
@@ -394,12 +394,12 @@ namespace VYaml
                     {
                         throw new YamlTokenizerException(in mark, "Mapping values are not allowed in this context");
                     }
-                    RollIndent(mark.Col, new Token(TokenType.BlockMappingStart, in mark));
+                    RollIndent(mark.Col, new Token(TokenType.BlockMappingStart));
                 }
                 simpleKeyAllowed = flowLevel == 0;
             }
             Advance(1);
-            tokens.Enqueue(new Token(TokenType.ValueStart, in mark));
+            tokens.Enqueue(new Token(TokenType.ValueStart));
         }
 
         void ConsumeAnchor(bool alias)
@@ -434,8 +434,8 @@ namespace VYaml
             }
 
             tokens.Enqueue(alias
-                ? new Token(TokenType.Alias, in mark, scalar)
-                : new Token(TokenType.Anchor, in mark, scalar));
+                ? new Token(TokenType.Alias, scalar)
+                : new Token(TokenType.Anchor, scalar));
         }
 
         void ConsumeTag()
@@ -753,7 +753,7 @@ namespace VYaml
             }
 
             var tokenType = literal ? TokenType.LiteralScalar : TokenType.FoldedScalar;
-            tokens.Enqueue(new Token(tokenType, startMark, scalar));
+            tokens.Enqueue(new Token(tokenType, scalar));
         }
 
         void ConsumeBlockScalarBreaks(ref int blockIndent, ExpandBuffer<byte> blockLineBreaks)
@@ -1043,7 +1043,6 @@ namespace VYaml
             tokens.Enqueue(new Token(singleQuote
                 ? TokenType.SingleQuotedScaler
                 : TokenType.DoubleQuotedScaler,
-                startMark,
                 scalar));
         }
 
@@ -1173,7 +1172,7 @@ namespace VYaml
             }
 
             simpleKeyAllowed = isLeadingBlanks;
-            tokens.Enqueue(new Token(TokenType.PlainScalar, startMark, scalar));
+            tokens.Enqueue(new Token(TokenType.PlainScalar, scalar));
         }
 
         void SkipToNextToken()
@@ -1326,7 +1325,7 @@ namespace VYaml
             }
             while (indent > col)
             {
-                tokens.Enqueue(new Token(TokenType.BlockEnd, mark));
+                tokens.Enqueue(new Token(TokenType.BlockEnd));
                 indent = indents.Pop();
             }
         }
