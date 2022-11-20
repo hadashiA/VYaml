@@ -98,16 +98,7 @@ namespace VYaml
                 ConsumeMoreTokens();
             }
 
-            switch (currentToken.Content)
-            {
-                case Scalar scalar:
-                    ReturnScalarToPool(scalar);
-                    break;
-                case Tag tag:
-                    ReturnScalarToPool(tag.Handle);
-                    ReturnScalarToPool(tag.Suffix);
-                    break;
-            }
+            ReturnToPool(currentToken.Content);
 
             currentToken = tokens.Dequeue();
             tokenAvailable = false;
@@ -122,25 +113,26 @@ namespace VYaml
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void ReturnScalarToPool(Scalar scalar)
+        internal void ReturnToPool(ITokenContent? content)
         {
-            scalarPool.Return(scalar);
+            switch (content)
+            {
+                case Scalar scalar:
+                    scalarPool.Return(scalar);
+                    break;
+                case Tag tag:
+                    scalarPool.Return(tag.Handle);
+                    scalarPool.Return(tag.Suffix);
+                    break;
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Scalar TakeCurrentScalar()
+        internal T TakeCurrentTokenContent<T>() where T : ITokenContent
         {
             var result = currentToken;
             currentToken = default;
-            return (Scalar)result.Content!;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal Tag TakeCurrentTag()
-        {
-            var result = currentToken;
-            currentToken = default;
-            return (Tag)result.Content!;
+            return (T)result.Content!;
         }
 
         void ConsumeMoreTokens()

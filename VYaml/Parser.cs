@@ -185,7 +185,7 @@ namespace VYaml
         {
             if (currentScalar is { } scalar)
             {
-                tokenizer.ReturnScalarToPool(scalar);
+                tokenizer.ReturnToPool(scalar);
                 currentScalar = null;
             }
 
@@ -398,7 +398,7 @@ namespace VYaml
                 case TokenType.Tag:
                     tokenizer.Read();
                     ThrowIfCurrentTokenUnless(TokenType.Anchor);
-                    var anchorName = tokenizer.TakeCurrentScalar();
+                    var anchorName = tokenizer.TakeCurrentTokenContent<Scalar>();
                     anchors.Add(anchorName.ToString(), ++CurrentAnchorId); // TODO: Avoid ToString
                     break;
             }
@@ -417,7 +417,7 @@ namespace VYaml
                 case TokenType.SingleQuotedScaler:
                 case TokenType.DoubleQuotedScaler:
                     PopState();
-                    currentScalar = tokenizer.TakeCurrentScalar();
+                    currentScalar = tokenizer.TakeCurrentTokenContent<Scalar>();
                     tokenizer.Read();
                     CurrentAnchorId = anchorId;
                     CurrentEventType = ParseEventType.Scalar;
