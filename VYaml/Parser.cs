@@ -45,26 +45,6 @@ namespace VYaml
         Foled,
     }
 
-    // readonly struct ParseEvent
-    // {
-    //     public readonly ParseEventType Type;
-    //     public readonly Marker Mark;
-    //     public readonly int AnchorId;
-    //     public readonly ScalarStyle ScalarStyle;
-    //
-    //     public ParseEvent(
-    //         ParseEventType type,
-    //         Marker mark,
-    //         int anchorId = 0,
-    //         ScalarStyle scalarStyle = default)
-    //     {
-    //         Type = type;
-    //         Mark = mark;
-    //         AnchorId = anchorId;
-    //         ScalarStyle = scalarStyle;
-    //     }
-    // }
-
     enum ParseState
     {
         StreamStart,
@@ -217,84 +197,100 @@ namespace VYaml
                 return false;
             }
 
-            CurrentEventType = StateMachine();
-            return true;
-        }
-
-        ParseEventType StateMachine()
-        {
             switch (currentState)
             {
                 case ParseState.StreamStart:
-                    return ParseStreamStart();
+                    ParseStreamStart();
+                    break;
 
                 case ParseState.ImplicitDocumentStart:
-                    return ParseDocumentStart(true);
+                    ParseDocumentStart(true);
+                    break;
 
                 case ParseState.DocumentStart:
-                    return ParseDocumentStart(false);
+                    ParseDocumentStart(false);
+                    break;
 
                 case ParseState.DocumentContent:
-                    return ParseDocumentContent();
+                    ParseDocumentContent();
+                    break;
 
                 case ParseState.DocumentEnd:
-                    return ParseDocumentEnd();
+                    ParseDocumentEnd();
+                    break;
 
                 case ParseState.BlockNode:
-                    return ParseNode(true, false);
+                    ParseNode(true, false);
+                    break;
 
                 case ParseState.BlockMappingFirstKey:
-                    return ParseBlockMappingKey(true);
+                    ParseBlockMappingKey(true);
+                    break;
 
                 case ParseState.BlockMappingKey:
-                    return ParseBlockMappingKey(false);
+                    ParseBlockMappingKey(false);
+                    break;
 
                 case ParseState.BlockMappingValue:
-                    return ParseBlockMappingValue();
+                    ParseBlockMappingValue();
+                    break;
 
                 case ParseState.BlockSequenceFirstEntry:
-                    return ParseBlockSequenceEntry(true);
+                    ParseBlockSequenceEntry(true);
+                    break;
 
                 case ParseState.BlockSequenceEntry:
-                    return ParseBlockSequenceEntry(false);
+                    ParseBlockSequenceEntry(false);
+                    break;
 
                 case ParseState.FlowSequenceFirstEntry:
-                    return ParseFlowSequenceEntry(true);
+                    ParseFlowSequenceEntry(true);
+                    break;
 
                 case ParseState.FlowSequenceEntry:
-                    return ParseFlowSequenceEntry(false);
+                    ParseFlowSequenceEntry(false);
+                    break;
 
                 case ParseState.FlowMappingFirstKey:
-                    return ParseFlowMappingKey(true);
+                    ParseFlowMappingKey(true);
+                    break;
 
                 case ParseState.FlowMappingKey:
-                    return ParseFlowMappingKey(false);
+                    ParseFlowMappingKey(false);
+                    break;
 
                 case ParseState.FlowMappingValue:
-                    return ParseFlowMappingValue(false);
+                    ParseFlowMappingValue(false);
+                    break;
 
                 case ParseState.IndentlessSequenceEntry:
-                    return ParseIndentlessSequenceEntry();
+                    ParseIndentlessSequenceEntry();
+                    break;
 
                 case ParseState.FlowSequenceEntryMappingKey:
-                    return ParseFlowSequenceEntryMappingKey();
+                    ParseFlowSequenceEntryMappingKey();
+                    break;
 
                 case ParseState.FlowSequenceEntryMappingValue:
-                    return ParseFlowSequenceEntryMappingValue();
+                    ParseFlowSequenceEntryMappingValue();
+                    break;
 
                 case ParseState.FlowSequenceEntryMappingEnd:
-                    return ParseFlowSequenceEntryMappingEnd();
+                    ParseFlowSequenceEntryMappingEnd();
+                    break;
 
                 case ParseState.FlowMappingEmptyValue:
-                    return ParseFlowMappingValue(true);
+                    ParseFlowMappingValue(true);
+                    break;
 
                 case ParseState.End:
                 default:
                     throw new ArgumentOutOfRangeException();
             }
+            return true;
         }
 
-        ParseEventType ParseStreamStart()
+        void ParseStreamStart()
         {
             if (CurrentTokenType == TokenType.None)
             {
@@ -303,10 +299,10 @@ namespace VYaml
             ThrowIfCurrentTokenUnless(TokenType.StreamStart);
             currentState = ParseState.ImplicitDocumentStart;
             tokenizer.Read();
-            return ParseEventType.StreamStart;
+            CurrentEventType = ParseEventType.StreamStart;
         }
 
-        ParseEventType ParseDocumentStart(bool implicitStarted)
+        void ParseDocumentStart(bool implicitStarted)
         {
             if (!implicitStarted)
             {
@@ -321,12 +317,14 @@ namespace VYaml
                 case TokenType.StreamEnd:
                     currentState = ParseState.End;
                     tokenizer.Read();
-                    return ParseEventType.StreamEnd;
+                    CurrentEventType = ParseEventType.StreamEnd;
+                    break;
 
                 case TokenType.VersionDirective:
                 case TokenType.TagDirective:
                 case TokenType.DocumentStart:
-                    return ParseExplicitDocumentStart();
+                    ParseExplicitDocumentStart();
+                    break;
 
                 default:
                     if (implicitStarted)
@@ -334,23 +332,27 @@ namespace VYaml
                         ProcessDirectives();
                         PushState(ParseState.DocumentEnd);
                         currentState = ParseState.BlockNode;
-                        return ParseEventType.DocumentStart;
+                        CurrentEventType = ParseEventType.DocumentStart;
                     }
-                    return ParseExplicitDocumentStart();
+                    else
+                    {
+                        ParseExplicitDocumentStart();
+                    }
+                    break;
             }
         }
 
-        ParseEventType ParseExplicitDocumentStart()
+        void ParseExplicitDocumentStart()
         {
             ProcessDirectives();
             ThrowIfCurrentTokenUnless(TokenType.DocumentStart);
             PushState(ParseState.DocumentEnd);
             currentState = ParseState.DocumentContent;
             tokenizer.Read();
-            return ParseEventType.DocumentStart;
+            CurrentEventType = ParseEventType.DocumentStart;
         }
 
-        ParseEventType ParseDocumentContent()
+        void ParseDocumentContent()
         {
             switch (tokenizer.CurrentTokenType)
             {
@@ -360,13 +362,15 @@ namespace VYaml
                 case TokenType.DocumentEnd:
                 case TokenType.StreamEnd:
                     PopState();
-                    return EmptyScalar();
+                    EmptyScalar();
+                    break;
                 default:
-                    return ParseNode(true, false);
+                    ParseNode(true, false);
+                    break;
             }
         }
 
-        ParseEventType ParseDocumentEnd()
+        void ParseDocumentEnd()
         {
             var _implicit = true;
             if (CurrentTokenType == TokenType.DocumentEnd)
@@ -377,15 +381,15 @@ namespace VYaml
 
             // TODO tag handling
             currentState = ParseState.DocumentStart;
-            return ParseEventType.DocumentEnd;
+            CurrentEventType = ParseEventType.DocumentEnd;
         }
 
-        ParseEventType ParseNode(bool block, bool indentlessSequence)
+        void ParseNode(bool block, bool indentlessSequence)
         {
             var anchorId = 0;
             var tag = default(TokenType);
 
-            switch (tokenizer.CurrentTokenType)
+            switch (CurrentTokenType)
             {
                 case TokenType.Alias:
                     throw new NotImplementedException();
@@ -406,7 +410,8 @@ namespace VYaml
                 case TokenType.BlockEntryStart when indentlessSequence:
                     currentState = ParseState.IndentlessSequenceEntry;
                     CurrentAnchorId = anchorId;
-                    return ParseEventType.SequenceStart;
+                    CurrentEventType = ParseEventType.SequenceStart;
+                    break;
 
                 case TokenType.PlainScalar:
                 case TokenType.FoldedScalar:
@@ -415,29 +420,34 @@ namespace VYaml
                 case TokenType.DoubleQuotedScaler:
                     PopState();
                     currentScalar = tokenizer.TakeCurrentScalar();
-                    CurrentAnchorId = anchorId;
                     tokenizer.Read();
-                    return ParseEventType.Scalar;
+                    CurrentAnchorId = anchorId;
+                    CurrentEventType = ParseEventType.Scalar;
+                    break;
 
                 case TokenType.FlowSequenceStart:
                     currentState = ParseState.FlowSequenceFirstEntry;
                     CurrentAnchorId = anchorId;
-                    return ParseEventType.SequenceStart;
+                    CurrentEventType = ParseEventType.SequenceStart;
+                    break;
 
                 case TokenType.FlowMappingStart:
                     currentState = ParseState.FlowMappingFirstKey;
                     CurrentAnchorId = anchorId;
-                    return ParseEventType.MappingStart;
+                    CurrentEventType = ParseEventType.MappingStart;
+                    break;
 
                 case TokenType.BlockSequenceStart when block:
                     currentState = ParseState.BlockSequenceFirstEntry;
                     CurrentAnchorId = anchorId;
-                    return ParseEventType.SequenceStart;
+                    CurrentEventType = ParseEventType.SequenceStart;
+                    break;
 
                 case TokenType.BlockMappingStart when block:
                     currentState = ParseState.BlockMappingFirstKey;
                     CurrentAnchorId = anchorId;
-                    return ParseEventType.MappingStart;
+                    CurrentEventType = ParseEventType.MappingStart;
+                    break;
 
                 default:
                     // ex 7.2, an empty scalar can follow a secondary tag
@@ -449,7 +459,7 @@ namespace VYaml
             }
         }
 
-        ParseEventType ParseBlockMappingKey(bool first)
+        void ParseBlockMappingKey(bool first)
         {
             // skip BlockMappingStart
             if (first)
@@ -467,19 +477,25 @@ namespace VYaml
                         TokenType.BlockEnd)
                     {
                         currentState = ParseState.BlockMappingValue;
-                        return EmptyScalar();
+                        EmptyScalar();
                     }
-                    PushState(ParseState.BlockMappingValue);
-                    return ParseNode(true, true);
+                    else
+                    {
+                        PushState(ParseState.BlockMappingValue);
+                        ParseNode(true, true);
+                    }
+                    break;
 
                 case TokenType.ValueStart:
                     currentState = ParseState.BlockMappingValue;
-                    return EmptyScalar();
+                    EmptyScalar();
+                    break;
 
                 case TokenType.BlockEnd:
                     PopState();
                     tokenizer.Read();
-                    return ParseEventType.MappingEnd;
+                    CurrentEventType = ParseEventType.MappingEnd;
+                    break;
 
                 default:
                     throw new YamlParserException(CurrentMark,
@@ -487,7 +503,7 @@ namespace VYaml
             }
         }
 
-        ParseEventType ParseBlockMappingValue()
+        void ParseBlockMappingValue()
         {
             if (CurrentTokenType == TokenType.ValueStart)
             {
@@ -498,18 +514,22 @@ namespace VYaml
                     TokenType.BlockEnd)
                 {
                     currentState = ParseState.BlockMappingKey;
-                    return EmptyScalar();
+                    EmptyScalar();
                 }
-
-                PushState(ParseState.BlockMappingKey);
-                return ParseNode(true, true);
+                else
+                {
+                    PushState(ParseState.BlockMappingKey);
+                    ParseNode(true, true);
+                }
             }
-
-            currentState = ParseState.BlockMappingKey;
-            return EmptyScalar();
+            else
+            {
+                currentState = ParseState.BlockMappingKey;
+                EmptyScalar();
+            }
         }
 
-        ParseEventType ParseBlockSequenceEntry(bool first)
+        void ParseBlockSequenceEntry(bool first)
         {
             // BLOCK-SEQUENCE-START
             if (first)
@@ -522,18 +542,21 @@ namespace VYaml
                 case TokenType.BlockEnd:
                     PopState();
                     tokenizer.Read();
-                    return ParseEventType.SequenceEnd;
+                    CurrentEventType = ParseEventType.SequenceEnd;
+                    break;
 
                 case TokenType.BlockEntryStart:
                     tokenizer.Read();
                     if (CurrentTokenType is TokenType.BlockEntryStart or TokenType.BlockEnd)
                     {
                         currentState = ParseState.BlockSequenceEntry;
-                        return EmptyScalar();
+                        EmptyScalar();
+                        break;
                     }
 
                     PushState(ParseState.BlockSequenceEntry);
-                    return ParseNode(true, false);
+                    ParseNode(true, false);
+                    break;
 
                 default:
                     throw new YamlParserException(CurrentMark,
@@ -541,7 +564,7 @@ namespace VYaml
             }
         }
 
-        ParseEventType ParseFlowSequenceEntry(bool first)
+        void ParseFlowSequenceEntry(bool first)
         {
             // skip FlowMappingStart
             if (first)
@@ -554,7 +577,8 @@ namespace VYaml
                 case TokenType.FlowSequenceEnd:
                     PopState();
                     tokenizer.Read();
-                    return ParseEventType.SequenceEnd;
+                    CurrentEventType =  ParseEventType.SequenceEnd;
+                    return;
 
                 case TokenType.FlowEntryStart when !first:
                     tokenizer.Read();
@@ -574,21 +598,23 @@ namespace VYaml
                 case TokenType.FlowSequenceEnd:
                     PopState();
                     tokenizer.Read();
-                    return ParseEventType.SequenceEnd;
+                    CurrentEventType = ParseEventType.SequenceEnd;
+                    break;
 
                 case TokenType.KeyStart:
                     currentState = ParseState.FlowSequenceEntryMappingKey;
                     tokenizer.Read();
-                    return ParseEventType.MappingStart;
+                    CurrentEventType = ParseEventType.MappingStart;
+                    break;
 
                 default:
                     PushState(ParseState.FlowSequenceEntry);
-                    return ParseNode(false, false);
-
+                    ParseNode(false, false);
+                    break;
             }
         }
 
-        ParseEventType ParseFlowMappingKey(bool first)
+        void ParseFlowMappingKey(bool first)
         {
             if (first)
             {
@@ -599,7 +625,8 @@ namespace VYaml
             {
                 PopState();
                 tokenizer.Read();
-                return ParseEventType.MappingEnd;
+                CurrentEventType = ParseEventType.MappingEnd;
+                return;
             }
 
             if (!first)
@@ -625,32 +652,38 @@ namespace VYaml
                         TokenType.FlowMappingEnd)
                     {
                         currentState = ParseState.FlowMappingValue;
-                        return EmptyScalar();
+                        EmptyScalar();
+                        break;
                     }
                     PushState(ParseState.FlowMappingValue);
-                    return ParseNode(false, false);
+                    ParseNode(false, false);
+                    break;
 
                 case TokenType.ValueStart:
                     currentState = ParseState.FlowMappingValue;
-                    return EmptyScalar();
+                    EmptyScalar();
+                    break;
 
                 case TokenType.FlowMappingEnd:
                     PopState();
                     tokenizer.Read();
-                    return ParseEventType.MappingEnd;
+                    CurrentEventType = ParseEventType.MappingEnd;
+                    break;
 
                 default:
                     PushState(ParseState.FlowMappingEmptyValue);
-                    return ParseNode(false, false);
+                    ParseNode(false, false);
+                    break;
             }
         }
 
-        ParseEventType ParseFlowMappingValue(bool empty)
+        void ParseFlowMappingValue(bool empty)
         {
             if (empty)
             {
                 currentState = ParseState.FlowMappingKey;
-                return EmptyScalar();
+                EmptyScalar();
+                return;
             }
 
             if (CurrentTokenType == TokenType.ValueStart)
@@ -660,20 +693,22 @@ namespace VYaml
                     CurrentTokenType != TokenType.FlowMappingEnd)
                 {
                     PushState(ParseState.FlowMappingKey);
-                    return ParseNode(false, false);
+                    ParseNode(false, false);
+                    return;
                 }
             }
 
             currentState = ParseState.FlowMappingKey;
-            return EmptyScalar();
+            EmptyScalar();
         }
 
-        ParseEventType ParseIndentlessSequenceEntry()
+        void ParseIndentlessSequenceEntry()
         {
             if (CurrentTokenType != TokenType.BlockEntryStart)
             {
                 PopState();
-                return ParseEventType.SequenceEnd;
+                CurrentEventType = ParseEventType.SequenceEnd;
+                return;
             }
 
             tokenizer.Read();
@@ -684,14 +719,16 @@ namespace VYaml
                 TokenType.BlockEnd)
             {
                 currentState = ParseState.IndentlessSequenceEntry;
-                return EmptyScalar();
+                EmptyScalar();
             }
-
-            PushState(ParseState.IndentlessSequenceEntry);
-            return ParseNode(true, false);
+            else
+            {
+                PushState(ParseState.IndentlessSequenceEntry);
+                ParseNode(true, false);
+            }
         }
 
-        ParseEventType ParseFlowSequenceEntryMappingKey()
+        void ParseFlowSequenceEntryMappingKey()
         {
             if (CurrentTokenType is
                 TokenType.ValueStart or
@@ -700,13 +737,16 @@ namespace VYaml
             {
                 tokenizer.Read();
                 currentState = ParseState.FlowSequenceEntryMappingValue;
-                return EmptyScalar();
+                EmptyScalar();
             }
-            PushState(ParseState.FlowSequenceEntryMappingValue);
-            return ParseNode(false, false);
+            else
+            {
+                PushState(ParseState.FlowSequenceEntryMappingValue);
+                ParseNode(false, false);
+            }
         }
 
-        ParseEventType ParseFlowSequenceEntryMappingValue()
+        void ParseFlowSequenceEntryMappingValue()
         {
             if (CurrentTokenType == TokenType.ValueStart)
             {
@@ -717,20 +757,26 @@ namespace VYaml
                     TokenType.FlowSequenceEnd)
                 {
                     currentState = ParseState.FlowSequenceEntryMappingEnd;
-                    return EmptyScalar();
+                    EmptyScalar();
                 }
-                PushState(ParseState.FlowSequenceEntryMappingEnd);
-                return ParseNode(false, false);
+                else
+                {
+                    PushState(ParseState.FlowSequenceEntryMappingEnd);
+                    ParseNode(false, false);
+                }
             }
-
-            currentState = ParseState.FlowSequenceEntryMappingEnd;
-            return EmptyScalar();
+            else
+            {
+                currentState = ParseState.FlowSequenceEntryMappingEnd;
+                EmptyScalar();
+            }
         }
 
-        ParseEventType ParseFlowSequenceEntryMappingEnd()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        void ParseFlowSequenceEntryMappingEnd()
         {
             currentState = ParseState.FlowSequenceEntry;
-            return ParseEventType.MappingEnd;
+            CurrentEventType = ParseEventType.MappingEnd;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -747,10 +793,10 @@ namespace VYaml
 
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        ParseEventType EmptyScalar()
+        void EmptyScalar()
         {
             currentScalar = Scalar.Null;
-            return ParseEventType.Scalar;
+            CurrentEventType = ParseEventType.Scalar;
         }
 
         void ProcessDirectives()
