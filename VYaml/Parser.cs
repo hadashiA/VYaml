@@ -112,6 +112,8 @@ namespace VYaml
             get => tokenizer.CurrentMark;
         }
 
+        public int CurrentAnchorId { get; private set; }
+
         TokenType CurrentTokenType
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -122,7 +124,7 @@ namespace VYaml
         ParseState currentState;
         Scalar? currentScalar;
         Tag? currentTag;
-        int currentAnchorId;
+        int lastAnchorId;
 
         readonly Dictionary<string, int> anchors;
         readonly ExpandBuffer<ParseState> stateStack;
@@ -132,12 +134,13 @@ namespace VYaml
             this.tokenizer = tokenizer;
             currentState = ParseState.StreamStart;
             CurrentEventType = default;
-            currentAnchorId = -1;
+            lastAnchorId = -1;
             anchors = new Dictionary<string, int>();
             stateStack = new ExpandBuffer<ParseState>(24);
 
             currentScalar = null;
             currentTag = null;
+            CurrentAnchorId = -1;
         }
 
         public readonly bool IsNullScalar()
@@ -392,19 +395,28 @@ namespace VYaml
 
         void ParseNode(bool block, bool indentlessSequence)
         {
-            var anchorId = 0;
-            var tag = default(TokenType);
+            CurrentAnchorId = -1;
 
             switch (CurrentTokenType)
             {
                 case TokenType.Alias:
-                    throw new NotImplementedException();
+                    PopState();
+
+                    var name = tokenizer.TakeCurrentTokenContent<Scalar>();
+                    if (anchors.TryGetValue(name.ToString(), out var aliasId)) // TODO: Avoid `ToString`
+                    {
+                        tokenizer.Read();
+                        CurrentAnchorId = aliasId;
+                        CurrentEventType = ParseEventType.Alias;
+                        return;
+                    }
+                    throw new YamlParserException(CurrentMark, "While parsing node, found unknown anchor");
 
                 case TokenType.Anchor:
                 {
-                    tokenizer.Read();
                     var anchorName = tokenizer.TakeCurrentTokenContent<Scalar>();
-                    anchors.Add(anchorName.ToString(), ++currentAnchorId); // TODO Avoid `ToString`
+                    CurrentAnchorId = RegisterAnchor(anchorName);
+                    tokenizer.Read();
                     if (CurrentTokenType == TokenType.Tag)
                     {
                         currentTag = tokenizer.TakeCurrentTokenContent<Tag>();
@@ -418,7 +430,7 @@ namespace VYaml
                     if (CurrentTokenType == TokenType.Anchor)
                     {
                         var anchorName = tokenizer.TakeCurrentTokenContent<Scalar>();
-                        anchors.Add(anchorName.ToString(), ++currentAnchorId); // TODO: Avoid `ToString`
+                        CurrentAnchorId = RegisterAnchor(anchorName);
                     }
                     break;
                 }
@@ -428,7 +440,6 @@ namespace VYaml
             {
                 case TokenType.BlockEntryStart when indentlessSequence:
                     currentState = ParseState.IndentlessSequenceEntry;
-                    currentAnchorId = anchorId;
                     CurrentEventType = ParseEventType.SequenceStart;
                     break;
 
@@ -440,41 +451,43 @@ namespace VYaml
                     PopState();
                     currentScalar = tokenizer.TakeCurrentTokenContent<Scalar>();
                     tokenizer.Read();
-                    currentAnchorId = anchorId;
                     CurrentEventType = ParseEventType.Scalar;
                     break;
 
                 case TokenType.FlowSequenceStart:
                     currentState = ParseState.FlowSequenceFirstEntry;
-                    currentAnchorId = anchorId;
                     CurrentEventType = ParseEventType.SequenceStart;
                     break;
 
                 case TokenType.FlowMappingStart:
                     currentState = ParseState.FlowMappingFirstKey;
-                    currentAnchorId = anchorId;
                     CurrentEventType = ParseEventType.MappingStart;
                     break;
 
                 case TokenType.BlockSequenceStart when block:
                     currentState = ParseState.BlockSequenceFirstEntry;
-                    currentAnchorId = anchorId;
                     CurrentEventType = ParseEventType.SequenceStart;
                     break;
 
                 case TokenType.BlockMappingStart when block:
                     currentState = ParseState.BlockMappingFirstKey;
-                    currentAnchorId = anchorId;
                     CurrentEventType = ParseEventType.MappingStart;
                     break;
 
                 default:
+                {
                     // ex 7.2, an empty scalar can follow a secondary tag
-                    if (anchorId > 0)
+                    if (CurrentAnchorId >= 0 || tokenizer.TryGetCurrentTag(out var tag))
                     {
-                        throw new NotImplementedException();
+                        PopState();
+                        EmptyScalar();
                     }
-                    throw new YamlTokenizerException(tokenizer.CurrentMark, "while parsing a node, did not find expected node content");
+                    else
+                    {
+                        throw new YamlTokenizerException(tokenizer.CurrentMark, "while parsing a node, did not find expected node content");
+                    }
+                    break;
+                }
             }
         }
 
@@ -835,6 +848,13 @@ namespace VYaml
                 }
                 tokenizer.Read();
             }
+        }
+
+        int RegisterAnchor(Scalar anchorName)
+        {
+            var newId = ++lastAnchorId;
+            anchors.Add(anchorName.ToString(), newId); // TODO: Avoid `ToString`
+            return newId;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -135,6 +135,17 @@ namespace VYaml
             return (T)result.Content!;
         }
 
+        internal bool TryGetCurrentTag(out Tag tag)
+        {
+            if (currentToken.Content is Tag x)
+            {
+                tag = x;
+                return true;
+            }
+            tag = default!;
+            return false;
+        }
+
         void ConsumeMoreTokens()
         {
             while (true)
