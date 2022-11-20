@@ -7,20 +7,14 @@ namespace VYaml.Internal
     readonly struct Token
     {
         public readonly TokenType Type;
-        // public readonly Marker Start;
-        public readonly Scalar? Scalar;
+        public readonly ITokenContent? Content;
 
-        public Token(
-            TokenType type,
-            // in Marker start,
-            Scalar? scalar = null)
+        public Token(TokenType type, ITokenContent? content = null)
         {
             Type = type;
-            // Start = start;
-            Scalar = scalar;
-            // Tag = tag;
+            Content = content;
         }
 
-        public override string ToString() => $"{Type} \"{Scalar}\"";
+        public override string ToString() => $"{Type} \"{Content}\"";
     }
 }

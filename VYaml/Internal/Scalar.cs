@@ -25,7 +25,7 @@ namespace VYaml.Internal
         }
     }
 
-    class Scalar
+    class Scalar : ITokenContent
     {
         public static readonly Scalar Null = new(new []
         {

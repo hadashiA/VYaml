@@ -1,6 +1,5 @@
 using System;
 using System.Buffers;
-using System.IO;
 using System.Runtime.CompilerServices;
 using VYaml.Internal;
 
@@ -99,8 +98,17 @@ namespace VYaml
                 ConsumeMoreTokens();
             }
 
-            if (currentToken.Scalar is { } scalar)
-                ReturnScalarToPool(scalar);
+            switch (currentToken.Content)
+            {
+                case Scalar scalar:
+                    ReturnScalarToPool(scalar);
+                    break;
+                case Tag tag:
+                    ReturnScalarToPool(tag.Handle);
+                    ReturnScalarToPool(tag.Suffix);
+                    break;
+            }
+
             currentToken = tokens.Dequeue();
             tokenAvailable = false;
             tokensParsed += 1;
@@ -124,7 +132,15 @@ namespace VYaml
         {
             var result = currentToken;
             currentToken = default;
-            return result.Scalar!;
+            return (Scalar)result.Content!;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal Tag TakeCurrentTag()
+        {
+            var result = currentToken;
+            currentToken = default;
+            return (Tag)result.Content!;
         }
 
         void ConsumeMoreTokens()
@@ -290,7 +306,168 @@ namespace VYaml
             RemoveSimpleKeyCandidate();
             simpleKeyAllowed = false;
 
-            throw new NotImplementedException();
+            Advance(1);
+
+            var name = scalarPool.Rent();
+            try
+            {
+                ConsumeDirectiveName(name);
+                if (name.SequenceEqual(YamlCodes.YamlDirectiveName))
+                {
+                    ConsumeVersionDirectiveValue();
+                }
+                else if (name.SequenceEqual(YamlCodes.TagDirectiveName))
+                {
+                    ConsumeTagDirectiveValue();
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
+            }
+            finally
+            {
+                scalarPool.Return(name);
+            }
+            //     // XXX This should be a warning instead of an error
+            //         while !is_breakz(self.ch()) {
+            //             self.skip();
+            //             self.lookahead(1);
+            //         }
+            //         // XXX return an empty TagDirective token
+            //         Token(
+            //             start_mark,
+            //             TokenType::TagDirective(String::new(), String::new()),
+            //         )
+            //         // return Err(ScanError::new(start_mark,
+            //         //     "while scanning a directive, found unknown directive name"))
+            //     }
+            // };
+            // self.lookahead(1);
+            //
+            // while is_blank(self.ch()) {
+            //     self.skip();
+            //     self.lookahead(1);
+            // }
+            //
+            // if self.ch() == '#' {
+            //     while !is_breakz(self.ch()) {
+            //         self.skip();
+            //         self.lookahead(1);
+            //     }
+            // }
+            //
+            // if !is_breakz(self.ch()) {
+            //     return Err(ScanError::new(
+            //         start_mark,
+            //         "while scanning a directive, did not find expected comment or line break",
+            //     ));
+            // }
+            //
+            // // Eat a line break
+            // if is_break(self.ch()) {
+            //     self.lookahead(2);
+            //     self.skip_line();
+            // }
+            //
+            // Ok(tok)
+        }
+
+        void ConsumeDirectiveName(Scalar result)
+        {
+            while (YamlCodes.IsAlphaNumericDashOrUnderscore(currentCode))
+            {
+                result.Write(currentCode);
+                Advance(1);
+            }
+
+            if (result.Length <= 0)
+            {
+                throw new YamlTokenizerException(CurrentMark,
+                    "While scanning a directive, could not find expected directive name");
+            }
+
+            if (!reader.End && !YamlCodes.IsBlank(currentCode))
+            {
+                throw new YamlTokenizerException(CurrentMark,
+                    "While scanning a directive, found unexpected non-alphabetical character");
+            }
+        }
+
+        void ConsumeVersionDirectiveValue()
+        {
+            while (YamlCodes.IsBlank(currentCode))
+            {
+                Advance(1);
+            }
+
+            var major = ConsumeVersionDirectiveNumber();
+
+            if (currentCode != '.')
+            {
+                throw new YamlTokenizerException(CurrentMark,
+                    "while scanning a YAML directive, did not find expected digit or '.' character");
+            }
+
+            Advance(1);
+            var minor = ConsumeVersionDirectiveNumber();
+            tokens.Enqueue(new Token(TokenType.VersionDirective, new VersionDirective(major, minor)));
+        }
+
+        int ConsumeVersionDirectiveNumber()
+        {
+            var value = 0;
+            var length = 0;
+            while (YamlCodes.IsNumber(currentCode))
+            {
+                if (length + 1 > 9)
+                {
+                    throw new YamlTokenizerException(CurrentMark,
+                        "While scanning a YAML directive, found exteremely long version number");
+                }
+
+                length++;
+                value = value * 10 + YamlCodes.AsHex(currentCode);
+                Advance(1);
+            }
+
+            if (length == 0)
+            {
+                throw new YamlTokenizerException(CurrentMark,
+                    "While scanning a YAML directive, did not find expected version number");
+            }
+            return value;
+        }
+
+        void ConsumeTagDirectiveValue()
+        {
+            var tag = new Tag(scalarPool.Rent(), scalarPool.Rent());
+
+            // Eat whitespaces.
+            while (YamlCodes.IsBlank(currentCode))
+            {
+                Advance(1);
+            }
+
+            ConsumeTagHandle(true, tag);
+
+            // Eat whitespaces
+            while (YamlCodes.IsBlank(currentCode))
+            {
+                Advance(1);
+            }
+
+            ConsumeTagUri(true, null, tag);
+
+            if (YamlCodes.IsEmpty(currentCode) || reader.End)
+            {
+                tokens.Enqueue(new Token(TokenType.TagDirective, tag));
+            }
+            else
+            {
+                throw new YamlTokenizerException(CurrentMark,
+                    "While scanning TAG, did not find expected whitespace or line break");
+            }
         }
 
         void ConsumeDocumentIndicator(TokenType tokenType)
@@ -451,7 +628,7 @@ namespace VYaml
             {
                 // Eat '!<'
                 Advance(2);
-                ConsumeTagUri(false, tag);
+                ConsumeTagUri(false, null, tag);
 
                 if (currentCode != '>')
                 {
@@ -468,11 +645,11 @@ namespace VYaml
                 var handleSpan = tag.Handle.AsSpan();
                 if (tag.Handle.Length >= 2 && handleSpan[0] == '!' && handleSpan[^1] == '!')
                 {
-                    ConsumeTagUri(false, tag);
+                    ConsumeTagUri(false, null, tag);
                 }
                 else
                 {
-                    ConsumeTagUri(false, tag);
+                    ConsumeTagUri(false, tag.Handle, tag);
                     tag.Handle.Clear();
                     // A special case: the '!' tag.  Set the handle to '' and the
                     // suffix to '!'.
@@ -535,14 +712,14 @@ namespace VYaml
             }
         }
 
-        void ConsumeTagUri(bool directive, Tag result)
+        void ConsumeTagUri(bool directive, Scalar? head, Tag tag)
         {
             // Copy the head if needed.
             // Note that we don't copy the leading '!' character.
-            var length = result.Handle.Length;
+            var length = head?.Length ?? 0;
             if (length > 1)
             {
-                 result.Suffix.Write(result.Handle.AsSpan(1, length - 1));
+                 tag.Suffix.Write(head!.AsSpan(1, length - 1));
             }
 
             // The set of characters that may appear in URI is as follows:
@@ -554,11 +731,11 @@ namespace VYaml
             {
                 if (currentCode == '%')
                 {
-                    result.Suffix.WriteUnicodeCodepoint(ConsumeUriEscapes(directive));
+                    tag.Suffix.WriteUnicodeCodepoint(ConsumeUriEscapes(directive));
                 }
                 else
                 {
-                    result.Suffix.Write(currentCode);
+                    tag.Suffix.Write(currentCode);
                     Advance(1);
                 }
 
@@ -1330,12 +1507,15 @@ namespace VYaml
             }
         }
 
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void IncreaseFlowLevel()
         {
             simpleKeyCandidates.Add(new SimpleKeyState());
             flowLevel++;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void DecreaseFlowLevel()
         {
             if (flowLevel <= 0) return;
@@ -1348,15 +1528,6 @@ namespace VYaml
         {
             var exits = reader.TryPeek(offset, out var code);
             return !exits || YamlCodes.IsEmpty(code);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static void EnsureMoreData(bool condition)
-        {
-            if (!condition)
-            {
-                throw new EndOfStreamException();
-            }
         }
     }
 }

@@ -123,7 +123,6 @@ namespace VYaml
         Utf8Tokenizer tokenizer;
         ParseState currentState;
         Scalar? currentScalar;
-        int lastAnchorId;
         readonly Dictionary<string, int> anchors;
         readonly ExpandBuffer<ParseState> stateStack;
 
@@ -136,7 +135,6 @@ namespace VYaml
             anchors = new Dictionary<string, int>();
             stateStack = new ExpandBuffer<ParseState>(24);
             currentScalar = null;
-            lastAnchorId = -1;
         }
 
         public readonly bool IsNullScalar()
@@ -400,9 +398,9 @@ namespace VYaml
                 case TokenType.Tag:
                     tokenizer.Read();
                     ThrowIfCurrentTokenUnless(TokenType.Anchor);
-                    throw new NotImplementedException();
-                    // tokenizer.Read();
-                    // break;
+                    var anchorName = tokenizer.TakeCurrentScalar();
+                    anchors.Add(anchorName.ToString(), ++CurrentAnchorId); // TODO: Avoid ToString
+                    break;
             }
 
             switch (CurrentTokenType)
@@ -816,11 +814,6 @@ namespace VYaml
                 }
                 tokenizer.Read();
             }
-        }
-
-        void RegisterAnchor()
-        {
-
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

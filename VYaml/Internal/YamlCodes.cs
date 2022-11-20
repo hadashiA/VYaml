@@ -5,6 +5,9 @@ namespace VYaml.Internal
 {
     public static class YamlCodes
     {
+        public static readonly byte[] YamlDirectiveName = { (byte)'Y', (byte)'A', (byte)'M', (byte)'L' };
+        public static readonly byte[] TagDirectiveName = { (byte)'T', (byte)'A', (byte)'G' };
+
         public static readonly byte[] Bom = { 0xFE, 0xFE };
         public static readonly byte[] StreamStart = { (byte)'-', (byte)'-', (byte)'-' };
         public static readonly byte[] DocStart = { (byte)'.', (byte)'.', (byte)'.' };
