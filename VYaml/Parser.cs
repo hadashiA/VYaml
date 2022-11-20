@@ -15,7 +15,7 @@ namespace VYaml
         }
     }
 
-    public enum ParseEventType
+    public enum ParseEventType : byte
     {
         /// Reserved for internal use
         Nothing,

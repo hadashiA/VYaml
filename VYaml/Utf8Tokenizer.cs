@@ -22,28 +22,6 @@ namespace VYaml
         public Marker Start;
     }
 
-    readonly struct Token
-    {
-        public readonly TokenType Type;
-        public readonly Marker Start;
-        public readonly Scalar? Scalar;
-        // public Tag? Tag;
-
-        public Token(
-            TokenType type,
-            in Marker start,
-            Scalar? scalar = null)
-            // Tag? tag = null)
-        {
-            Type = type;
-            Start = start;
-            Scalar = scalar;
-            // Tag = tag;
-        }
-
-        public override string ToString() => $"{Type} \"{Scalar}\"";
-    }
-
     public ref struct Utf8Tokenizer
     {
         public TokenType CurrentTokenType
@@ -451,13 +429,13 @@ namespace VYaml
                 currentCode != '@' &&
                 currentCode != '`')
             {
-                throw new YamlTokenizerException(mark,
+                throw new YamlTokenizerException(in mark,
                     "while scanning an anchor or alias, did not find expected alphabetic or numeric character");
             }
 
             tokens.Enqueue(alias
-                ? new Token(TokenType.Alias, mark, scalar)
-                : new Token(TokenType.Anchor,mark, scalar));
+                ? new Token(TokenType.Alias, in mark, scalar)
+                : new Token(TokenType.Anchor, in mark, scalar));
         }
 
         void ConsumeTag()
