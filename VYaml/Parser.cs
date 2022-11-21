@@ -853,7 +853,7 @@ namespace VYaml
         int RegisterAnchor(Scalar anchorName)
         {
             var newId = ++lastAnchorId;
-            anchors.Add(anchorName.ToString(), newId); // TODO: Avoid `ToString`
+            anchors[anchorName.ToString()] = newId; // TODO: Avoid `ToString`
             return newId;
         }
 

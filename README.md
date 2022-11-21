@@ -36,7 +36,7 @@
   - :white_check_mark: Example 2.7 Two Documents in a Stream (each with a leading comment)
   - :white_check_mark: Example 2.8 Play by Play Feed from a Game
   - :white_check_mark: Example 2.9 Single Document with Two Comments
-  - :x: Example 2.10 Node for “Sammy Sosa” appears twice in this document
+  - :white_check_mark: Example 2.10 Node for “Sammy Sosa” appears twice in this document
   - :white_check_mark: Example 2.11 Mapping between Sequences
   - :white_check_mark: Example 2.12 Compact Nested Mapping
 - 2.3. Scalars
@@ -96,7 +96,7 @@
   - :white_check_mark: Example 6.12 Separation Spaces
 - 6.8. Directives
   - :x: Example 6.13 Reserved Directives
-  - :x: Example 6.14 “YAML” directive
+  - :white_check_mark: Example 6.14 “YAML” directive
   - :x: Example 6.15 Invalid Repeated YAML directive
   - :x: Example 6.16 “TAG” directive
   - :x: Example 6.17 Invalid Repeated TAG directive

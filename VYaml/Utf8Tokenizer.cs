@@ -599,7 +599,8 @@ namespace VYaml
                     "while scanning an anchor or alias, did not find expected alphabetic or numeric character");
             }
 
-            if (!YamlCodes.IsBlank(currentCode) &&
+            if (!YamlCodes.IsEmpty(currentCode) &&
+                !reader.End &&
                 currentCode != '?' &&
                 currentCode != ':' &&
                 currentCode != ',' &&
