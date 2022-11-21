@@ -10,5 +10,7 @@ namespace VYaml.Internal
             Handle = handle;
             Suffix = suffix;
         }
+
+        public override string ToString() => $"{Handle} {Suffix}";
     }
 }

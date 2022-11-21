@@ -101,6 +101,7 @@ namespace VYaml
             ReturnToPool(currentToken.Content);
 
             currentToken = tokens.Dequeue();
+            System.Console.WriteLine($"  TOKEN {currentToken}");
             tokenAvailable = false;
             tokensParsed += 1;
 
@@ -133,17 +134,6 @@ namespace VYaml
             var result = currentToken;
             currentToken = default;
             return (T)result.Content!;
-        }
-
-        internal bool TryGetCurrentTag(out Tag tag)
-        {
-            if (currentToken.Content is Tag x)
-            {
-                tag = x;
-                return true;
-            }
-            tag = default!;
-            return false;
         }
 
         void ConsumeMoreTokens()

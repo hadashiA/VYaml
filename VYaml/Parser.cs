@@ -206,6 +206,7 @@ namespace VYaml
                 return false;
             }
 
+            System.Console.WriteLine($"STATE {currentState}");
             switch (currentState)
             {
                 case ParseState.StreamStart:
@@ -396,6 +397,7 @@ namespace VYaml
         void ParseNode(bool block, bool indentlessSequence)
         {
             CurrentAnchorId = -1;
+            currentTag = null;
 
             switch (CurrentTokenType)
             {
@@ -403,9 +405,10 @@ namespace VYaml
                     PopState();
 
                     var name = tokenizer.TakeCurrentTokenContent<Scalar>();
+                    tokenizer.Read();
+
                     if (anchors.TryGetValue(name.ToString(), out var aliasId)) // TODO: Avoid `ToString`
                     {
-                        tokenizer.Read();
                         CurrentAnchorId = aliasId;
                         CurrentEventType = ParseEventType.Alias;
                         return;
@@ -420,6 +423,7 @@ namespace VYaml
                     if (CurrentTokenType == TokenType.Tag)
                     {
                         currentTag = tokenizer.TakeCurrentTokenContent<Tag>();
+                        tokenizer.Read();
                     }
                     break;
                 }
@@ -431,6 +435,7 @@ namespace VYaml
                     {
                         var anchorName = tokenizer.TakeCurrentTokenContent<Scalar>();
                         CurrentAnchorId = RegisterAnchor(anchorName);
+                        tokenizer.Read();
                     }
                     break;
                 }
@@ -474,19 +479,16 @@ namespace VYaml
                     CurrentEventType = ParseEventType.MappingStart;
                     break;
 
+                // ex 7.2, an empty scalar can follow a secondary tag
+                case var _ when CurrentAnchorId >= 0 || currentTag != null:
+                    PopState();
+                    EmptyScalar();
+                    break;
+
                 default:
                 {
-                    // ex 7.2, an empty scalar can follow a secondary tag
-                    if (CurrentAnchorId >= 0 || tokenizer.TryGetCurrentTag(out var tag))
-                    {
-                        PopState();
-                        EmptyScalar();
-                    }
-                    else
-                    {
-                        throw new YamlTokenizerException(tokenizer.CurrentMark, "while parsing a node, did not find expected node content");
-                    }
-                    break;
+                    throw new YamlTokenizerException(tokenizer.CurrentMark,
+                        "while parsing a node, did not find expected node content");
                 }
             }
         }
