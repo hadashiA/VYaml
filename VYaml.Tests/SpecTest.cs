@@ -1276,6 +1276,26 @@ public class SpecTest
     }
 
     [Test]
+    public void Ex6_27_InvalidTagShorthands()
+    {
+        Assert.Throws<YamlParserException>(() =>
+        {
+            var parser = Parser.FromString(SpecExamples.Ex6_27a);
+            while (parser.Read())
+            {
+            }
+        });
+
+        Assert.Throws<YamlParserException>(() =>
+        {
+            var parser = Parser.FromString(SpecExamples.Ex6_27b);
+            while (parser.Read())
+            {
+            }
+        });
+    }
+
+    [Test]
     public void Ex6_28_NonSpecificTags()
     {
         AssertParseEvents(SpecExamples.Ex6_28, new []

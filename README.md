@@ -51,12 +51,12 @@
   - :warning: Example 2.20 Floating Point
   - :white_check_mark: Example 2.21 Miscellaneous
   - :white_check_mark: Example 2.22 Timestamps
-  - :x: Example 2.23 Various Explicit Tags
-  - :x: Example 2.24 Global Tags
+  - :white_check_mark: Example 2.23 Various Explicit Tags
+  - :white_check_mark: Example 2.24 Global Tags
   - :x: Example 2.25 Unordered Sets
   - :x: Example 2.26 Ordered Mappings
 - 2.5. Full Length Example
-  - :x: Example 2.27 Invoice
+  - :white_check_mark: Example 2.27 Invoice
   - :white_check_mark: Example 2.28 Log File
 - 5.2. Character Encodings
   - :white_check_mark: Example 5.1 Byte Order Mark
@@ -97,24 +97,24 @@
 - 6.8. Directives
   - :x: Example 6.13 Reserved Directives
   - :white_check_mark: Example 6.14 “YAML” directive
-  - :x: Example 6.15 Invalid Repeated YAML directive
-  - :x: Example 6.16 “TAG” directive
-  - :x: Example 6.17 Invalid Repeated TAG directive
+  - :white_check_mark: Example 6.15 Invalid Repeated YAML directive
+  - :white_check_mark: Example 6.16 “TAG” directive
+  - :white_check_mark: Example 6.17 Invalid Repeated TAG directive
   - :x: Example 6.18 Primary Tag Handle
   - :x: Example 6.19 Secondary Tag Handle
-  - :x: Example 6.20 Tag Handles
-  - :x: Example 6.21 Local Tag Prefix
-  - :x: Example 6.22 Global Tag Prefix
+  - :white_check_mark: Example 6.20 Tag Handles
+  - :white_check_mark: Example 6.21 Local Tag Prefix
+  - :white_check_mark: Example 6.22 Global Tag Prefix
 - 6.9. Node Properties
   - :x: Example 6.23 Node Properties
-  - :x: Example 6.24 Verbatim Tags
+  - :white_check_mark: Example 6.24 Verbatim Tags
   - :x: Example 6.25 Invalid Verbatim Tags
   - :x: Example 6.26 Tag Shorthands
   - :x: Example 6.27 Invalid Tag Shorthands
   - :x: Example 6.28 Non-Specific Tags
-  - :x: Example 6.29 Node Anchors
+  - :white_check_mark: Example 6.29 Node Anchors
 - 7.1. Alias Nodes
-  - :wx: Example 7.1 Alias Nodes
+  - :white_check_mark: Example 7.1 Alias Nodes
 - 7.2. Empty Nodes
   - :x: Example 7.2 Empty Content
   - :white_check_mark: Example 7.3 Completely Empty Flow Nodes
@@ -158,11 +158,11 @@
   - :white_check_mark: Example 8.15 Block Sequence Entry Types
   - :white_check_mark: Example 8.16 Block Mappings
   - :white_check_mark: Example 8.17 Explicit Block Mapping Entries
-  - :white_check_mark: Example 8.18 Implicit Block Mapping Entries
+  - :x: Example 8.18 Implicit Block Mapping Entries
   - :white_check_mark: Example 8.19 Compact Block Mappings
-  - :x: Example 8.20 Block Node Types
-  - :x: Example 8.21 Block Scalar Nodes
-  - :x: Example 8.22 Block Collection Nodes
+  - :white_check_mark: Example 8.20 Block Node Types
+  - :white_check_mark: Example 8.21 Block Scalar Nodes
+  - :white_check_mark: Example 8.22 Block Collection Nodes
 
 
 

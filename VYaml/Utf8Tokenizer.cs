@@ -99,9 +99,7 @@ namespace VYaml
             }
 
             ReturnToPool(currentToken.Content);
-
             currentToken = tokens.Dequeue();
-            System.Console.WriteLine($"  TOKEN {currentToken}");
             tokenAvailable = false;
             tokensParsed += 1;
 
