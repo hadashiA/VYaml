@@ -10,13 +10,13 @@
 - https://yaml.org/type/float.html
     - :white_check_mark: [-+]?([0-9][0-9_]*)?\.[0-9.]*([eE][-+][0-9]+)? (base 10)
     - :x: [-+]?[0-9][0-9_]*(:[0-5]?[0-9])+\.[0-9_]* (base 60)
-    - :x: [-+]?\.(inf|Inf|INF) # (infinity)
-    - :x: \.(nan|NaN|NAN) # (not a number)     
+    - :white_check_mark: [-+]?\.(inf|Inf|INF) # (infinity)
+    - :white_check_mark: \.(nan|NaN|NAN) # (not a number)     
 - https://yaml.org/type/int.
     - :white_check_mark: [-+]?(0|[1-9][0-9_]*) # (base 10)
     - :x: [-+]?0b[0-1_]+ # (base 2)
     - :x: [-+]?0[0-7_]+ # (base 8)
-    - :x: [-+]?0x[0-9a-fA-F_]+ # (base 16)
+    - :white_check_mark: [-+]?0x[0-9a-fA-F_]+ # (base 16)
     - :x: [-+]?[1-9][0-9_]*(:[0-5]?[0-9])+ # (base 60)
 - https://yaml.org/type/null.html
     - :white_check_mark: ~ # (canonical)
@@ -48,7 +48,7 @@
   - :white_check_mark: Example 2.18 Multi-line Flow Scalars
 - 2.4. Tags
   - :warning: Example 2.19 Integers
-  - :warning: Example 2.20 Floating Point
+  - :white_check_mark: Example 2.20 Floating Point
   - :white_check_mark: Example 2.21 Miscellaneous
   - :white_check_mark: Example 2.22 Timestamps
   - :white_check_mark: Example 2.23 Various Explicit Tags

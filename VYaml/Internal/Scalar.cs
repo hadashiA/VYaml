@@ -116,6 +116,7 @@ namespace VYaml.Internal
             var span = buffer.AsSpan();
             switch (span.Length)
             {
+                case 0:
                 case 1 when span[0] == YamlCodes.NullAlias:
                 case 4 when span.SequenceEqual(YamlCodes.Null0) ||
                             span.SequenceEqual(YamlCodes.Null1) ||
@@ -193,17 +194,28 @@ namespace VYaml.Internal
         public bool TryGetInt64(out long value)
         {
             var span = buffer.AsSpan();
-            if (span.Length >= 3 && span[0] == '0')
+            if (Utf8Parser.TryParse(span, out value, out var bytesConsumed) &&
+                bytesConsumed == span.Length)
             {
-                if (span[1] == 'x')
+                return true;
+            }
+
+            if (span.Length > YamlCodes.HexPrefix.Length && span.StartsWith(YamlCodes.HexPrefix))
+            {
+                var slice = span[YamlCodes.HexPrefix.Length..];
+                return Utf8Parser.TryParse(slice, out value, out var bytesConsumedHex, 'x') &&
+                       bytesConsumedHex == slice.Length;
+            }
+            if (span.Length > YamlCodes.HexPrefixNegative.Length && span.StartsWith(YamlCodes.HexPrefixNegative))
+            {
+                var slice = span[YamlCodes.HexPrefixNegative.Length..];
+                if (Utf8Parser.TryParse(slice, out value, out var bytesConsumedHex, 'x') && bytesConsumedHex == slice.Length)
                 {
-                    var slice = span[2..];
-                    return Utf8Parser.TryParse(slice, out value, out var bytesConsumedHex, 'x') &&
-                           bytesConsumedHex == slice.Length;
+                    value = -value;
+                    return true;
                 }
             }
-            return Utf8Parser.TryParse(AsSpan(), out value, out var bytesConsumed) &&
-                   bytesConsumed == span.Length;
+            return false;
         }
 
         /// <summary>
@@ -213,18 +225,28 @@ namespace VYaml.Internal
         {
             var span = buffer.AsSpan();
 
-            if (span.Length >= 3 && span[0] == '0')
+            if (Utf8Parser.TryParse(span, out value, out var bytesConsumed) &&
+                bytesConsumed == span.Length)
             {
-                if (span[1] == 'x')
-                {
-                    var slice = span[2..];
-                    return Utf8Parser.TryParse(slice, out value, out var bytesConsumedHex, 'x') &&
-                           bytesConsumedHex == slice.Length;
-                }
+                return true;
             }
 
-            return Utf8Parser.TryParse(span, out value, out var bytesConsumed) &&
-                   bytesConsumed == span.Length;
+            if (span.Length > YamlCodes.HexPrefix.Length && span.StartsWith(YamlCodes.HexPrefix))
+            {
+                var slice = span[YamlCodes.HexPrefix.Length..];
+                return Utf8Parser.TryParse(slice, out value, out var bytesConsumedHex, 'x') &&
+                       bytesConsumedHex == slice.Length;
+            }
+            if (span.Length > YamlCodes.HexPrefixNegative.Length && span.StartsWith(YamlCodes.HexPrefixNegative))
+            {
+                var slice = span[YamlCodes.HexPrefixNegative.Length..];
+                if (Utf8Parser.TryParse(slice, out value, out var bytesConsumedHex, 'x') && bytesConsumedHex == slice.Length)
+                {
+                    value = -value;
+                    return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>

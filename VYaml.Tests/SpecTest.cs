@@ -433,7 +433,7 @@ public class SpecTest
     }
 
     [Test]
-    [Ignore("")]
+    [Ignore("base 8 integer is not supported")]
     public void Ex2_19_Integers()
     {
         AssertParseEvents(SpecExamples.Ex2_19, new []
@@ -449,6 +449,30 @@ public class SpecTest
             Expect(ParseEventType.Scalar, 12), // 0x12
             Expect(ParseEventType.Scalar, "hexadecimal"),
             Expect(ParseEventType.Scalar, 0xC),
+            Expect(ParseEventType.MappingEnd),
+            Expect(ParseEventType.DocumentEnd),
+            Expect(ParseEventType.StreamEnd),
+        });
+    }
+
+    [Test]
+    public void Ex2_20_FloatingPoint()
+    {
+        AssertParseEvents(SpecExamples.Ex2_20, new []
+        {
+            Expect(ParseEventType.StreamStart),
+            Expect(ParseEventType.DocumentStart),
+            Expect(ParseEventType.MappingStart),
+            Expect(ParseEventType.Scalar, "canonical"),
+            Expect(ParseEventType.Scalar, 1230.15),
+            Expect(ParseEventType.Scalar, "exponential"),
+            Expect(ParseEventType.Scalar, 1230.15),
+            Expect(ParseEventType.Scalar, "fixed"),
+            Expect(ParseEventType.Scalar, 1230.15),
+            Expect(ParseEventType.Scalar, "negative infinity"),
+            Expect(ParseEventType.Scalar),
+            Expect(ParseEventType.Scalar, "not a number"),
+            Expect(ParseEventType.Scalar),
             Expect(ParseEventType.MappingEnd),
             Expect(ParseEventType.DocumentEnd),
             Expect(ParseEventType.StreamEnd),

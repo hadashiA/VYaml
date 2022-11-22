@@ -57,6 +57,9 @@ namespace VYaml.Internal
         public static readonly byte[] Nan1 = { (byte)'.', (byte)'N', (byte)'a', (byte)'N' };
         public static readonly byte[] Nan2 = { (byte)'.', (byte)'N', (byte)'A', (byte)'N' };
 
+        public static readonly byte[] HexPrefix = { (byte)'0', (byte)'x' };
+        public static readonly byte[] HexPrefixNegative = { (byte)'-', (byte)'0', (byte)'x' };
+
         public const byte Space = (byte)' ';
         public const byte Tab = (byte)'\t';
         public const byte Lf = (byte)'\n';
