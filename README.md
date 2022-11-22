@@ -53,8 +53,8 @@
   - :white_check_mark: Example 2.22 Timestamps
   - :white_check_mark: Example 2.23 Various Explicit Tags
   - :white_check_mark: Example 2.24 Global Tags
-  - :x: Example 2.25 Unordered Sets
-  - :x: Example 2.26 Ordered Mappings
+  - :white_check_mark: Example 2.25 Unordered Sets
+  - :white_check_mark: Example 2.26 Ordered Mappings
 - 2.5. Full Length Example
   - :white_check_mark: Example 2.27 Invoice
   - :white_check_mark: Example 2.28 Log File

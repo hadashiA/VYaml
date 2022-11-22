@@ -577,12 +577,12 @@ public class SpecTest
             Expect(ParseEventType.StreamStart),
             Expect(ParseEventType.DocumentStart),
             Expect(ParseEventType.MappingStart),
-            Expect(ParseEventType.Scalar, null),
             Expect(ParseEventType.Scalar, "Mark McGwire"),
             Expect(ParseEventType.Scalar, null),
             Expect(ParseEventType.Scalar, "Sammy Sosa"),
             Expect(ParseEventType.Scalar, null),
             Expect(ParseEventType.Scalar, "Ken Griffey"),
+            Expect(ParseEventType.Scalar, null),
             Expect(ParseEventType.MappingEnd),
             Expect(ParseEventType.DocumentEnd),
             Expect(ParseEventType.StreamEnd),
@@ -596,6 +596,7 @@ public class SpecTest
         {
             Expect(ParseEventType.StreamStart),
             Expect(ParseEventType.DocumentStart),
+            Expect(ParseEventType.SequenceStart),
             Expect(ParseEventType.MappingStart),
             Expect(ParseEventType.Scalar, "Mark McGwire"),
             Expect(ParseEventType.Scalar, 65),
@@ -603,8 +604,14 @@ public class SpecTest
             Expect(ParseEventType.MappingStart),
             Expect(ParseEventType.Scalar, "Sammy Sosa"),
             Expect(ParseEventType.Scalar, 63),
+            Expect(ParseEventType.MappingEnd),
+            Expect(ParseEventType.MappingStart),
             Expect(ParseEventType.Scalar, "Ken Griffey"),
             Expect(ParseEventType.Scalar, 58),
+            Expect(ParseEventType.MappingEnd),
+            Expect(ParseEventType.SequenceEnd),
+            Expect(ParseEventType.DocumentEnd),
+            Expect(ParseEventType.StreamEnd),
         });
     }
 
