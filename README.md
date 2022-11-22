@@ -65,7 +65,7 @@
   - :white_check_mark: Example 5.3 Block Structure Indicators
   - :white_check_mark: Example 5.4 Flow Collection Indicators
   - :white_check_mark: Example 5.5 Comment Indicator
-  - :x: Example 5.6 Node Property Indicators
+  - :white_check_mark: Example 5.6 Node Property Indicators
   - :white_check_mark: Example 5.7 Block Scalar Indicators
   - :white_check_mark: Example 5.8 Quoted Scalar Indicators
   - :white_check_mark: Example 5.9 Directive Indicator
@@ -111,7 +111,7 @@
   - :x: Example 6.25 Invalid Verbatim Tags
   - :x: Example 6.26 Tag Shorthands
   - :x: Example 6.27 Invalid Tag Shorthands
-  - :x: Example 6.28 Non-Specific Tags
+  - :white_check_mark: Example 6.28 Non-Specific Tags
   - :white_check_mark: Example 6.29 Node Anchors
 - 7.1. Alias Nodes
   - :white_check_mark: Example 7.1 Alias Nodes
@@ -139,7 +139,7 @@
   - :white_check_mark: Example 7.21 Single Pair Implicit Entries
   - :white_check_mark: Example 7.22 Invalid Implicit Keys
   - :white_check_mark: Example 7.23 Flow Content
-  - :x: Example 7.24 Flow Nodes
+  - :white_check_mark: Example 7.24 Flow Nodes
 - 8.1. Block Scalar Styles
   - :white_check_mark: Example 8.1 Block Scalar Header
   - :white_check_mark: Example 8.2 Block Indentation Indicator
