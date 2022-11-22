@@ -95,22 +95,22 @@
 - 6.7. Separation Lines
   - :white_check_mark: Example 6.12 Separation Spaces
 - 6.8. Directives
-  - :x: Example 6.13 Reserved Directives
+  - :white_check_mark: Example 6.13 Reserved Directives
   - :white_check_mark: Example 6.14 “YAML” directive
   - :white_check_mark: Example 6.15 Invalid Repeated YAML directive
   - :white_check_mark: Example 6.16 “TAG” directive
   - :white_check_mark: Example 6.17 Invalid Repeated TAG directive
-  - :x: Example 6.18 Primary Tag Handle
-  - :x: Example 6.19 Secondary Tag Handle
+  - :white_check_mark: Example 6.18 Primary Tag Handle
+  - :white_check_mark: Example 6.19 Secondary Tag Handle
   - :white_check_mark: Example 6.20 Tag Handles
   - :white_check_mark: Example 6.21 Local Tag Prefix
   - :white_check_mark: Example 6.22 Global Tag Prefix
 - 6.9. Node Properties
-  - :x: Example 6.23 Node Properties
+  - :white_check_mark: Example 6.23 Node Properties
   - :white_check_mark: Example 6.24 Verbatim Tags
-  - :x: Example 6.25 Invalid Verbatim Tags
-  - :x: Example 6.26 Tag Shorthands
-  - :x: Example 6.27 Invalid Tag Shorthands
+  - :white_check_mark: Example 6.25 Invalid Verbatim Tags
+  - :white_check_mark: Example 6.26 Tag Shorthands
+  - :white_check_mark: Example 6.27 Invalid Tag Shorthands
   - :white_check_mark: Example 6.28 Non-Specific Tags
   - :white_check_mark: Example 6.29 Node Anchors
 - 7.1. Alias Nodes
@@ -136,13 +136,13 @@
   - :white_check_mark: Example 7.17 Flow Mapping Separate Values
   - :white_check_mark: Example 7.18 Flow Mapping Adjacent Values
   - :white_check_mark: Example 7.20 Single Pair Explicit Entry
-  - :white_check_mark: Example 7.21 Single Pair Implicit Entries
+  - :x: Example 7.21 Single Pair Implicit Entries
   - :white_check_mark: Example 7.22 Invalid Implicit Keys
   - :white_check_mark: Example 7.23 Flow Content
   - :white_check_mark: Example 7.24 Flow Nodes
 - 8.1. Block Scalar Styles
   - :white_check_mark: Example 8.1 Block Scalar Header
-  - :white_check_mark: Example 8.2 Block Indentation Indicator
+  - :x: Example 8.2 Block Indentation Indicator
   - :white_check_mark: Example 8.3 Invalid Block Scalar Indentation Indicators
   - :white_check_mark: Example 8.4 Chomping Final Line Break
   - :white_check_mark: Example 8.5 Chomping Trailing Lines
@@ -158,7 +158,7 @@
   - :white_check_mark: Example 8.15 Block Sequence Entry Types
   - :white_check_mark: Example 8.16 Block Mappings
   - :white_check_mark: Example 8.17 Explicit Block Mapping Entries
-  - :x: Example 8.18 Implicit Block Mapping Entries
+  - :white_check_mark: Example 8.18 Implicit Block Mapping Entries
   - :white_check_mark: Example 8.19 Compact Block Mappings
   - :white_check_mark: Example 8.20 Block Node Types
   - :white_check_mark: Example 8.21 Block Scalar Nodes
