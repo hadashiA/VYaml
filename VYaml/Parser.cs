@@ -199,6 +199,7 @@ namespace VYaml
                 tokenizer.ReturnToPool(tag);
                 currentTag = null;
             }
+            System.Console.WriteLine($"STATE {currentState}");
 
             if (currentState == ParseState.End)
             {
@@ -206,7 +207,6 @@ namespace VYaml
                 return false;
             }
 
-            System.Console.WriteLine($"STATE {currentState}");
             switch (currentState)
             {
                 case ParseState.StreamStart:

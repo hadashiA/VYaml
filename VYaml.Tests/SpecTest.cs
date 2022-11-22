@@ -1311,14 +1311,6 @@ public class SpecTest
     {
         Assert.Throws<YamlParserException>(() =>
         {
-            var parser = Parser.FromString(SpecExamples.Ex6_27a);
-            while (parser.Read())
-            {
-            }
-        });
-
-        Assert.Throws<YamlParserException>(() =>
-        {
             var parser = Parser.FromString(SpecExamples.Ex6_27b);
             while (parser.Read())
             {

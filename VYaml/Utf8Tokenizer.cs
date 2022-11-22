@@ -100,6 +100,7 @@ namespace VYaml
 
             ReturnToPool(currentToken.Content);
             currentToken = tokens.Dequeue();
+            System.Console.WriteLine($"  TOKEN {currentToken}");
             tokenAvailable = false;
             tokensParsed += 1;
 
@@ -708,7 +709,8 @@ namespace VYaml
             while (currentCode is
                        (byte)';' or (byte)'/' or (byte)'?' or (byte)':' or (byte)':' or (byte)'@' or (byte)'&' or
                        (byte)'=' or (byte)'+' or (byte)'$' or (byte)',' or (byte)'.' or (byte)'!' or (byte)'!' or
-                       (byte)'~' or (byte)'*' or (byte)'\'' or (byte)'(' or (byte)')' or (byte)'[' or (byte)']' ||
+                       (byte)'~' or (byte)'*' or (byte)'\'' or (byte)'(' or (byte)')' or (byte)'[' or (byte)']' or
+                       (byte)'%' ||
                    YamlCodes.IsAlphaNumericDashOrUnderscore(currentCode))
             {
                 if (currentCode == '%')
