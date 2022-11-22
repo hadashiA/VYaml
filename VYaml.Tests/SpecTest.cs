@@ -1192,7 +1192,7 @@ public class SpecTest
             Expect(ParseEventType.DocumentStart),
             Expect(ParseEventType.Scalar, "bar"),
             Expect(ParseEventType.DocumentEnd),
-            Expect(ParseEventType.SequenceEnd),
+            Expect(ParseEventType.StreamEnd),
         });
     }
 
@@ -1203,7 +1203,7 @@ public class SpecTest
         {
             Expect(ParseEventType.StreamStart),
             Expect(ParseEventType.DocumentStart),
-            Expect(ParseEventType.Scalar, "foo"),
+            Expect(ParseEventType.Scalar, "1 - 3"),
             Expect(ParseEventType.DocumentEnd),
             Expect(ParseEventType.StreamEnd),
         });

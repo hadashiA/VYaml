@@ -313,55 +313,45 @@ namespace VYaml
                 }
                 else
                 {
-                    throw new NotImplementedException();
+                    // Skip current line
+                    while (!reader.End && !YamlCodes.IsLineBreak(currentCode))
+                    {
+                        Advance(1);
+                    }
+
+                    // TODO: This should be error ?
+                    tokens.Enqueue(new Token(TokenType.TagDirective, new Tag(Scalar.Null, Scalar.Null)));
                 }
             }
             finally
             {
                 scalarPool.Return(name);
             }
-            //     // XXX This should be a warning instead of an error
-            //         while !is_breakz(self.ch()) {
-            //             self.skip();
-            //             self.lookahead(1);
-            //         }
-            //         // XXX return an empty TagDirective token
-            //         Token(
-            //             start_mark,
-            //             TokenType::TagDirective(String::new(), String::new()),
-            //         )
-            //         // return Err(ScanError::new(start_mark,
-            //         //     "while scanning a directive, found unknown directive name"))
-            //     }
-            // };
-            // self.lookahead(1);
-            //
-            // while is_blank(self.ch()) {
-            //     self.skip();
-            //     self.lookahead(1);
-            // }
-            //
-            // if self.ch() == '#' {
-            //     while !is_breakz(self.ch()) {
-            //         self.skip();
-            //         self.lookahead(1);
-            //     }
-            // }
-            //
-            // if !is_breakz(self.ch()) {
-            //     return Err(ScanError::new(
-            //         start_mark,
-            //         "while scanning a directive, did not find expected comment or line break",
-            //     ));
-            // }
-            //
-            // // Eat a line break
-            // if is_break(self.ch()) {
-            //     self.lookahead(2);
-            //     self.skip_line();
-            // }
-            //
-            // Ok(tok)
+
+            while (YamlCodes.IsBlank(currentCode))
+            {
+                Advance(1);
+            }
+
+            if (currentCode == YamlCodes.Comment)
+            {
+                while (!reader.End && !YamlCodes.IsLineBreak(currentCode))
+                {
+                    Advance(1);
+                }
+            }
+
+            if (!reader.End && !YamlCodes.IsLineBreak(currentCode))
+            {
+                throw new YamlTokenizerException(CurrentMark,
+                    "While scanning a directive, did not find expected comment or line break");
+            }
+
+            // Eat a line break
+            if (YamlCodes.IsLineBreak(currentCode))
+            {
+                ConsumeLineBreaks();
+            }
         }
 
         void ConsumeDirectiveName(Scalar result)
@@ -848,7 +838,7 @@ namespace VYaml
 
             if (currentCode == YamlCodes.Comment)
             {
-                while (!YamlCodes.IsLineBreak(currentCode))
+                while (!reader.End && !YamlCodes.IsLineBreak(currentCode))
                 {
                     Advance(1);
                 }
