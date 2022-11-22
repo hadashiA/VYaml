@@ -147,7 +147,7 @@ namespace VYaml
         {
             if (currentScalar is { } scalar)
                 return scalar.IsNull();
-            return false;
+            return true;
         }
 
         public readonly string? GetScalarAsString()
@@ -825,11 +825,10 @@ namespace VYaml
             stateStack.Add(state);
         }
 
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void EmptyScalar()
         {
-            currentScalar = Scalar.Null;
+            currentScalar = null;
             CurrentEventType = ParseEventType.Scalar;
         }
 

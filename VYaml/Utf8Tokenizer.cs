@@ -1009,7 +1009,7 @@ namespace VYaml
                 isLeadingBlanks = false;
 
                 // Consume non-blank characters
-                while (!reader.End && !YamlCodes.IsBlank(currentCode) && !YamlCodes.IsLineBreak(currentCode))
+                while (!reader.End && !YamlCodes.IsEmpty(currentCode))
                 {
                     switch (currentCode)
                     {
