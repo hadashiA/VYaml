@@ -563,6 +563,9 @@ namespace VYaml
 
         void ConsumeAnchor(bool alias)
         {
+            SaveSimpleKeyCandidate();
+            simpleKeyAllowed = false;
+
             var scalar = scalarPool.Rent();
             Advance(1);
 
@@ -979,7 +982,6 @@ namespace VYaml
             SaveSimpleKeyCandidate();
             simpleKeyAllowed = false;
 
-            var startMark = mark;
             var leadingBreak = default(LineBreakState);
             var trailingBreak = default(LineBreakState);
             var isLeadingBlanks = false;
