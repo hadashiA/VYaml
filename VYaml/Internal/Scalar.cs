@@ -129,8 +129,9 @@ namespace VYaml.Internal
         /// <summary>
         /// </summary>
         /// <remarks>
-        /// tag:yaml.org,2002:bool
-        /// true | True | TRUE | false | False | FALSE
+        /// y|Y|yes|Yes|YES|n|N|no|No|NO
+        /// |true|True|TRUE|false|False|FALSE
+        /// |on|On|ON|off|Off|OFF
         /// </remarks>
         /// <see href="https://yaml.org/type/bool.html" />
         public bool TryGetBool(out bool value)
@@ -138,11 +139,44 @@ namespace VYaml.Internal
             var span = buffer.AsSpan();
             switch (span.Length)
             {
+                case 1 when span[0] is (byte)'y' or (byte)'Y':
+                    value = true;
+                    return true;
+
+                case 1 when span[0] is (byte)'n' or (byte)'N':
+                    value = false;
+                    return true;
+
+                case 2 when span.SequenceEqual(YamlCodes.No0) ||
+                            span.SequenceEqual(YamlCodes.No1) ||
+                            span.SequenceEqual(YamlCodes.No2):
+                    value = false;
+                    return true;
+
+                case 2 when span.SequenceEqual(YamlCodes.On0) ||
+                            span.SequenceEqual(YamlCodes.On1) ||
+                            span.SequenceEqual(YamlCodes.On2):
+                    value = true;
+                    return true;
+
+                case 3 when span.SequenceEqual(YamlCodes.Yes0) ||
+                            span.SequenceEqual(YamlCodes.Yes1) ||
+                            span.SequenceEqual(YamlCodes.Yes2):
+                    value = true;
+                    return true;
+
+                case 3 when span.SequenceEqual(YamlCodes.Off0) ||
+                            span.SequenceEqual(YamlCodes.Off1) ||
+                            span.SequenceEqual(YamlCodes.Off2):
+                    value = false;
+                    return true;
+
                 case 4 when span.SequenceEqual(YamlCodes.True0) ||
                             span.SequenceEqual(YamlCodes.True1) ||
                             span.SequenceEqual(YamlCodes.True2):
                     value = true;
                     return true;
+
                 case 5 when span.SequenceEqual(YamlCodes.False0) ||
                             span.SequenceEqual(YamlCodes.False1) ||
                             span.SequenceEqual(YamlCodes.False2):
@@ -153,25 +187,95 @@ namespace VYaml.Internal
             return false;
         }
 
+        /// <summary>
+        /// </summary>
+        /// <see href="https://yaml.org/type/int.html"/>
         public bool TryGetInt64(out long value)
         {
             var span = buffer.AsSpan();
+            if (span.Length >= 3 && span[0] == '0')
+            {
+                if (span[1] == 'x')
+                {
+                    var slice = span[2..];
+                    return Utf8Parser.TryParse(slice, out value, out var bytesConsumedHex, 'x') &&
+                           bytesConsumedHex == slice.Length;
+                }
+            }
             return Utf8Parser.TryParse(AsSpan(), out value, out var bytesConsumed) &&
                    bytesConsumed == span.Length;
         }
 
+        /// <summary>
+        /// </summary>
+        /// <see href="https://yaml.org/type/int.html"/>
         public bool TryGetInt32(out int value)
         {
             var span = buffer.AsSpan();
+
+            if (span.Length >= 3 && span[0] == '0')
+            {
+                if (span[1] == 'x')
+                {
+                    var slice = span[2..];
+                    return Utf8Parser.TryParse(slice, out value, out var bytesConsumedHex, 'x') &&
+                           bytesConsumedHex == slice.Length;
+                }
+            }
+
             return Utf8Parser.TryParse(span, out value, out var bytesConsumed) &&
                    bytesConsumed == span.Length;
         }
 
+        /// <summary>
+        /// </summary>
+        /// <see href="https://yaml.org/type/float.html"/>
         public bool TryGetDouble(out double value)
         {
             var span = buffer.AsSpan();
-            return Utf8Parser.TryParse(span, out value, out var bytesConsumed) &&
-                   bytesConsumed == span.Length;
+            if (Utf8Parser.TryParse(span, out value, out var bytesConsumed) &&
+                bytesConsumed == span.Length)
+            {
+                return true;
+            }
+
+            switch (span.Length)
+            {
+                case 4:
+                    if (span.SequenceEqual(YamlCodes.Inf0) ||
+                        span.SequenceEqual(YamlCodes.Inf1) ||
+                        span.SequenceEqual(YamlCodes.Inf2))
+                    {
+                        value = double.PositiveInfinity;
+                        return true;
+                    }
+
+                    if (span.SequenceEqual(YamlCodes.Nan0) ||
+                        span.SequenceEqual(YamlCodes.Nan1) ||
+                        span.SequenceEqual(YamlCodes.Nan2))
+                    {
+                        value = double.NaN;
+                        return true;
+                    }
+                    break;
+                case 5:
+                    if (span.SequenceEqual(YamlCodes.Inf3) ||
+                        span.SequenceEqual(YamlCodes.Inf4) ||
+                        span.SequenceEqual(YamlCodes.Inf5))
+                    {
+                        value = double.PositiveInfinity;
+                        return true;
+                    }
+                    if (span.SequenceEqual(YamlCodes.NegInf0) ||
+                        span.SequenceEqual(YamlCodes.NegInf1) ||
+                        span.SequenceEqual(YamlCodes.NegInf2))
+                    {
+                        value = double.NegativeInfinity;
+                        return true;
+                    }
+                    break;
+            }
+            return false;
         }
 
         public override string ToString()
