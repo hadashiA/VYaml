@@ -3,7 +3,8 @@
 using System.Text;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
-using VYaml;
+
+namespace VYaml.Benchmark;
 
 [MemoryDiagnoser]
 public class SimpleParsingBenchmark
@@ -23,10 +24,10 @@ public class SimpleParsingBenchmark
     [Benchmark]
     public void YamlDotNet_Parser()
     {
-        using var reader = new StringReader(yamlString);
-        var parser = new YamlDotNet.Core.Parser(reader);
-        for (var i = 0; i < N; i++)
+        // for (var i = 0; i < N; i++)
         {
+            using var reader = new StringReader(yamlString);
+            var parser = new YamlDotNet.Core.Parser(reader);
             while (parser.MoveNext())
             {
             }
@@ -36,9 +37,9 @@ public class SimpleParsingBenchmark
     [Benchmark]
     public void VYaml_Parser()
     {
-        var parser = Parser.FromBytes(yamlBytes);
-        for (var i = 0; i < N; i++)
+        // for (var i = 0; i < N; i++)
         {
+            var parser = Parser.FromBytes(yamlBytes);
             while (parser.Read())
             {
             }

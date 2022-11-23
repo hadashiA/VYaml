@@ -196,10 +196,10 @@ namespace VYaml
             }
             if (currentTag is { } tag)
             {
-                tokenizer.ReturnToPool(tag);
+                tokenizer.ReturnToPool(tag.Handle);
+                tokenizer.ReturnToPool(tag.Suffix);
                 currentTag = null;
             }
-            System.Console.WriteLine($"STATE {currentState}");
 
             if (currentState == ParseState.End)
             {

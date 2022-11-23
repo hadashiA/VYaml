@@ -100,7 +100,6 @@ namespace VYaml
 
             ReturnToPool(currentToken.Content);
             currentToken = tokens.Dequeue();
-            System.Console.WriteLine($"  TOKEN {currentToken}");
             tokenAvailable = false;
             tokensParsed += 1;
 
@@ -125,6 +124,12 @@ namespace VYaml
                     scalarPool.Return(tag.Suffix);
                     break;
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void ReturnToPool(Scalar scalar)
+        {
+            scalarPool.Return(scalar);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

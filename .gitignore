@@ -1,5 +1,14 @@
-
+.DS_Store
 bin/
 obj/
 *.DotSettings.user
 .idea
+
+# Unity
+
+VYaml.Unity/Library/*
+VYaml.Unity/Temp/*
+VYaml.Unity/Logs/*
+VYaml.Unity/*.csproj
+VYaml.Unity/*.sln
+VYaml.Unity/VYaml.*.unitypackage
