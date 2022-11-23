@@ -1,3 +1,21 @@
+# VYaml
+
+
+
+- Support almost YAML 1.2
+- 
+
+
+
+## Roadmap
+
+- [x]
+- [x] Unity Support
+- [ ] Handy YAML dynamic type loader
+- [ ] YAML Emitter
+- [ ] Deserialization
+- [ ] Serialization
+
 
 ## YAML 1.2 spec support status
 
