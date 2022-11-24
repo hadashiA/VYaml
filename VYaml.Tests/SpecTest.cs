@@ -1312,7 +1312,7 @@ namespace VYaml.Tests
         {
             Assert.Throws<YamlParserException>(() =>
             {
-                var parser = Parser.FromString(SpecExamples.Ex6_27b);
+                var parser = YamlParser.FromBytes(StringEncoding.Utf8.GetBytes(SpecExamples.Ex6_27b));
                 while (parser.Read())
                 {
                 }
@@ -1777,7 +1777,7 @@ namespace VYaml.Tests
         {
             Assert.Throws<YamlParserException>(() =>
             {
-                var parser = Parser.FromString(SpecExamples.Ex7_22);
+                var parser = YamlParser.FromBytes(StringEncoding.Utf8.GetBytes(SpecExamples.Ex7_22));
                 while (parser.Read())
                 {
                 }
@@ -1870,7 +1870,7 @@ namespace VYaml.Tests
         {
             Assert.Throws<YamlParserException>(() =>
             {
-                var parser = Parser.FromString(SpecExamples.Ex8_3a);
+                var parser = YamlParser.FromBytes(StringEncoding.Utf8.GetBytes(SpecExamples.Ex8_3a));
                 while (parser.Read())
                 {
                 }
@@ -1878,7 +1878,7 @@ namespace VYaml.Tests
 
             Assert.Throws<YamlParserException>(() =>
             {
-                var parser = Parser.FromString(SpecExamples.Ex8_3b);
+                var parser = YamlParser.FromBytes(StringEncoding.Utf8.GetBytes(SpecExamples.Ex8_3b));
                 while (parser.Read())
                 {
                 }
@@ -1886,7 +1886,7 @@ namespace VYaml.Tests
 
             Assert.Throws<YamlParserException>(() =>
             {
-                var parser = Parser.FromString(SpecExamples.Ex8_3c);
+                var parser = YamlParser.FromBytes(StringEncoding.Utf8.GetBytes(SpecExamples.Ex8_3c));
                 while (parser.Read())
                 {
                 }
@@ -2299,7 +2299,7 @@ namespace VYaml.Tests
 
         static void AssertParseEvents(string yaml, IReadOnlyList<TestParseResult> expects)
         {
-            var parser = Parser.FromString(yaml);
+            var parser = YamlParser.FromBytes(StringEncoding.Utf8.GetBytes(yaml));
             for (var i = 0; i < expects.Count; i++)
             {
                 var expect = expects[i];
@@ -2368,4 +2368,3 @@ namespace VYaml.Tests
         }
     }
 }
-

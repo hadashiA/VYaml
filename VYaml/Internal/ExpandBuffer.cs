@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Runtime.CompilerServices;
 
 namespace VYaml.Internal
@@ -76,9 +77,11 @@ namespace VYaml.Internal
             {
                 Grow();
             }
+
             buffer[Length++] = item;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Grow(int sizeHint)
         {
             if (sizeHint <= buffer.Length)

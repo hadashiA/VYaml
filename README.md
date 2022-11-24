@@ -1,20 +1,42 @@
 # VYaml
 
+Extra fast, GC free YAML parser for C# and Unity.
+
+- utf8 bytes sequence (c# api)
+- Scalar は ToStrig() しない限りアロケーションは発生しません。
 
 
-- Support almost YAML 1.2
-- 
+## Roadmaps
 
-
-
-## Roadmap
-
-- [x]
+- [x] YAML 1.2 parser
 - [x] Unity Support
-- [ ] Handy YAML dynamic type loader
+- [ ] Handy YAML loader
 - [ ] YAML Emitter
-- [ ] Deserialization
-- [ ] Serialization
+- [ ] Deserizlize
+- [ ] Serialize
+
+## Parsing Raw APIc
+
+```csharp
+using VYaml;
+
+// Strongly recommended bytes array not as string
+var parser = Parser.FromByts(yamlBytes);
+
+// read to end of stream
+while (parser.Read())
+{
+    switch (parser.CurrentEventType)
+    {
+    }
+}
+
+
+```
+
+## Deserialization
+
+wip
 
 
 ## YAML 1.2 spec support status

@@ -5,7 +5,7 @@ namespace VYaml.Formatters
 {
     public class PrimitiveObjectFormatter : IYamlFormatter<object>
     {
-        public object Deserialize(ref Utf8Tokenizer tokenizer)
+        public object Deserialize(ref Utf8YamlTokenizer yamlTokenizer)
         {
         //     switch (reader.CurrentTokenType)
         //     {

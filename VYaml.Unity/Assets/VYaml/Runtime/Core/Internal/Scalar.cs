@@ -6,7 +6,6 @@ namespace VYaml.Internal
 {
     class ScalarPool
     {
-        // readonly ConcurrentQueue<Scalar> queue = new();
         readonly ExpandBuffer<Scalar> queue = new(32);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

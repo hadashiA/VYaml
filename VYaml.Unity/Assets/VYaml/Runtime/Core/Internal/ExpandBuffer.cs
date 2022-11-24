@@ -79,6 +79,7 @@ namespace VYaml.Internal
             buffer[Length++] = item;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Grow(int sizeHint)
         {
             if (sizeHint <= buffer.Length)

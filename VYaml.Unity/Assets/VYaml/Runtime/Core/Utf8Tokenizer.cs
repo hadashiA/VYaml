@@ -188,20 +188,17 @@ namespace VYaml
 
             if (mark.Col == 0)
             {
-                if (currentCode == YamlCodes.DirectiveLine)
+                switch (currentCode)
                 {
-                    ConsumeDirective();
-                    return;
-                }
-                if (reader.IsNext(YamlCodes.StreamStart) && EmptyNext(YamlCodes.StreamStart.Length))
-                {
-                    ConsumeDocumentIndicator(TokenType.DocumentStart);
-                    return;
-                }
-                if (reader.IsNext(YamlCodes.DocStart) && EmptyNext(YamlCodes.DocStart.Length))
-                {
-                    ConsumeDocumentIndicator(TokenType.DocumentEnd);
-                    return;
+                    case (byte)'%':
+                        ConsumeDirective();
+                        return;
+                    case (byte)'-' when reader.IsNext(YamlCodes.StreamStart) && EmptyNext(YamlCodes.StreamStart.Length):
+                        ConsumeDocumentIndicator(TokenType.DocumentStart);
+                        return;
+                    case (byte)'.' when reader.IsNext(YamlCodes.DocStart) && EmptyNext(YamlCodes.DocStart.Length):
+                        ConsumeDocumentIndicator(TokenType.DocumentEnd);
+                        return;
                 }
             }
 
@@ -789,7 +786,6 @@ namespace VYaml
             SaveSimpleKeyCandidate();
             simpleKeyAllowed = true;
 
-            var startMark = mark;
             var chomping = 0;
             var increment = 0;
             var blockIndent = 0;
@@ -1219,7 +1215,6 @@ namespace VYaml
             SaveSimpleKeyCandidate();
             simpleKeyAllowed = false;
 
-            var startMark = mark;
             var currentIndent = indent + 1;
             var leadingBreak = default(LineBreakState);
             var trailingBreak = default(LineBreakState);
@@ -1516,10 +1511,40 @@ namespace VYaml
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         readonly bool EmptyNext(int offset)
         {
-            var exits = TryPeek(offset, out var code);
-            return !exits || YamlCodes.IsEmpty(code);
+            if (reader.End || reader.Remaining <= offset)
+                return true;
+
+            // If offset doesn't fall inside current segment move to next until we find correct one
+            if (reader.CurrentSpanIndex + offset <= reader.CurrentSpan.Length - 1)
+            {
+                var nextCode = reader.CurrentSpan[reader.CurrentSpanIndex + offset];
+                return YamlCodes.IsEmpty(nextCode);
+            }
+
+            var remainingOffset = offset - (reader.CurrentSpan.Length - reader.CurrentSpanIndex) - 1;
+            var nextPosition = reader.Position;
+            ReadOnlyMemory<byte> currentMemory;
+
+            while (reader.Sequence.TryGet(ref nextPosition, out currentMemory, advance: true))
+            {
+                // Skip empty segment
+                if (currentMemory.Length > 0)
+                {
+                    if (remainingOffset >= currentMemory.Length)
+                    {
+                        // Subtract current non consumed data
+                        remainingOffset -= currentMemory.Length;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+            return YamlCodes.IsEmpty(currentMemory.Span[remainingOffset]);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         readonly bool TryPeek(long offset, out byte value)
         {
             // If we've got data and offset is not out of bounds
@@ -1537,7 +1562,7 @@ namespace VYaml
             }
 
             var remainingOffset = offset - (reader.CurrentSpan.Length - reader.CurrentSpanIndex) - 1;
-            SequencePosition nextPosition = reader.Position;
+            var nextPosition = reader.Position;
             ReadOnlyMemory<byte> currentMemory;
 
             while (reader.Sequence.TryGet(ref nextPosition, out currentMemory, advance: true))
