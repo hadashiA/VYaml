@@ -1,7 +1,6 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.IO;
 using System.Runtime.CompilerServices;
 using VYaml.Internal;
 
@@ -73,35 +72,19 @@ namespace VYaml
         End,
     }
 
-    public ref struct Parser
+    public ref struct YamlParser
     {
-        public static Parser FromFilePath(string path)
-        {
-            throw new NotImplementedException();
-        }
-
-        public static Parser FromStream(Stream stream)
-        {
-            throw new NotImplementedException();
-        }
-
-        public static Parser FromBytes(byte[] bytes)
+        public static YamlParser FromBytes(Memory<byte> bytes)
         {
             var sequence = new ReadOnlySequence<byte>(bytes);
-            var tokenizer = new Utf8Tokenizer(sequence);
-            return new Parser(tokenizer);
+            var tokenizer = new Utf8YamlTokenizer(sequence);
+            return new YamlParser(tokenizer);
         }
 
-        public static Parser FromString(string content)
+        public static YamlParser FromSequence(ReadOnlySequence<byte> sequence)
         {
-            var bytes = StringEncoding.Utf8.GetBytes(content);
-            return FromBytes(bytes);
-        }
-
-        public static Parser FromSequence(ReadOnlySequence<byte> sequence)
-        {
-            var tokenizer = new Utf8Tokenizer(sequence);
-            return new Parser(tokenizer);
+            var tokenizer = new Utf8YamlTokenizer(sequence);
+            return new YamlParser(tokenizer);
         }
 
         public ParseEventType CurrentEventType { get; private set; }
@@ -109,7 +92,7 @@ namespace VYaml
         public Marker CurrentMark
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => tokenizer.CurrentMark;
+            get => yamlTokenizer.CurrentMark;
         }
 
         public int CurrentAnchorId { get; private set; }
@@ -117,10 +100,10 @@ namespace VYaml
         TokenType CurrentTokenType
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => tokenizer.CurrentTokenType;
+            get => yamlTokenizer.CurrentTokenType;
         }
 
-        Utf8Tokenizer tokenizer;
+        Utf8YamlTokenizer yamlTokenizer;
         ParseState currentState;
         Scalar? currentScalar;
         Tag? currentTag;
@@ -129,9 +112,9 @@ namespace VYaml
         readonly Dictionary<string, int> anchors;
         readonly ExpandBuffer<ParseState> stateStack;
 
-        public Parser(Utf8Tokenizer tokenizer)
+        public YamlParser(Utf8YamlTokenizer yamlTokenizer)
         {
-            this.tokenizer = tokenizer;
+            this.yamlTokenizer = yamlTokenizer;
             currentState = ParseState.StreamStart;
             CurrentEventType = default;
             lastAnchorId = -1;
@@ -191,13 +174,13 @@ namespace VYaml
         {
             if (currentScalar is { } scalar)
             {
-                tokenizer.ReturnToPool(scalar);
+                yamlTokenizer.ReturnToPool(scalar);
                 currentScalar = null;
             }
             if (currentTag is { } tag)
             {
-                tokenizer.ReturnToPool(tag.Handle);
-                tokenizer.ReturnToPool(tag.Suffix);
+                yamlTokenizer.ReturnToPool(tag.Handle);
+                yamlTokenizer.ReturnToPool(tag.Suffix);
                 currentTag = null;
             }
 
@@ -304,11 +287,11 @@ namespace VYaml
         {
             if (CurrentTokenType == TokenType.None)
             {
-                tokenizer.Read();
+                yamlTokenizer.Read();
             }
             ThrowIfCurrentTokenUnless(TokenType.StreamStart);
             currentState = ParseState.ImplicitDocumentStart;
-            tokenizer.Read();
+            yamlTokenizer.Read();
             CurrentEventType = ParseEventType.StreamStart;
         }
 
@@ -316,17 +299,17 @@ namespace VYaml
         {
             if (!implicitStarted)
             {
-                while (tokenizer.CurrentTokenType == TokenType.DocumentEnd)
+                while (yamlTokenizer.CurrentTokenType == TokenType.DocumentEnd)
                 {
-                    tokenizer.Read();
+                    yamlTokenizer.Read();
                 }
             }
 
-            switch (tokenizer.CurrentTokenType)
+            switch (yamlTokenizer.CurrentTokenType)
             {
                 case TokenType.StreamEnd:
                     currentState = ParseState.End;
-                    tokenizer.Read();
+                    yamlTokenizer.Read();
                     CurrentEventType = ParseEventType.StreamEnd;
                     break;
 
@@ -358,13 +341,13 @@ namespace VYaml
             ThrowIfCurrentTokenUnless(TokenType.DocumentStart);
             PushState(ParseState.DocumentEnd);
             currentState = ParseState.DocumentContent;
-            tokenizer.Read();
+            yamlTokenizer.Read();
             CurrentEventType = ParseEventType.DocumentStart;
         }
 
         void ParseDocumentContent()
         {
-            switch (tokenizer.CurrentTokenType)
+            switch (yamlTokenizer.CurrentTokenType)
             {
                 case TokenType.VersionDirective:
                 case TokenType.TagDirective:
@@ -386,7 +369,7 @@ namespace VYaml
             if (CurrentTokenType == TokenType.DocumentEnd)
             {
                 _implicit = false;
-                tokenizer.Read();
+                yamlTokenizer.Read();
             }
 
             // TODO tag handling
@@ -404,8 +387,8 @@ namespace VYaml
                 case TokenType.Alias:
                     PopState();
 
-                    var name = tokenizer.TakeCurrentTokenContent<Scalar>();
-                    tokenizer.Read();
+                    var name = yamlTokenizer.TakeCurrentTokenContent<Scalar>();
+                    yamlTokenizer.Read();
 
                     if (anchors.TryGetValue(name.ToString(), out var aliasId)) // TODO: Avoid `ToString`
                     {
@@ -417,25 +400,25 @@ namespace VYaml
 
                 case TokenType.Anchor:
                 {
-                    var anchorName = tokenizer.TakeCurrentTokenContent<Scalar>();
+                    var anchorName = yamlTokenizer.TakeCurrentTokenContent<Scalar>();
                     CurrentAnchorId = RegisterAnchor(anchorName);
-                    tokenizer.Read();
+                    yamlTokenizer.Read();
                     if (CurrentTokenType == TokenType.Tag)
                     {
-                        currentTag = tokenizer.TakeCurrentTokenContent<Tag>();
-                        tokenizer.Read();
+                        currentTag = yamlTokenizer.TakeCurrentTokenContent<Tag>();
+                        yamlTokenizer.Read();
                     }
                     break;
                 }
                 case TokenType.Tag:
                 {
-                    currentTag = tokenizer.TakeCurrentTokenContent<Tag>();
-                    tokenizer.Read();
+                    currentTag = yamlTokenizer.TakeCurrentTokenContent<Tag>();
+                    yamlTokenizer.Read();
                     if (CurrentTokenType == TokenType.Anchor)
                     {
-                        var anchorName = tokenizer.TakeCurrentTokenContent<Scalar>();
+                        var anchorName = yamlTokenizer.TakeCurrentTokenContent<Scalar>();
                         CurrentAnchorId = RegisterAnchor(anchorName);
-                        tokenizer.Read();
+                        yamlTokenizer.Read();
                     }
                     break;
                 }
@@ -454,8 +437,8 @@ namespace VYaml
                 case TokenType.SingleQuotedScaler:
                 case TokenType.DoubleQuotedScaler:
                     PopState();
-                    currentScalar = tokenizer.TakeCurrentTokenContent<Scalar>();
-                    tokenizer.Read();
+                    currentScalar = yamlTokenizer.TakeCurrentTokenContent<Scalar>();
+                    yamlTokenizer.Read();
                     CurrentEventType = ParseEventType.Scalar;
                     break;
 
@@ -487,7 +470,7 @@ namespace VYaml
 
                 default:
                 {
-                    throw new YamlTokenizerException(tokenizer.CurrentMark,
+                    throw new YamlTokenizerException(yamlTokenizer.CurrentMark,
                         "while parsing a node, did not find expected node content");
                 }
             }
@@ -498,13 +481,13 @@ namespace VYaml
             // skip BlockMappingStart
             if (first)
             {
-                tokenizer.Read();
+                yamlTokenizer.Read();
             }
 
             switch (CurrentTokenType)
             {
                 case TokenType.KeyStart:
-                    tokenizer.Read();
+                    yamlTokenizer.Read();
                     if (CurrentTokenType is
                         TokenType.KeyStart or
                         TokenType.ValueStart or
@@ -527,7 +510,7 @@ namespace VYaml
 
                 case TokenType.BlockEnd:
                     PopState();
-                    tokenizer.Read();
+                    yamlTokenizer.Read();
                     CurrentEventType = ParseEventType.MappingEnd;
                     break;
 
@@ -541,7 +524,7 @@ namespace VYaml
         {
             if (CurrentTokenType == TokenType.ValueStart)
             {
-                tokenizer.Read();
+                yamlTokenizer.Read();
                 if (CurrentTokenType is
                     TokenType.KeyStart or
                     TokenType.ValueStart or
@@ -568,19 +551,19 @@ namespace VYaml
             // BLOCK-SEQUENCE-START
             if (first)
             {
-                tokenizer.Read();
+                yamlTokenizer.Read();
             }
 
             switch (CurrentTokenType)
             {
                 case TokenType.BlockEnd:
                     PopState();
-                    tokenizer.Read();
+                    yamlTokenizer.Read();
                     CurrentEventType = ParseEventType.SequenceEnd;
                     break;
 
                 case TokenType.BlockEntryStart:
-                    tokenizer.Read();
+                    yamlTokenizer.Read();
                     if (CurrentTokenType is TokenType.BlockEntryStart or TokenType.BlockEnd)
                     {
                         currentState = ParseState.BlockSequenceEntry;
@@ -603,19 +586,19 @@ namespace VYaml
             // skip FlowMappingStart
             if (first)
             {
-                tokenizer.Read();
+                yamlTokenizer.Read();
             }
 
             switch (CurrentTokenType)
             {
                 case TokenType.FlowSequenceEnd:
                     PopState();
-                    tokenizer.Read();
+                    yamlTokenizer.Read();
                     CurrentEventType =  ParseEventType.SequenceEnd;
                     return;
 
                 case TokenType.FlowEntryStart when !first:
-                    tokenizer.Read();
+                    yamlTokenizer.Read();
                     break;
 
                 default:
@@ -631,13 +614,13 @@ namespace VYaml
             {
                 case TokenType.FlowSequenceEnd:
                     PopState();
-                    tokenizer.Read();
+                    yamlTokenizer.Read();
                     CurrentEventType = ParseEventType.SequenceEnd;
                     break;
 
                 case TokenType.KeyStart:
                     currentState = ParseState.FlowSequenceEntryMappingKey;
-                    tokenizer.Read();
+                    yamlTokenizer.Read();
                     CurrentEventType = ParseEventType.MappingStart;
                     break;
 
@@ -652,13 +635,13 @@ namespace VYaml
         {
             if (first)
             {
-                tokenizer.Read();
+                yamlTokenizer.Read();
             }
 
             if (CurrentTokenType == TokenType.FlowMappingEnd)
             {
                 PopState();
-                tokenizer.Read();
+                yamlTokenizer.Read();
                 CurrentEventType = ParseEventType.MappingEnd;
                 return;
             }
@@ -667,7 +650,7 @@ namespace VYaml
             {
                 if (CurrentTokenType == TokenType.FlowEntryStart)
                 {
-                    tokenizer.Read();
+                    yamlTokenizer.Read();
                 }
                 else
                 {
@@ -679,7 +662,7 @@ namespace VYaml
             switch (CurrentTokenType)
             {
                 case TokenType.KeyStart:
-                    tokenizer.Read();
+                    yamlTokenizer.Read();
                     if (CurrentTokenType is
                         TokenType.ValueStart or
                         TokenType.FlowEntryStart or
@@ -700,7 +683,7 @@ namespace VYaml
 
                 case TokenType.FlowMappingEnd:
                     PopState();
-                    tokenizer.Read();
+                    yamlTokenizer.Read();
                     CurrentEventType = ParseEventType.MappingEnd;
                     break;
 
@@ -722,7 +705,7 @@ namespace VYaml
 
             if (CurrentTokenType == TokenType.ValueStart)
             {
-                tokenizer.Read();
+                yamlTokenizer.Read();
                 if (CurrentTokenType != TokenType.FlowEntryStart &&
                     CurrentTokenType != TokenType.FlowMappingEnd)
                 {
@@ -745,7 +728,7 @@ namespace VYaml
                 return;
             }
 
-            tokenizer.Read();
+            yamlTokenizer.Read();
 
             if (CurrentTokenType is
                 TokenType.KeyStart or
@@ -769,7 +752,7 @@ namespace VYaml
                 TokenType.FlowEntryStart or
                 TokenType.FlowSequenceEnd)
             {
-                tokenizer.Read();
+                yamlTokenizer.Read();
                 currentState = ParseState.FlowSequenceEntryMappingValue;
                 EmptyScalar();
             }
@@ -784,7 +767,7 @@ namespace VYaml
         {
             if (CurrentTokenType == TokenType.ValueStart)
             {
-                tokenizer.Read();
+                yamlTokenizer.Read();
                 currentState = ParseState.FlowSequenceEntryMappingValue;
                 if (CurrentTokenType is
                     TokenType.FlowEntryStart or
@@ -836,7 +819,7 @@ namespace VYaml
         {
             while (true)
             {
-                switch (tokenizer.CurrentTokenType)
+                switch (yamlTokenizer.CurrentTokenType)
                 {
                     case TokenType.VersionDirective:
                         // TODO:
@@ -847,7 +830,7 @@ namespace VYaml
                     default:
                         return;
                 }
-                tokenizer.Read();
+                yamlTokenizer.Read();
             }
         }
 
@@ -863,7 +846,7 @@ namespace VYaml
         {
             if (CurrentTokenType != expectedTokenType)
             {
-                throw new YamlParserException(tokenizer.CurrentMark,
+                throw new YamlParserException(yamlTokenizer.CurrentMark,
                     $"Did not find expected token of  `{expectedTokenType}`");
             }
         }

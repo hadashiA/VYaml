@@ -95,7 +95,7 @@ namespace VYaml
             get => yamlTokenizer.CurrentMark;
         }
 
-        public int CurrentAnchorId { get; private set; }
+        public bool End => CurrentEventType == ParseEventType.StreamEnd;
 
         TokenType CurrentTokenType
         {
@@ -281,6 +281,25 @@ namespace VYaml
                     throw new ArgumentOutOfRangeException();
             }
             return true;
+        }
+
+        public void ReadWithVerify(ParseEventType eventType)
+        {
+            if (CurrentEventType != eventType)
+                throw new YamlParserException(CurrentMark, $"Did not find expected event : `{eventType}`");
+            Read();
+        }
+
+        public void SkipAfter(ParseEventType eventType)
+        {
+            while (Read())
+            {
+                if (CurrentEventType == eventType)
+                {
+                    Read();
+                    break;
+                }
+            }
         }
 
         void ParseStreamStart()

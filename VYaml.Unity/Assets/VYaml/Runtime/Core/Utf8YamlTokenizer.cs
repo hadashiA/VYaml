@@ -21,7 +21,7 @@ namespace VYaml
         public Marker Start;
     }
 
-    public ref struct Utf8Tokenizer
+    public ref struct Utf8YamlTokenizer
     {
         public TokenType CurrentTokenType
         {
@@ -56,13 +56,8 @@ namespace VYaml
         readonly ExpandBuffer<byte> lineBreakBuffer;
         readonly ScalarPool scalarPool;
 
-        public Utf8Tokenizer(in ReadOnlySequence<byte> sequence)
+        public Utf8YamlTokenizer(in ReadOnlySequence<byte> sequence)
         {
-            if (!sequence.IsSingleSegment)
-            {
-                throw new NotSupportedException();
-            }
-
             reader = new SequenceReader<byte>(sequence);
             mark = new Marker(0, 1, 0);
             tokens = new InsertionQueue<Token>(16);

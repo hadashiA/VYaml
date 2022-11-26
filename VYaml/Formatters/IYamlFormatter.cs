@@ -1,8 +1,7 @@
 namespace VYaml.Formatters
 {
-    public interface IYamlFormatter<T>
+    public interface IYamlFormatter<out T>
     {
-        // void Serialize(ref MessagePackWriter writer, T value, MessagePackSerializerOptions options);
-        T Deserialize(ref Utf8YamlTokenizer yamlTokenizer);        
+        T Deserialize(ref YamlParser parser);
     }
 }

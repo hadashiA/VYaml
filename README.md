@@ -2,37 +2,24 @@
 
 Extra fast, GC free YAML parser for C# and Unity.
 
-- utf8 bytes sequence (c# api)
-- Scalar は ToStrig() しない限りアロケーションは発生しません。
+The reason VYaml is fast is it handles utf8 byte sequences directly and uses a new API in C# (System.Buffers.* etc).
+In parsing, scalar values are pooled and no allocation occurs until `Scalar.ToString()`. This works with very low overhead in environments such as Unity.
+
+Comparison with YamlDotNet, 4x faster in .NET environment, More than 20x faster in Unity IL2CPP environment.
 
 
 ## Roadmaps
 
-- [x] YAML 1.2 parser
 - [x] Unity Support
-- [ ] Handy YAML loader
+- [x] YAML 1.2 parser
 - [ ] YAML Emitter
+- [ ] Handy List/Dictionary/primitive type loader
 - [ ] Deserizlize
 - [ ] Serialize
 
-## Parsing Raw APIc
+## Parsing Raw API
 
-```csharp
-using VYaml;
-
-// Strongly recommended bytes array not as string
-var parser = Parser.FromByts(yamlBytes);
-
-// read to end of stream
-while (parser.Read())
-{
-    switch (parser.CurrentEventType)
-    {
-    }
-}
-
-
-```
+wip
 
 ## Deserialization
 
