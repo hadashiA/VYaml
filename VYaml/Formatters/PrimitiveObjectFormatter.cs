@@ -5,6 +5,8 @@ namespace VYaml.Formatters
 {
     public class PrimitiveObjectFormatter : IYamlFormatter<object?>
     {
+        public static readonly PrimitiveObjectFormatter Instance = new();
+
         public object? Deserialize(ref YamlParser parser, YamlDeserializationContext context)
         {
             object? result;

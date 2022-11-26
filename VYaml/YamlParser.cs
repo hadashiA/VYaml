@@ -127,6 +127,7 @@ namespace VYaml
             currentAnchor = null;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly bool IsNullScalar()
         {
             if (currentScalar is { } scalar)
@@ -134,11 +135,13 @@ namespace VYaml
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly string? GetScalarAsString()
         {
             return currentScalar?.ToString();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly bool TryGetScalarAsBool(out bool value)
         {
             if (currentScalar is { } scalar)
@@ -147,6 +150,7 @@ namespace VYaml
             return false;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly bool TryGetScalarAsInt64(out long value)
         {
             if (currentScalar is { } scalar)
@@ -155,6 +159,7 @@ namespace VYaml
             return false;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly bool TryGetScalarAsInt32(out int value)
         {
             if (currentScalar is { } scalar)
@@ -163,6 +168,7 @@ namespace VYaml
             return false;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly bool TryGetScalarAsDouble(out double value)
         {
             if (currentScalar is { } scalar)
@@ -171,6 +177,7 @@ namespace VYaml
             return false;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly bool TryGetCurrentTag(out Tag tag)
         {
             if (currentTag != null)
@@ -182,6 +189,7 @@ namespace VYaml
             return false;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly bool TryGetCurrentAnchor(out Anchor anchor)
         {
             if (currentAnchor != null)

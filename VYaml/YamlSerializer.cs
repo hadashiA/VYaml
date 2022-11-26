@@ -7,7 +7,16 @@ namespace VYaml
         [ThreadStatic]
         static YamlDeserializationContext? DeserializationContext;
 
-        public static T Deserialize<T>()
+        public static YamlSerializerOptions DefaultOptions
+        {
+            get => defaultOptions ??= YamlSerializerOptions.Standard;
+            set => defaultOptions = value;
+        }
+
+        static YamlSerializerOptions? defaultOptions;
+
+
+        public static T Deserialize<T>(ref YamlParser parser, YamlSerializerOptions options)
         {
             var contextLocal = (DeserializationContext ??= new YamlDeserializationContext());
             throw new NotImplementedException();

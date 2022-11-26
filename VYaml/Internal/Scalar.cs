@@ -140,43 +140,25 @@ namespace VYaml.Internal
             switch (span.Length)
             {
                 case 1 when span[0] is (byte)'y' or (byte)'Y':
-                    value = true;
-                    return true;
-
-                case 1 when span[0] is (byte)'n' or (byte)'N':
-                    value = false;
-                    return true;
-
-                case 2 when span.SequenceEqual(YamlCodes.No0) ||
-                            span.SequenceEqual(YamlCodes.No1) ||
-                            span.SequenceEqual(YamlCodes.No2):
-                    value = false;
-                    return true;
-
                 case 2 when span.SequenceEqual(YamlCodes.On0) ||
                             span.SequenceEqual(YamlCodes.On1) ||
                             span.SequenceEqual(YamlCodes.On2):
-                    value = true;
-                    return true;
-
                 case 3 when span.SequenceEqual(YamlCodes.Yes0) ||
                             span.SequenceEqual(YamlCodes.Yes1) ||
                             span.SequenceEqual(YamlCodes.Yes2):
-                    value = true;
-                    return true;
-
-                case 3 when span.SequenceEqual(YamlCodes.Off0) ||
-                            span.SequenceEqual(YamlCodes.Off1) ||
-                            span.SequenceEqual(YamlCodes.Off2):
-                    value = false;
-                    return true;
-
                 case 4 when span.SequenceEqual(YamlCodes.True0) ||
                             span.SequenceEqual(YamlCodes.True1) ||
                             span.SequenceEqual(YamlCodes.True2):
                     value = true;
                     return true;
 
+                case 1 when span[0] is (byte)'n' or (byte)'N':
+                case 2 when span.SequenceEqual(YamlCodes.No0) ||
+                            span.SequenceEqual(YamlCodes.No1) ||
+                            span.SequenceEqual(YamlCodes.No2):
+                case 3 when span.SequenceEqual(YamlCodes.Off0) ||
+                            span.SequenceEqual(YamlCodes.Off1) ||
+                            span.SequenceEqual(YamlCodes.Off2):
                 case 5 when span.SequenceEqual(YamlCodes.False0) ||
                             span.SequenceEqual(YamlCodes.False1) ||
                             span.SequenceEqual(YamlCodes.False2):
@@ -312,6 +294,21 @@ namespace VYaml.Internal
         public bool SequenceEqual(ReadOnlySpan<byte> span)
         {
             return buffer.AsSpan().SequenceEqual(span);
+        }
+
+        bool IsInfinity()
+        {
+            if (Length == 4)
+            {
+                if (span.SequenceEqual(YamlCodes.Inf0) ||
+                    span.SequenceEqual(YamlCodes.Inf1) ||
+                    span.SequenceEqual(YamlCodes.Inf2))
+                {
+                    value = double.PositiveInfinity;
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }
