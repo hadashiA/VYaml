@@ -114,7 +114,7 @@ namespace VYaml
                 case Scalar scalar:
                     scalarPool.Return(scalar);
                     break;
-                case Tag tag:
+                case TagBuffer tag:
                     scalarPool.Return(tag.Handle);
                     scalarPool.Return(tag.Suffix);
                     break;
@@ -318,7 +318,7 @@ namespace VYaml
                     }
 
                     // TODO: This should be error ?
-                    tokens.Enqueue(new Token(TokenType.TagDirective, new Tag(Scalar.Null, Scalar.Null)));
+                    tokens.Enqueue(new Token(TokenType.TagDirective, new TagBuffer(Scalar.Null, Scalar.Null)));
                 }
             }
             finally
@@ -420,7 +420,7 @@ namespace VYaml
 
         void ConsumeTagDirectiveValue()
         {
-            var tag = new Tag(scalarPool.Rent(), scalarPool.Rent());
+            var tag = new TagBuffer(scalarPool.Rent(), scalarPool.Rent());
 
             // Eat whitespaces.
             while (YamlCodes.IsBlank(currentCode))
@@ -604,7 +604,7 @@ namespace VYaml
             simpleKeyAllowed = false;
 
             var startMark = mark;
-            var tag = new Tag(scalarPool.Rent(), scalarPool.Rent());
+            var tag = new TagBuffer(scalarPool.Rent(), scalarPool.Rent());
 
             // Check if the tag is in the canonical form (verbatim).
             if (TryPeek(1, out var nextCode) && nextCode == '<')
@@ -660,7 +660,7 @@ namespace VYaml
             }
         }
 
-        void ConsumeTagHandle(bool directive, Tag tag)
+        void ConsumeTagHandle(bool directive, TagBuffer tagBuffer)
         {
             if (currentCode != '!')
             {
@@ -668,24 +668,24 @@ namespace VYaml
                     "While scanning a tag, did not find expected '!'");
             }
 
-            tag.Handle.Write(currentCode);
+            tagBuffer.Handle.Write(currentCode);
             Advance(1);
 
             while (YamlCodes.IsAlphaNumericDashOrUnderscore(currentCode))
             {
-                tag.Handle.Write(currentCode);
+                tagBuffer.Handle.Write(currentCode);
                 Advance(1);
             }
 
             // Check if the trailing character is '!' and copy it.
             if (currentCode == '!')
             {
-                tag.Handle.Write(currentCode);
+                tagBuffer.Handle.Write(currentCode);
                 Advance(1);
             }
             else if (directive)
             {
-                if (!tag.Handle.SequenceEqual(stackalloc byte[] { (byte)'!' }))
+                if (!tagBuffer.Handle.SequenceEqual(stackalloc byte[] { (byte)'!' }))
                 {
                     // It's either the '!' tag or not really a tag handle.  If it's a %TAG
                     // directive, it's an error.  If it's a tag token, it must be a part of
@@ -695,14 +695,14 @@ namespace VYaml
             }
         }
 
-        void ConsumeTagUri(bool directive, Scalar? head, Tag tag)
+        void ConsumeTagUri(bool directive, Scalar? head, TagBuffer tagBuffer)
         {
             // Copy the head if needed.
             // Note that we don't copy the leading '!' character.
             var length = head?.Length ?? 0;
             if (length > 1)
             {
-                 tag.Suffix.Write(head!.AsSpan(1, length - 1));
+                 tagBuffer.Suffix.Write(head!.AsSpan(1, length - 1));
             }
 
             // The set of characters that may appear in URI is as follows:
@@ -715,11 +715,11 @@ namespace VYaml
             {
                 if (currentCode == '%')
                 {
-                    tag.Suffix.WriteUnicodeCodepoint(ConsumeUriEscapes(directive));
+                    tagBuffer.Suffix.WriteUnicodeCodepoint(ConsumeUriEscapes(directive));
                 }
                 else
                 {
-                    tag.Suffix.Write(currentCode);
+                    tagBuffer.Suffix.Write(currentCode);
                     Advance(1);
                 }
 

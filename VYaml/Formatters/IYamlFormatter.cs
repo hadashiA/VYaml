@@ -2,6 +2,6 @@ namespace VYaml.Formatters
 {
     public interface IYamlFormatter<out T>
     {
-        T Deserialize(ref YamlParser parser);
+        T Deserialize(ref YamlParser parser, YamlDeserializationContext context);
     }
 }

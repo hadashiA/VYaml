@@ -106,7 +106,8 @@ namespace VYaml
         Utf8YamlTokenizer yamlTokenizer;
         ParseState currentState;
         Scalar? currentScalar;
-        Tag? currentTag;
+        TagBuffer? currentTag;
+        Anchor? currentAnchor;
         int lastAnchorId;
 
         readonly Dictionary<string, int> anchors;
@@ -123,7 +124,7 @@ namespace VYaml
 
             currentScalar = null;
             currentTag = null;
-            CurrentAnchorId = -1;
+            currentAnchor = null;
         }
 
         public readonly bool IsNullScalar()
@@ -167,6 +168,28 @@ namespace VYaml
             if (currentScalar is { } scalar)
                 return scalar.TryGetDouble(out value);
             value = default;
+            return false;
+        }
+
+        public readonly bool TryGetCurrentTag(out Tag tag)
+        {
+            if (currentTag != null)
+            {
+                tag = new Tag(currentTag.Handle.AsSpan(), currentTag.Suffix.AsSpan());
+                return true;
+            }
+            tag = default!;
+            return false;
+        }
+
+        public readonly bool TryGetCurrentAnchor(out Anchor anchor)
+        {
+            if (currentAnchor != null)
+            {
+                anchor = currentAnchor;
+                return true;
+            }
+            anchor = default!;
             return false;
         }
 
@@ -398,7 +421,7 @@ namespace VYaml
 
         void ParseNode(bool block, bool indentlessSequence)
         {
-            CurrentAnchorId = -1;
+            currentAnchor = null;
             currentTag = null;
 
             switch (CurrentTokenType)
@@ -406,12 +429,12 @@ namespace VYaml
                 case TokenType.Alias:
                     PopState();
 
-                    var name = yamlTokenizer.TakeCurrentTokenContent<Scalar>();
+                    var name = yamlTokenizer.TakeCurrentTokenContent<Scalar>().ToString();  // TODO: Avoid `ToString`
                     yamlTokenizer.Read();
 
-                    if (anchors.TryGetValue(name.ToString(), out var aliasId)) // TODO: Avoid `ToString`
+                    if (anchors.TryGetValue(name, out var aliasId))
                     {
-                        CurrentAnchorId = aliasId;
+                        currentAnchor = new Anchor(name, aliasId);
                         CurrentEventType = ParseEventType.Alias;
                         return;
                     }
@@ -419,24 +442,26 @@ namespace VYaml
 
                 case TokenType.Anchor:
                 {
-                    var anchorName = yamlTokenizer.TakeCurrentTokenContent<Scalar>();
-                    CurrentAnchorId = RegisterAnchor(anchorName);
+                    var anchorName = yamlTokenizer.TakeCurrentTokenContent<Scalar>().ToString(); // TODO: Avoid `ToString`
+                    var anchorId = RegisterAnchor(anchorName);
+                    currentAnchor = new Anchor(anchorName, anchorId);
                     yamlTokenizer.Read();
                     if (CurrentTokenType == TokenType.Tag)
                     {
-                        currentTag = yamlTokenizer.TakeCurrentTokenContent<Tag>();
+                        currentTag = yamlTokenizer.TakeCurrentTokenContent<TagBuffer>();
                         yamlTokenizer.Read();
                     }
                     break;
                 }
                 case TokenType.Tag:
                 {
-                    currentTag = yamlTokenizer.TakeCurrentTokenContent<Tag>();
+                    currentTag = yamlTokenizer.TakeCurrentTokenContent<TagBuffer>();
                     yamlTokenizer.Read();
                     if (CurrentTokenType == TokenType.Anchor)
                     {
-                        var anchorName = yamlTokenizer.TakeCurrentTokenContent<Scalar>();
-                        CurrentAnchorId = RegisterAnchor(anchorName);
+                        var anchorName = yamlTokenizer.TakeCurrentTokenContent<Scalar>().ToString();
+                        var anchorId = RegisterAnchor(anchorName);
+                        currentAnchor = new Anchor(anchorName, anchorId);
                         yamlTokenizer.Read();
                     }
                     break;
@@ -482,7 +507,7 @@ namespace VYaml
                     break;
 
                 // ex 7.2, an empty scalar can follow a secondary tag
-                case var _ when CurrentAnchorId >= 0 || currentTag != null:
+                case var _ when currentAnchor != null || currentTag != null:
                     PopState();
                     EmptyScalar();
                     break;
@@ -853,10 +878,10 @@ namespace VYaml
             }
         }
 
-        int RegisterAnchor(Scalar anchorName)
+        int RegisterAnchor(string anchorName)
         {
             var newId = ++lastAnchorId;
-            anchors[anchorName.ToString()] = newId; // TODO: Avoid `ToString`
+            anchors[anchorName] = newId; // TODO: Avoid `ToString`
             return newId;
         }
 

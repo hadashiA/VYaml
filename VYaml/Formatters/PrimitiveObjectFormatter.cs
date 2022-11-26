@@ -5,56 +5,81 @@ namespace VYaml.Formatters
 {
     public class PrimitiveObjectFormatter : IYamlFormatter<object?>
     {
-        public object? Deserialize(ref YamlParser parser)
+        public object? Deserialize(ref YamlParser parser, YamlDeserializationContext context)
         {
-             switch (parser.CurrentEventType)
-             {
-                 case ParseEventType.Scalar:
-                     if (parser.IsNullScalar())
-                     {
-                         parser.Read();
-                         return null;
-                     }
-                     if (parser.TryGetScalarAsBool(out var boolValue))
-                     {
-                         parser.Read();
-                         return boolValue;
-                     }
-                     if (parser.TryGetScalarAsDouble(out var doubleValue))
-                     {
-                         parser.Read();
-                         return doubleValue;
-                     }
+            object? result;
 
-                     var stringValue = parser.GetScalarAsString();
-                     parser.Read();
-                     return stringValue;
-
-                 case ParseEventType.MappingStart:
-                 {
-                     var dict = new Dictionary<object?, object?>();
-                     parser.Read();
-                     while (!parser.End && parser.CurrentEventType != ParseEventType.MappingEnd)
-                     {
-                         var key = Deserialize(ref parser);
-                         var value = Deserialize(ref parser);
-                         dict.Add(key, value);
-                     }
-                     return dict;
+            switch (parser.CurrentEventType)
+            {
+                case ParseEventType.Scalar:
+                    if (parser.IsNullScalar())
+                    {
+                        parser.Read();
+                        result = null;
+                    }
+                    else if (parser.TryGetScalarAsBool(out var boolValue))
+                    {
+                        parser.Read();
+                        result = boolValue;
+                    }
+                    else if (parser.TryGetScalarAsDouble(out var doubleValue))
+                    {
+                        parser.Read();
+                        result = doubleValue;
+                    }
+                    else
+                    {
+                        var stringValue = parser.GetScalarAsString();
+                        parser.Read();
+                        result = stringValue;
+                    }
+                    break;
+                case ParseEventType.MappingStart:
+                {
+                    var dict = new Dictionary<object?, object?>();
+                    parser.Read();
+                    while (!parser.End && parser.CurrentEventType != ParseEventType.MappingEnd)
+                    {
+                        var key = Deserialize(ref parser, context);
+                        var value = Deserialize(ref parser, context);
+                        dict.Add(key, value);
+                    }
+                    result = dict;
+                    break;
                  }
                  case ParseEventType.SequenceStart:
                  {
                      var list = new List<object?>();
                      while (!parser.End && parser.CurrentEventType != ParseEventType.SequenceEnd)
                      {
-                         var element = Deserialize(ref parser);
+                         var element = Deserialize(ref parser, context);
                          list.Add(element);
                      }
-                     return list;
+                     result = list;
+                     break;
+                 }
+                 case ParseEventType.Alias:
+                 {
+                     if (parser.TryGetCurrentAnchor(out var anchorForAlias))
+                     {
+                        result = context.GetAlias(anchorForAlias);
+                     }
+                     else
+                     {
+                         throw new InvalidOperationException();
+                     }
+                     break;
                  }
                  default:
                      throw new InvalidOperationException();
-             }
+            }
+
+            if (parser.TryGetCurrentAnchor(out var anchor))
+            {
+                context.RegisterAnchor(anchor, result);
+            }
+
+            return result;
         }
     }
 }
