@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Buffers.Text;
 using System.Runtime.CompilerServices;
 
@@ -13,7 +14,7 @@ namespace VYaml.Internal
         {
             return queue.TryPop(out var scalar)
                 ? scalar
-                : new Scalar(2048);
+                : new Scalar(256);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -26,23 +27,23 @@ namespace VYaml.Internal
 
     class Scalar : ITokenContent
     {
-        public static readonly Scalar Null = new(new []
-        {
-            YamlCodes.NullAlias
-        });
+        const int MinimumGrow = 4;
+        const int GrowFactor = 200;
 
-        public int Length => buffer.Length;
+        public static readonly Scalar Null = new(Array.Empty<byte>());
 
-        readonly ExpandBuffer<byte> buffer;
+        public int Length { get; private set; }
+
+        byte[] buffer;
 
         public Scalar(int capacity)
         {
-            buffer = new ExpandBuffer<byte>(capacity);
+            buffer = ArrayPool<byte>.Shared.Rent(capacity);
         }
 
         public Scalar(ReadOnlySpan<byte> content)
         {
-            buffer = new ExpandBuffer<byte>(content.Length);
+            buffer = ArrayPool<byte>.Shared.Rent(content.Length);
             Write(content);
         }
 
@@ -55,7 +56,12 @@ namespace VYaml.Internal
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(byte code)
         {
-            buffer.Add(code);
+            if (Length == buffer.Length)
+            {
+                Grow();
+            }
+
+            buffer[Length++] = code;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -66,14 +72,14 @@ namespace VYaml.Internal
                 case LineBreakState.None:
                     break;
                 case LineBreakState.Lf:
-                    buffer.Add(YamlCodes.Lf);
+                    Write(YamlCodes.Lf);
                     break;
                 case LineBreakState.CrLf:
-                    buffer.Add(YamlCodes.Cr);
-                    buffer.Add(YamlCodes.Lf);
+                    Write(YamlCodes.Cr);
+                    Write(YamlCodes.Lf);
                     break;
                 case LineBreakState.Cr:
-                    buffer.Add(YamlCodes.Cr);
+                    Write(YamlCodes.Cr);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(lineBreak), lineBreak, null);
@@ -83,9 +89,9 @@ namespace VYaml.Internal
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(ReadOnlySpan<byte> codes)
         {
-            buffer.Grow(buffer.Length + codes.Length);
-            codes.CopyTo(buffer.AsSpan(buffer.Length, codes.Length));
-            buffer.Length += codes.Length;
+            Grow(Length + codes.Length);
+            codes.CopyTo(buffer.AsSpan(Length, codes.Length));
+            Length += codes.Length;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -101,7 +107,7 @@ namespace VYaml.Internal
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()
         {
-            buffer.Clear();
+            Length = 0;
         }
 
         /// <summary>
@@ -129,9 +135,7 @@ namespace VYaml.Internal
         /// <summary>
         /// </summary>
         /// <remarks>
-        /// y|Y|yes|Yes|YES|n|N|no|No|NO
-        /// |true|True|TRUE|false|False|FALSE
-        /// |on|On|ON|off|Off|OFF
+        /// true|True|TRUE|false|False|FALSE
         /// </remarks>
         /// <see href="https://yaml.org/type/bool.html" />
         public bool TryGetBool(out bool value)
@@ -296,19 +300,55 @@ namespace VYaml.Internal
             return buffer.AsSpan().SequenceEqual(span);
         }
 
-        bool IsInfinity()
+        // bool IsInfinity()
+        // {
+        //     if (Length == 4)
+        //     {
+        //         if (span.SequenceEqual(YamlCodes.Inf0) ||
+        //             span.SequenceEqual(YamlCodes.Inf1) ||
+        //             span.SequenceEqual(YamlCodes.Inf2))
+        //         {
+        //             value = double.PositiveInfinity;
+        //             return true;
+        //         }
+        //     }
+        //     return false;
+        // }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        void Grow(int sizeHint)
         {
-            if (Length == 4)
+            if (sizeHint <= buffer.Length)
             {
-                if (span.SequenceEqual(YamlCodes.Inf0) ||
-                    span.SequenceEqual(YamlCodes.Inf1) ||
-                    span.SequenceEqual(YamlCodes.Inf2))
-                {
-                    value = double.PositiveInfinity;
-                    return true;
-                }
+                return;
             }
-            return false;
+            var newCapacity = buffer.Length * GrowFactor / 100;
+            while (newCapacity < sizeHint)
+            {
+                newCapacity = newCapacity * GrowFactor / 100;
+            }
+            SetCapacity(newCapacity);
+        }
+
+        void Grow()
+        {
+            var newCapacity = buffer.Length * GrowFactor / 100;
+            if (newCapacity < buffer.Length + MinimumGrow)
+            {
+                newCapacity = buffer.Length + MinimumGrow;
+            }
+            SetCapacity(newCapacity);
+        }
+
+        void SetCapacity(int newCapacity)
+        {
+            if (buffer.Length >= newCapacity) return;
+
+            var newBuffer = ArrayPool<byte>.Shared.Rent(newCapacity);
+            Array.Copy(buffer, 0, newBuffer, 0, Length);
+            ArrayPool<byte>.Shared.Return(buffer);
+            buffer = newBuffer;
         }
     }
 }
