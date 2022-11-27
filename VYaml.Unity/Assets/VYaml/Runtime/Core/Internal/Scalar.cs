@@ -7,7 +7,7 @@ namespace VYaml.Internal
 {
     class ScalarPool : IDisposable
     {
-        readonly ExpandBuffer<Scalar> queue = new(32);
+        ExpandBuffer<Scalar> queue = new(32);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Scalar Rent()
@@ -41,9 +41,7 @@ namespace VYaml.Internal
         public static readonly Scalar Null = new(0);
 
         public int Length { get; private set; }
-
         byte[] buffer;
-        bool disposed;
 
         public Scalar(int capacity)
         {
@@ -122,9 +120,9 @@ namespace VYaml.Internal
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispose()
         {
-            if (disposed) return;
+            if (Length < 0) return;
             ArrayPool<byte>.Shared.Return(buffer);
-            disposed = true;
+            Length = -1;
         }
 
         /// <summary>

@@ -50,11 +50,9 @@ namespace VYaml
         bool tokenAvailable;
 
         readonly InsertionQueue<Token> tokens;
-        readonly ExpandBuffer<SimpleKeyState> simpleKeyCandidates;
-        readonly ExpandBuffer<int> indents;
-        readonly ExpandBuffer<byte> whitespaceBuffer;
-        readonly ExpandBuffer<byte> lineBreakBuffer;
         readonly ScalarPool scalarPool;
+        ExpandBuffer<SimpleKeyState> simpleKeyCandidates;
+        ExpandBuffer<int> indents;
 
         public Utf8YamlTokenizer(in ReadOnlySequence<byte> sequence)
         {
@@ -63,8 +61,6 @@ namespace VYaml
             tokens = new InsertionQueue<Token>(16);
             simpleKeyCandidates = new ExpandBuffer<SimpleKeyState>(16);
             indents = new ExpandBuffer<int>(16);
-            whitespaceBuffer = new ExpandBuffer<byte>(256);
-            lineBreakBuffer = new ExpandBuffer<byte>(256);
             scalarPool = new ScalarPool();
 
             indent = -1;
@@ -86,8 +82,6 @@ namespace VYaml
             scalarPool.Dispose();
             simpleKeyCandidates.Dispose();
             indents.Dispose();
-            whitespaceBuffer.Dispose();
-            lineBreakBuffer.Dispose();
         }
 
         public bool Read()
@@ -801,12 +795,8 @@ namespace VYaml
             var trailingBlank = false;
             var leadingBlank = false;
             var leadingBreak = LineBreakState.None;
-            var trailingBreaks = lineBreakBuffer;
-
+            var trailingBreaks = new ExpandBuffer<byte>(256);
             var scalar = scalarPool.Rent();
-
-            trailingBreaks.Clear();
-            whitespaceBuffer.Clear();
 
             // skip '|' or '>'
             Advance(1);
@@ -876,7 +866,7 @@ namespace VYaml
             }
 
             // Scan the leading line breaks and determine the indentation level if needed.
-            ConsumeBlockScalarBreaks(ref blockIndent, trailingBreaks);
+            ConsumeBlockScalarBreaks(ref blockIndent, ref trailingBreaks);
 
             while (mark.Col == blockIndent)
             {
@@ -912,7 +902,7 @@ namespace VYaml
 
                 leadingBreak = ConsumeLineBreaks();
                 // Eat the following indentation spaces and line breaks.
-                ConsumeBlockScalarBreaks(ref blockIndent, trailingBreaks);
+                ConsumeBlockScalarBreaks(ref blockIndent, ref trailingBreaks);
             }
 
             // Chomp the tail.
@@ -929,7 +919,7 @@ namespace VYaml
             tokens.Enqueue(new Token(tokenType, scalar));
         }
 
-        void ConsumeBlockScalarBreaks(ref int blockIndent, ExpandBuffer<byte> blockLineBreaks)
+        void ConsumeBlockScalarBreaks(ref int blockIndent, ref ExpandBuffer<byte> blockLineBreaks)
         {
             var maxIndent = 0;
             while (true)
@@ -995,7 +985,9 @@ namespace VYaml
             var trailingBreak = default(LineBreakState);
             var isLeadingBlanks = false;
             var scalar = scalarPool.Rent();
-            whitespaceBuffer.Clear();
+
+            Span<byte> whitespaceBuffer = stackalloc byte[128];
+            var whitespaceLength = 0;
 
             // Eat the left quote
             Advance(1);
@@ -1154,7 +1146,11 @@ namespace VYaml
                         // Consume a space or a tab character.
                         if (!isLeadingBlanks)
                         {
-                            whitespaceBuffer.Add(currentCode);
+                            if (whitespaceBuffer.Length <= whitespaceLength)
+                            {
+                                whitespaceBuffer = new byte[whitespaceBuffer.Length * 2];
+                            }
+                            whitespaceBuffer[whitespaceLength++] = currentCode;
                         }
                         Advance(1);
                     }
@@ -1198,8 +1194,8 @@ namespace VYaml
                 }
                 else
                 {
-                    scalar.Write(whitespaceBuffer.AsSpan());
-                    whitespaceBuffer.Clear();
+                    scalar.Write(whitespaceBuffer[..whitespaceLength]);
+                    whitespaceLength = 0;
                 }
             }
 
@@ -1229,7 +1225,8 @@ namespace VYaml
             var isLeadingBlanks = false;
             var scalar = scalarPool.Rent();
 
-            whitespaceBuffer.Clear();
+            Span<byte> whitespaceBuffer = stackalloc byte[128];
+            var whitespaceLength = 0;
 
             while (true)
             {
@@ -1263,7 +1260,7 @@ namespace VYaml
                         break;
                     }
 
-                    if (isLeadingBlanks || whitespaceBuffer.Length > 0)
+                    if (isLeadingBlanks || whitespaceLength > 0)
                     {
                         if (isLeadingBlanks)
                         {
@@ -1289,8 +1286,8 @@ namespace VYaml
                         }
                         else
                         {
-                            scalar.Write(whitespaceBuffer.AsSpan());
-                            whitespaceBuffer.Clear();
+                            scalar.Write(whitespaceBuffer[..whitespaceLength]);
+                            whitespaceLength = 0;
                         }
                     }
 
@@ -1315,7 +1312,15 @@ namespace VYaml
                             throw new YamlTokenizerException(mark, "While scanning a plain scaler, found a tab");
                         }
                         if (!isLeadingBlanks)
-                            whitespaceBuffer.Add(currentCode);
+                        {
+                            // If the buffer on the stack is insufficient, it is decompressed.
+                            // This is probably a very rare case.
+                            if (whitespaceLength >= whitespaceBuffer.Length)
+                            {
+                                whitespaceBuffer = new byte[whitespaceBuffer.Length * 2];
+                            }
+                            whitespaceBuffer[whitespaceLength++] = currentCode;
+                        }
                         Advance(1);
                     }
                     // line-break
@@ -1330,7 +1335,7 @@ namespace VYaml
                         {
                             leadingBreak = ConsumeLineBreaks();
                             isLeadingBlanks = true;
-                            whitespaceBuffer.Clear();
+                            whitespaceLength = 0;
                         }
                     }
                 }

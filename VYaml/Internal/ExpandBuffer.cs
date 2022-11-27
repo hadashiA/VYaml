@@ -4,20 +4,18 @@ using System.Runtime.CompilerServices;
 
 namespace VYaml.Internal
 {
-    class ExpandBuffer<T> : IDisposable
+    struct ExpandBuffer<T> : IDisposable
     {
         const int MinimumGrow = 4;
         const int GrowFactor = 200;
 
         T[] buffer;
-        bool disposed;
 
         public ExpandBuffer(int capacity)
         {
             if (capacity < 0) throw new ArgumentOutOfRangeException(nameof(capacity));
             buffer = ArrayPool<T>.Shared.Rent(capacity);
             Length = 0;
-            disposed = false;
         }
 
         public ref T this[int index]
@@ -42,9 +40,9 @@ namespace VYaml.Internal
 
         public void Dispose()
         {
-            if (disposed) return;
+            if (Length < 0) return;
             ArrayPool<T>.Shared.Return(buffer);
-            disposed = true;
+            Length = -1;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
