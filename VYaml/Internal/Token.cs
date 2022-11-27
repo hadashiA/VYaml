@@ -1,9 +1,5 @@
 namespace VYaml.Internal
 {
-    interface ITokenContent
-    {
-    }
-
     readonly struct Token
     {
         public readonly TokenType Type;

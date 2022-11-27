@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 namespace VYaml.Internal
 {
-    class ScalarPool
+    class ScalarPool : IDisposable
     {
         readonly ExpandBuffer<Scalar> queue = new(32);
 
@@ -23,18 +23,27 @@ namespace VYaml.Internal
             scalar.Clear();
             queue.Add(scalar);
         }
+
+        public void Dispose()
+        {
+            foreach (var scalar in queue.AsSpan())
+            {
+                scalar.Dispose();
+            }
+        }
     }
 
-    class Scalar : ITokenContent
+    class Scalar : ITokenContent, IDisposable
     {
         const int MinimumGrow = 4;
         const int GrowFactor = 200;
 
-        public static readonly Scalar Null = new(Array.Empty<byte>());
+        public static readonly Scalar Null = new(0);
 
         public int Length { get; private set; }
 
         byte[] buffer;
+        bool disposed;
 
         public Scalar(int capacity)
         {
@@ -48,7 +57,7 @@ namespace VYaml.Internal
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ReadOnlySpan<byte> AsSpan() => buffer.AsSpan();
+        public ReadOnlySpan<byte> AsSpan() => buffer.AsSpan(0, Length);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ReadOnlySpan<byte> AsSpan(int start, int length) => buffer.AsSpan(start, length);
@@ -110,6 +119,14 @@ namespace VYaml.Internal
             Length = 0;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Dispose()
+        {
+            if (disposed) return;
+            ArrayPool<byte>.Shared.Return(buffer);
+            disposed = true;
+        }
+
         /// <summary>
         /// </summary>
         /// <remarks>
@@ -118,7 +135,7 @@ namespace VYaml.Internal
         /// <see href="https://yaml.org/type/null.html"/>
         public bool IsNull()
         {
-            var span = buffer.AsSpan();
+            var span = AsSpan();
             switch (span.Length)
             {
                 case 0:
@@ -140,29 +157,15 @@ namespace VYaml.Internal
         /// <see href="https://yaml.org/type/bool.html" />
         public bool TryGetBool(out bool value)
         {
-            var span = buffer.AsSpan();
+            var span = AsSpan();
             switch (span.Length)
             {
-                case 1 when span[0] is (byte)'y' or (byte)'Y':
-                case 2 when span.SequenceEqual(YamlCodes.On0) ||
-                            span.SequenceEqual(YamlCodes.On1) ||
-                            span.SequenceEqual(YamlCodes.On2):
-                case 3 when span.SequenceEqual(YamlCodes.Yes0) ||
-                            span.SequenceEqual(YamlCodes.Yes1) ||
-                            span.SequenceEqual(YamlCodes.Yes2):
                 case 4 when span.SequenceEqual(YamlCodes.True0) ||
                             span.SequenceEqual(YamlCodes.True1) ||
                             span.SequenceEqual(YamlCodes.True2):
                     value = true;
                     return true;
 
-                case 1 when span[0] is (byte)'n' or (byte)'N':
-                case 2 when span.SequenceEqual(YamlCodes.No0) ||
-                            span.SequenceEqual(YamlCodes.No1) ||
-                            span.SequenceEqual(YamlCodes.No2):
-                case 3 when span.SequenceEqual(YamlCodes.Off0) ||
-                            span.SequenceEqual(YamlCodes.Off1) ||
-                            span.SequenceEqual(YamlCodes.Off2):
                 case 5 when span.SequenceEqual(YamlCodes.False0) ||
                             span.SequenceEqual(YamlCodes.False1) ||
                             span.SequenceEqual(YamlCodes.False2):
@@ -208,7 +211,7 @@ namespace VYaml.Internal
         /// <see href="https://yaml.org/type/int.html"/>
         public bool TryGetInt32(out int value)
         {
-            var span = buffer.AsSpan();
+            var span = AsSpan();
 
             if (Utf8Parser.TryParse(span, out value, out var bytesConsumed) &&
                 bytesConsumed == span.Length)
@@ -239,7 +242,7 @@ namespace VYaml.Internal
         /// <see href="https://yaml.org/type/float.html"/>
         public bool TryGetDouble(out double value)
         {
-            var span = buffer.AsSpan();
+            var span = AsSpan();
             if (Utf8Parser.TryParse(span, out value, out var bytesConsumed) &&
                 bytesConsumed == span.Length)
             {
@@ -287,17 +290,17 @@ namespace VYaml.Internal
 
         public override string ToString()
         {
-            return StringEncoding.Utf8.GetString(buffer.AsSpan());
+            return StringEncoding.Utf8.GetString(AsSpan());
         }
 
         public bool SequenceEqual(Scalar other)
         {
-            return buffer.AsSpan().SequenceEqual(other.buffer.AsSpan());
+            return AsSpan().SequenceEqual(other.AsSpan());
         }
 
         public bool SequenceEqual(ReadOnlySpan<byte> span)
         {
-            return buffer.AsSpan().SequenceEqual(span);
+            return AsSpan().SequenceEqual(span);
         }
 
         // bool IsInfinity()
@@ -331,6 +334,7 @@ namespace VYaml.Internal
             SetCapacity(newCapacity);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void Grow()
         {
             var newCapacity = buffer.Length * GrowFactor / 100;
@@ -341,6 +345,7 @@ namespace VYaml.Internal
             SetCapacity(newCapacity);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void SetCapacity(int newCapacity)
         {
             if (buffer.Length >= newCapacity) return;

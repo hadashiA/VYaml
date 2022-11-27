@@ -80,21 +80,6 @@ namespace VYaml.Internal
             buffer[Length++] = item;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Grow(int sizeHint)
-        {
-            if (sizeHint <= buffer.Length)
-            {
-                return;
-            }
-            var newCapacity = buffer.Length * GrowFactor / 100;
-            while (newCapacity < sizeHint)
-            {
-                newCapacity = newCapacity * GrowFactor / 100;
-            }
-            SetCapacity(newCapacity);
-        }
-
         void Grow()
         {
             var newCapacity = buffer.Length * GrowFactor / 100;

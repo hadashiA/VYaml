@@ -106,7 +106,7 @@ namespace VYaml
         Utf8YamlTokenizer yamlTokenizer;
         ParseState currentState;
         Scalar? currentScalar;
-        TagBuffer? currentTag;
+        Tag? currentTag;
         Anchor? currentAnchor;
         int lastAnchorId;
 
@@ -182,7 +182,7 @@ namespace VYaml
         {
             if (currentTag != null)
             {
-                tag = new Tag(currentTag.Handle.AsSpan(), currentTag.Suffix.AsSpan());
+                tag = currentTag;
                 return true;
             }
             tag = default!;
@@ -207,12 +207,6 @@ namespace VYaml
             {
                 yamlTokenizer.ReturnToPool(scalar);
                 currentScalar = null;
-            }
-            if (currentTag is { } tag)
-            {
-                yamlTokenizer.ReturnToPool(tag.Handle);
-                yamlTokenizer.ReturnToPool(tag.Suffix);
-                currentTag = null;
             }
 
             if (currentState == ParseState.End)
@@ -456,14 +450,14 @@ namespace VYaml
                     yamlTokenizer.Read();
                     if (CurrentTokenType == TokenType.Tag)
                     {
-                        currentTag = yamlTokenizer.TakeCurrentTokenContent<TagBuffer>();
+                        currentTag = yamlTokenizer.TakeCurrentTokenContent<Tag>();
                         yamlTokenizer.Read();
                     }
                     break;
                 }
                 case TokenType.Tag:
                 {
-                    currentTag = yamlTokenizer.TakeCurrentTokenContent<TagBuffer>();
+                    currentTag = yamlTokenizer.TakeCurrentTokenContent<Tag>();
                     yamlTokenizer.Read();
                     if (CurrentTokenType == TokenType.Anchor)
                     {

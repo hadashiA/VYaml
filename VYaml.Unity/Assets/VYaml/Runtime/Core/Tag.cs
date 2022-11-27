@@ -1,18 +1,14 @@
-using System;
-
 namespace VYaml
 {
-    public readonly ref struct Tag
+    public class Tag : ITokenContent
     {
-        public readonly ReadOnlySpan<byte> Handle;
-        public readonly ReadOnlySpan<byte> Suffix;
+        public string Handle { get; }
+        public string Suffix { get; }
 
-        public Tag(ReadOnlySpan<byte> handle, ReadOnlySpan<byte> suffix)
+        public Tag(string handle, string suffix)
         {
             Handle = handle;
             Suffix = suffix;
         }
-
-
     }
 }

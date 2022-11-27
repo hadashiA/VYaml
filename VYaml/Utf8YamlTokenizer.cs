@@ -81,6 +81,11 @@ namespace VYaml
             reader.TryPeek(out currentCode);
         }
 
+        public void Dispose()
+        {
+            scalarPool.Dispose();
+        }
+
         public bool Read()
         {
             if (streamEndProduced)
@@ -93,7 +98,10 @@ namespace VYaml
                 ConsumeMoreTokens();
             }
 
-            ReturnToPool(currentToken.Content);
+            if (currentToken.Content is Scalar scalar)
+            {
+                ReturnToPool(scalar);
+            }
             currentToken = tokens.Dequeue();
             tokenAvailable = false;
             tokensParsed += 1;
@@ -103,22 +111,6 @@ namespace VYaml
                 streamEndProduced = true;
             }
             return true;
-        }
-
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void ReturnToPool(ITokenContent? content)
-        {
-            switch (content)
-            {
-                case Scalar scalar:
-                    scalarPool.Return(scalar);
-                    break;
-                case TagBuffer tag:
-                    scalarPool.Return(tag.Handle);
-                    scalarPool.Return(tag.Suffix);
-                    break;
-            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -318,7 +310,7 @@ namespace VYaml
                     }
 
                     // TODO: This should be error ?
-                    tokens.Enqueue(new Token(TokenType.TagDirective, new TagBuffer(Scalar.Null, Scalar.Null)));
+                    tokens.Enqueue(new Token(TokenType.TagDirective));
                 }
             }
             finally
@@ -420,32 +412,40 @@ namespace VYaml
 
         void ConsumeTagDirectiveValue()
         {
-            var tag = new TagBuffer(scalarPool.Rent(), scalarPool.Rent());
-
-            // Eat whitespaces.
-            while (YamlCodes.IsBlank(currentCode))
+            var handle = scalarPool.Rent();
+            var suffix = scalarPool.Rent();
+            try
             {
-                Advance(1);
+                // Eat whitespaces.
+                while (YamlCodes.IsBlank(currentCode))
+                {
+                    Advance(1);
+                }
+
+                ConsumeTagHandle(true, handle);
+
+                // Eat whitespaces
+                while (YamlCodes.IsBlank(currentCode))
+                {
+                    Advance(1);
+                }
+
+                ConsumeTagUri(true, null, suffix);
+
+                if (YamlCodes.IsEmpty(currentCode) || reader.End)
+                {
+                    tokens.Enqueue(new Token(TokenType.TagDirective, new Tag(handle.ToString(), suffix.ToString())));
+                }
+                else
+                {
+                    throw new YamlTokenizerException(CurrentMark,
+                        "While scanning TAG, did not find expected whitespace or line break");
+                }
             }
-
-            ConsumeTagHandle(true, tag);
-
-            // Eat whitespaces
-            while (YamlCodes.IsBlank(currentCode))
+            finally
             {
-                Advance(1);
-            }
-
-            ConsumeTagUri(true, null, tag);
-
-            if (YamlCodes.IsEmpty(currentCode) || reader.End)
-            {
-                tokens.Enqueue(new Token(TokenType.TagDirective, tag));
-            }
-            else
-            {
-                throw new YamlTokenizerException(CurrentMark,
-                    "While scanning TAG, did not find expected whitespace or line break");
+                scalarPool.Return(handle);
+                scalarPool.Return(suffix);
             }
         }
 
@@ -603,64 +603,73 @@ namespace VYaml
             SaveSimpleKeyCandidate();
             simpleKeyAllowed = false;
 
-            var startMark = mark;
-            var tag = new TagBuffer(scalarPool.Rent(), scalarPool.Rent());
+            var handle = scalarPool.Rent();
+            var suffix = scalarPool.Rent();
 
-            // Check if the tag is in the canonical form (verbatim).
-            if (TryPeek(1, out var nextCode) && nextCode == '<')
+            try
             {
-                // Eat '!<'
-                Advance(2);
-                ConsumeTagUri(false, null, tag);
-
-                if (currentCode != '>')
+                // Check if the tag is in the canonical form (verbatim).
+                if (TryPeek(1, out var nextCode) && nextCode == '<')
                 {
-                    throw new YamlTokenizerException(mark, "While scanning a tag, did not find the expected '>'");
-                }
-                Advance(1);
-            }
-            else
-            {
-                // The tag has either the '!suffix' or the '!handle!suffix'
-                ConsumeTagHandle(false, tag);
+                    // Eat '!<'
+                    Advance(2);
+                    ConsumeTagUri(false, null, suffix);
 
-                // Check if it is, indeed, handle.
-                var handleSpan = tag.Handle.AsSpan();
-                if (tag.Handle.Length >= 2 && handleSpan[0] == '!' && handleSpan[^1] == '!')
-                {
-                    ConsumeTagUri(false, null, tag);
+                    if (currentCode != '>')
+                    {
+                        throw new YamlTokenizerException(mark, "While scanning a tag, did not find the expected '>'");
+                    }
+
+                    Advance(1);
                 }
                 else
                 {
-                    ConsumeTagUri(false, tag.Handle, tag);
-                    tag.Handle.Clear();
-                    // A special case: the '!' tag.  Set the handle to '' and the
-                    // suffix to '!'.
-                    if (tag.Suffix.Length <= 0)
+                    // The tag has either the '!suffix' or the '!handle!suffix'
+                    ConsumeTagHandle(false, handle);
+
+                    // Check if it is, indeed, handle.
+                    var handleSpan = handle.AsSpan();
+                    if (handleSpan.Length >= 2 && handleSpan[0] == '!' && handleSpan[^1] == '!')
                     {
-                        tag.Suffix.Clear();
-                        tag.Suffix.Write((byte)'!');
+                        ConsumeTagUri(false, null, suffix);
                     }
                     else
                     {
-                        tag.Handle.Write((byte)'!');
+                        ConsumeTagUri(false, handle, suffix);
+                        handle.Clear();
+                        // A special case: the '!' tag.  Set the handle to '' and the
+                        // suffix to '!'.
+                        if (suffix.Length <= 0)
+                        {
+                            suffix.Clear();
+                            suffix.Write((byte)'!');
+                        }
+                        else
+                        {
+                            suffix.Write((byte)'!');
+                        }
                     }
                 }
-            }
 
-            if (YamlCodes.IsEmpty(currentCode) || reader.End)
-            {
-                // ex 7.2, an empty scalar can follow a secondary tag
-                tokens.Enqueue(new Token(TokenType.Tag, tag));
+                if (YamlCodes.IsEmpty(currentCode) || reader.End)
+                {
+                    // ex 7.2, an empty scalar can follow a secondary tag
+                    tokens.Enqueue(new Token(TokenType.Tag, new Tag(handle.ToString(), suffix.ToString())));
+                }
+                else
+                {
+                    throw new YamlTokenizerException(mark,
+                        "While scanning a tag, did not find expected whitespace or line break");
+                }
             }
-            else
+            finally
             {
-                throw new YamlTokenizerException(startMark,
-                    "While scanning a tag, did not find expected whitespace or line break");
+                scalarPool.Return(handle);
+                scalarPool.Return(suffix);
             }
         }
 
-        void ConsumeTagHandle(bool directive, TagBuffer tagBuffer)
+        void ConsumeTagHandle(bool directive, Scalar buf)
         {
             if (currentCode != '!')
             {
@@ -668,24 +677,24 @@ namespace VYaml
                     "While scanning a tag, did not find expected '!'");
             }
 
-            tagBuffer.Handle.Write(currentCode);
+            buf.Write(currentCode);
             Advance(1);
 
             while (YamlCodes.IsAlphaNumericDashOrUnderscore(currentCode))
             {
-                tagBuffer.Handle.Write(currentCode);
+                buf.Write(currentCode);
                 Advance(1);
             }
 
             // Check if the trailing character is '!' and copy it.
             if (currentCode == '!')
             {
-                tagBuffer.Handle.Write(currentCode);
+                buf.Write(currentCode);
                 Advance(1);
             }
             else if (directive)
             {
-                if (!tagBuffer.Handle.SequenceEqual(stackalloc byte[] { (byte)'!' }))
+                if (!buf.SequenceEqual(stackalloc byte[] { (byte)'!' }))
                 {
                     // It's either the '!' tag or not really a tag handle.  If it's a %TAG
                     // directive, it's an error.  If it's a tag token, it must be a part of
@@ -695,14 +704,14 @@ namespace VYaml
             }
         }
 
-        void ConsumeTagUri(bool directive, Scalar? head, TagBuffer tagBuffer)
+        void ConsumeTagUri(bool directive, Scalar? head, Scalar uri)
         {
             // Copy the head if needed.
             // Note that we don't copy the leading '!' character.
             var length = head?.Length ?? 0;
             if (length > 1)
             {
-                 tagBuffer.Suffix.Write(head!.AsSpan(1, length - 1));
+                 uri.Write(head!.AsSpan(1, length - 1));
             }
 
             // The set of characters that may appear in URI is as follows:
@@ -715,11 +724,11 @@ namespace VYaml
             {
                 if (currentCode == '%')
                 {
-                    tagBuffer.Suffix.WriteUnicodeCodepoint(ConsumeUriEscapes(directive));
+                    uri.WriteUnicodeCodepoint(ConsumeUriEscapes(directive));
                 }
                 else
                 {
-                    tagBuffer.Suffix.Write(currentCode);
+                    uri.Write(currentCode);
                     Advance(1);
                 }
 
