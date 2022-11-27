@@ -111,7 +111,7 @@ namespace VYaml
         int lastAnchorId;
 
         readonly Dictionary<string, int> anchors;
-        ExpandBuffer<ParseState> stateStack;
+        readonly ExpandBuffer<ParseState> stateStack;
 
         public YamlParser(Utf8YamlTokenizer tokenizer)
         {
