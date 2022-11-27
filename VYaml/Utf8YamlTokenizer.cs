@@ -55,7 +55,6 @@ namespace VYaml
         readonly ExpandBuffer<int> indents;
         readonly ExpandBuffer<byte> lineBreaksBuffer;
 
-
         public Utf8YamlTokenizer(in ReadOnlySequence<byte> sequence)
         {
             reader = new SequenceReader<byte>(sequence);
@@ -63,7 +62,7 @@ namespace VYaml
             tokens = new InsertionQueue<Token>(16);
             simpleKeyCandidates = new ExpandBuffer<SimpleKeyState>(16);
             indents = new ExpandBuffer<int>(16);
-            lineBreaksBuffer = new ExpandBuffer<byte>(256);
+            lineBreaksBuffer = new ExpandBuffer<byte>(64);
             scalarPool = new ScalarPool();
 
             indent = -1;

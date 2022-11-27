@@ -13,8 +13,8 @@ namespace VYaml.Internal
 
         public ExpandBuffer(int capacity)
         {
-            if (capacity < 0) throw new ArgumentOutOfRangeException(nameof(capacity));
             buffer = ArrayPool<T>.Shared.Rent(capacity);
+            // buffer = new T[capacity];
             Length = 0;
         }
 
@@ -88,6 +88,7 @@ namespace VYaml.Internal
             buffer[Length++] = item;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void Grow()
         {
             var newCapacity = buffer.Length * GrowFactor / 100;
@@ -98,11 +99,13 @@ namespace VYaml.Internal
             SetCapacity(newCapacity);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void SetCapacity(int newCapacity)
         {
             if (Capacity >= newCapacity) return;
 
             var newBuffer = ArrayPool<T>.Shared.Rent(newCapacity);
+            // var newBuffer = new T[newCapacity];
             Array.Copy(buffer, 0, newBuffer, 0, Length);
             ArrayPool<T>.Shared.Return(buffer);
             buffer = newBuffer;
