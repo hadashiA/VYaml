@@ -84,6 +84,10 @@ namespace VYaml
         public void Dispose()
         {
             scalarPool.Dispose();
+            simpleKeyCandidates.Dispose();
+            indents.Dispose();
+            whitespaceBuffer.Dispose();
+            lineBreakBuffer.Dispose();
         }
 
         public bool Read()

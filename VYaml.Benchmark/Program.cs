@@ -39,7 +39,7 @@ public class SimpleParsingBenchmark
     {
         // for (var i = 0; i < N; i++)
         {
-            var parser = YamlParser.FromBytes(yamlBytes);
+            using var parser = YamlParser.FromBytes(yamlBytes);
             while (parser.Read())
             {
             }
