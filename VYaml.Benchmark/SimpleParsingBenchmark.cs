@@ -1,5 +1,6 @@
 using System.Text;
 using BenchmarkDotNet.Attributes;
+using VYaml.Parser;
 
 namespace VYaml.Benchmark;
 
