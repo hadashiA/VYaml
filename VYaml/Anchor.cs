@@ -16,5 +16,7 @@ namespace VYaml
         public bool Equals(Anchor other) => Id == other.Id;
         public override bool Equals(object? obj) => obj is Anchor other && Equals(other);
         public override int GetHashCode() => Id;
+
+        public override string ToString() => $"{Name} Id={Id}";
     }
 }

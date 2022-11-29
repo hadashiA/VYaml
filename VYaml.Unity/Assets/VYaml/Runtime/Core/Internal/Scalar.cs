@@ -7,7 +7,7 @@ namespace VYaml.Internal
 {
     class ScalarPool : IDisposable
     {
-        ExpandBuffer<Scalar> queue = new(32);
+        readonly ExpandBuffer<Scalar> queue = new(32);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Scalar Rent()
@@ -123,6 +123,11 @@ namespace VYaml.Internal
             if (Length < 0) return;
             ArrayPool<byte>.Shared.Return(buffer);
             Length = -1;
+        }
+
+        public override string ToString()
+        {
+            return StringEncoding.Utf8.GetString(AsSpan());
         }
 
         /// <summary>
@@ -286,9 +291,56 @@ namespace VYaml.Internal
             return false;
         }
 
-        public override string ToString()
+
+        /// <summary>
+        /// </summary>
+        /// <see href="https://yaml.org/type/float.html"/>
+        public bool TryGetFloat(out float value)
         {
-            return StringEncoding.Utf8.GetString(AsSpan());
+            var span = AsSpan();
+            if (Utf8Parser.TryParse(span, out value, out var bytesConsumed) &&
+                bytesConsumed == span.Length)
+            {
+                return true;
+            }
+
+            switch (span.Length)
+            {
+                case 4:
+                    if (span.SequenceEqual(YamlCodes.Inf0) ||
+                        span.SequenceEqual(YamlCodes.Inf1) ||
+                        span.SequenceEqual(YamlCodes.Inf2))
+                    {
+                        value = float.PositiveInfinity;
+                        return true;
+                    }
+
+                    if (span.SequenceEqual(YamlCodes.Nan0) ||
+                        span.SequenceEqual(YamlCodes.Nan1) ||
+                        span.SequenceEqual(YamlCodes.Nan2))
+                    {
+                        value = float.NaN;
+                        return true;
+                    }
+                    break;
+                case 5:
+                    if (span.SequenceEqual(YamlCodes.Inf3) ||
+                        span.SequenceEqual(YamlCodes.Inf4) ||
+                        span.SequenceEqual(YamlCodes.Inf5))
+                    {
+                        value = float.PositiveInfinity;
+                        return true;
+                    }
+                    if (span.SequenceEqual(YamlCodes.NegInf0) ||
+                        span.SequenceEqual(YamlCodes.NegInf1) ||
+                        span.SequenceEqual(YamlCodes.NegInf2))
+                    {
+                        value = float.NegativeInfinity;
+                        return true;
+                    }
+                    break;
+            }
+            return false;
         }
 
         public bool SequenceEqual(Scalar other)
@@ -300,22 +352,6 @@ namespace VYaml.Internal
         {
             return AsSpan().SequenceEqual(span);
         }
-
-        // bool IsInfinity()
-        // {
-        //     if (Length == 4)
-        //     {
-        //         if (span.SequenceEqual(YamlCodes.Inf0) ||
-        //             span.SequenceEqual(YamlCodes.Inf1) ||
-        //             span.SequenceEqual(YamlCodes.Inf2))
-        //         {
-        //             value = double.PositiveInfinity;
-        //             return true;
-        //         }
-        //     }
-        //     return false;
-        // }
-
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void Grow(int sizeHint)

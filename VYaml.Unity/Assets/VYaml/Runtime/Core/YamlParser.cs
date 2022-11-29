@@ -89,7 +89,7 @@ namespace VYaml
 
         public ParseEventType CurrentEventType { get; private set; }
 
-        public Marker CurrentMark
+        public readonly Marker CurrentMark
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => tokenizer.CurrentMark;
@@ -137,13 +137,46 @@ namespace VYaml
         {
             if (currentScalar is { } scalar)
                 return scalar.IsNull();
-            return true;
+            return false;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly string? GetScalarAsString()
         {
             return currentScalar?.ToString();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly bool GetScalarAsBool()
+        {
+            if (currentScalar is { } scalar)
+            {
+                scalar.TryGetBool(out var value);
+                return value;
+            }
+            throw new YamlParserException(CurrentMark, $"Cannot detect scalar value : {CurrentEventType}");
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly int GetScalarAsInt32()
+        {
+            if (currentScalar is { } scalar)
+            {
+                scalar.TryGetInt32(out var value);
+                return value;
+            }
+            throw new YamlParserException(CurrentMark, $"Cannot detect scalar value : {CurrentEventType}");
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly long GetScalarAsInt64()
+        {
+            if (currentScalar is { } scalar)
+            {
+                scalar.TryGetInt64(out var value);
+                return value;
+            }
+            throw new YamlParserException(CurrentMark, $"Cannot detect scalar value : {CurrentEventType}");
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -313,6 +346,7 @@ namespace VYaml
             return true;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ReadWithVerify(ParseEventType eventType)
         {
             if (CurrentEventType != eventType)
@@ -322,11 +356,10 @@ namespace VYaml
 
         public void SkipAfter(ParseEventType eventType)
         {
-            while (Read())
+            while (CurrentEventType != eventType)
             {
-                if (CurrentEventType == eventType)
+                if (!Read())
                 {
-                    Read();
                     break;
                 }
             }

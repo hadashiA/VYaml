@@ -755,10 +755,10 @@ namespace VYaml
                 if (width == 0)
                 {
                     width = octet switch {
-                        _ when (octet & 0x80) == 0x00 => 1,
-                        _ when (octet & 0xE0) == 0xC0 => 2,
-                        _ when (octet & 0xF0) == 0xE0 => 3,
-                        _ when (octet & 0xF8) == 0xF0 => 4,
+                        _ when (octet & 0b1000_0000) == 0b0000_0000 => 1,
+                        _ when (octet & 0b1110_0000) == 0b1100_0000 => 2,
+                        _ when (octet & 0b1111_0000) == 0b1110_0000 => 3,
+                        _ when (octet & 0b1111_1000) == 0b1111_0000 => 4,
                         _ => throw new YamlTokenizerException(mark,
                             "While parsing a tag, found an incorrect leading utf8 octet")
                     };
@@ -1367,8 +1367,8 @@ namespace VYaml
                     case YamlCodes.Tab when flowLevel > 0 || !simpleKeyAllowed:
                         Advance(1);
                         break;
-                    case YamlCodes.Cr:
                     case YamlCodes.Lf:
+                    case YamlCodes.Cr:
                         ConsumeLineBreaks();
                         if (flowLevel == 0) simpleKeyAllowed = true;
                         break;
@@ -1454,7 +1454,7 @@ namespace VYaml
             }
 
             ref var last = ref simpleKeyCandidates[^1];
-            if (last.Possible && last.Required)
+            if (last is { Possible: true, Required: true })
             {
                 throw new YamlTokenizerException(mark, "Simple key expected");
             }
@@ -1471,7 +1471,7 @@ namespace VYaml
         void RemoveSimpleKeyCandidate()
         {
             ref var last = ref simpleKeyCandidates[^1];
-            if (last.Possible && last.Required)
+            if (last is { Possible: true, Required: true })
             {
                 throw new YamlTokenizerException(mark, "Simple key expected");
             }

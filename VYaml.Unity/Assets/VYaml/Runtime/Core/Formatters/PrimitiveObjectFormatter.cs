@@ -42,8 +42,8 @@ namespace VYaml.Formatters
                     parser.Read();
                     while (!parser.End && parser.CurrentEventType != ParseEventType.MappingEnd)
                     {
-                        var key = Deserialize(ref parser, context);
-                        var value = Deserialize(ref parser, context);
+                        var key = context.DeserializeWithAlias(this, ref parser);
+                        var value = context.DeserializeWithAlias(this, ref parser);
                         dict.Add(key, value);
                     }
                     result = dict;
@@ -54,33 +54,15 @@ namespace VYaml.Formatters
                      var list = new List<object?>();
                      while (!parser.End && parser.CurrentEventType != ParseEventType.SequenceEnd)
                      {
-                         var element = Deserialize(ref parser, context);
+                         var element = context.DeserializeWithAlias(this, ref parser);
                          list.Add(element);
                      }
                      result = list;
                      break;
                  }
-                 case ParseEventType.Alias:
-                 {
-                     if (parser.TryGetCurrentAnchor(out var anchorForAlias))
-                     {
-                        result = context.GetAlias(anchorForAlias);
-                     }
-                     else
-                     {
-                         throw new InvalidOperationException();
-                     }
-                     break;
-                 }
                  default:
                      throw new InvalidOperationException();
             }
-
-            if (parser.TryGetCurrentAnchor(out var anchor))
-            {
-                context.RegisterAnchor(anchor, result);
-            }
-
             return result;
         }
     }
