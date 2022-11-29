@@ -47,6 +47,7 @@ namespace VYaml.Serialization
 
             if (parser.TryGetCurrentAnchor(out var anchor))
             {
+                parser.Read();
                 if (aliases.TryGetValue(anchor, out var obj))
                 {
                     switch (obj)
@@ -58,10 +59,10 @@ namespace VYaml.Serialization
                             aliasValue = value;
                             return true;
                         default:
-                            throw new YamlSerializerException($"Alias value is not a type of {typeof(T).Name}");
+                            throw new YamlSerializerException($"The alias value is not a type of {typeof(T).Name}");
                     }
                 }
-                throw new YamlSerializerException($"Could not found alias value of anchor: {anchor}");
+                throw new YamlSerializerException($"Could not found an alias value of anchor: {anchor}");
             }
 
             aliasValue = default;

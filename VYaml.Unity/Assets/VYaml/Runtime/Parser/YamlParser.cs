@@ -363,6 +363,10 @@ namespace VYaml.Parser
                     break;
                 }
             }
+            if (CurrentEventType == eventType)
+            {
+                Read();
+            }
         }
 
         void ParseStreamStart()

@@ -24,6 +24,12 @@ namespace VYaml.Serialization
 
         static YamlSerializerOptions? defaultOptions;
 
+        public static T Deserialize<T>(ReadOnlyMemory<byte> memory)
+        {
+            var parser = YamlParser.FromSequence(new ReadOnlySequence<byte>(memory));
+            return Deserialize<T>(ref parser, DefaultOptions);
+        }
+
         public static T Deserialize<T>(ReadOnlyMemory<byte> memory, YamlSerializerOptions options)
         {
             var parser = YamlParser.FromSequence(new ReadOnlySequence<byte>(memory));
@@ -51,8 +57,8 @@ namespace VYaml.Serialization
 
             parser.SkipAfter(ParseEventType.DocumentStart);
 
-            return options.Resolver.GetFormatterWithVerify<T>()
-                .Deserialize(ref parser, contextLocal);
+            var formatter = options.Resolver.GetFormatterWithVerify<T>();
+            return contextLocal.DeserializeWithAlias(formatter, ref parser);
         }
     }
 }

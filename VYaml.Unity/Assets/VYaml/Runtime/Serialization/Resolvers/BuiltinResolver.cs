@@ -55,24 +55,6 @@ namespace VYaml.Serialization
             // { typeof(BitArray), BitArrayFormatter.Instance },
             // { typeof(Type), TypeFormatter<Type>.Instance },
 
-            // special primitive
-            // { typeof(byte[]), ByteArrayFormatter.Instance },
-
-            // optimized primitive array formatter
-            // { typeof(Int16[]), Int16ArrayFormatter.Instance },
-            // { typeof(Int32[]), Int32ArrayFormatter.Instance },
-            // { typeof(Int64[]), Int64ArrayFormatter.Instance },
-            // { typeof(UInt16[]), UInt16ArrayFormatter.Instance },
-            // { typeof(UInt32[]), UInt32ArrayFormatter.Instance },
-            // { typeof(UInt64[]), UInt64ArrayFormatter.Instance },
-            // { typeof(Single[]), SingleArrayFormatter.Instance },
-            // { typeof(Double[]), DoubleArrayFormatter.Instance },
-            // { typeof(Boolean[]), BooleanArrayFormatter.Instance },
-            // { typeof(SByte[]), SByteArrayFormatter.Instance },
-            // { typeof(DateTime[]), DateTimeArrayFormatter.Instance },
-            // { typeof(Char[]), CharArrayFormatter.Instance },
-            // { typeof(string[]), NullableStringArrayFormatter.Instance },
-
             // well known collections
             { typeof(List<Int16>), new ListFormatter<Int16>() },
             { typeof(List<Int32>), new ListFormatter<Int32>() },

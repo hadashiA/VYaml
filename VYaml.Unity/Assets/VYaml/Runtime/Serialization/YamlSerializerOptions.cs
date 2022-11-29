@@ -2,14 +2,12 @@ namespace VYaml.Serialization
 {
     public class YamlSerializerOptions
     {
-        public static YamlSerializerOptions Standard => new(StandardResolver.Instance);
-
-        public IYamlFormatterResolver Resolver { get; }
-        public bool SupportAliasForDeserialization { get; set; } = true;
-
-        public YamlSerializerOptions(IYamlFormatterResolver resolver)
+        public static YamlSerializerOptions Standard => new()
         {
-            Resolver = resolver;
-        }
+            Resolver = StandardResolver.Instance
+        };
+
+        public IYamlFormatterResolver Resolver { get; set; }
+        public bool SupportAliasForDeserialization { get; set; } = true;
     }
 }

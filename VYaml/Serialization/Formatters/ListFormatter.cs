@@ -13,20 +13,17 @@ namespace VYaml.Serialization
                 return default;
             }
 
-            if (parser.CurrentEventType != ParseEventType.SequenceStart)
-            {
-                throw new YamlSerializerException($"Invalid sequence : {parser.CurrentEventType}");
-            }
+            parser.ReadWithVerify(ParseEventType.SequenceStart);
 
             var list = new List<T>();
             var elementFormatter = context.Resolver.GetFormatterWithVerify<T>();
-            while (parser.Read() && parser.CurrentEventType != ParseEventType.SequenceEnd)
+            while (!parser.End && parser.CurrentEventType != ParseEventType.SequenceEnd)
             {
                 var value = context.DeserializeWithAlias(elementFormatter, ref parser);
                 list.Add(value);
             }
 
-            parser.Read();
+            parser.ReadWithVerify(ParseEventType.SequenceEnd);
             return list;
         }
     }

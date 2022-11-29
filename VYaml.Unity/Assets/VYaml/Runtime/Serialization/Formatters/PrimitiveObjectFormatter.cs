@@ -14,6 +14,7 @@ namespace VYaml.Serialization
 
             switch (parser.CurrentEventType)
             {
+                // TODO: checking tags
                 case ParseEventType.Scalar:
                     if (parser.IsNullScalar())
                     {
@@ -24,6 +25,11 @@ namespace VYaml.Serialization
                     {
                         parser.Read();
                         result = boolValue;
+                    }
+                    else if (parser.TryGetScalarAsInt32(out var intValue))
+                    {
+                        parser.Read();
+                        result = intValue;
                     }
                     else if (parser.TryGetScalarAsDouble(out var doubleValue))
                     {
@@ -47,17 +53,20 @@ namespace VYaml.Serialization
                         var value = context.DeserializeWithAlias(this, ref parser);
                         dict.Add(key, value);
                     }
+                    parser.ReadWithVerify(ParseEventType.MappingEnd);
                     result = dict;
                     break;
                  }
                  case ParseEventType.SequenceStart:
                  {
                      var list = new List<object?>();
+                     parser.Read();
                      while (!parser.End && parser.CurrentEventType != ParseEventType.SequenceEnd)
                      {
                          var element = context.DeserializeWithAlias(this, ref parser);
                          list.Add(element);
                      }
+                     parser.ReadWithVerify(ParseEventType.SequenceEnd);
                      result = list;
                      break;
                  }
