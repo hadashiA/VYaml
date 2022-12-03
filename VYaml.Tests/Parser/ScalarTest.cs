@@ -4,6 +4,7 @@ using VYaml.Parser;
 
 namespace VYaml.Tests.Parser
 {
+
     [TestFixture]
     public class ScalarTest
     {

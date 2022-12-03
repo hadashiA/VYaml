@@ -10,7 +10,7 @@ namespace VYaml.Serialization
         static readonly Dictionary<Type, object> FormatterMap = new()
         {
             // Primitive
-            // { typeof(Int16), Int16Formatter.Instance },
+            { typeof(Int16), Int16Formatter.Instance },
             { typeof(Int32), Int32Formatter.Instance },
             // { typeof(Int64), Int64Formatter.Instance },
             // { typeof(UInt16), UInt16Formatter.Instance },
@@ -25,7 +25,7 @@ namespace VYaml.Serialization
             // { typeof(char), CharFormatter.Instance },
 
             // Nullable Primitive
-            // { typeof(Int16?), NullableInt16Formatter.Instance },
+            { typeof(Int16?), NullableInt16Formatter.Instance },
             { typeof(Int32?), NullableInt32Formatter.Instance },
             // { typeof(Int64?), NullableInt64Formatter.Instance },
             // { typeof(UInt16?), NullableUInt16Formatter.Instance },

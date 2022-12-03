@@ -17,9 +17,12 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\VYaml\VYaml.csproj" />
+        <ProjectReference Include="..\VYaml\VYaml.csproj" />
+        <ProjectReference Include="..\VYaml.SourceGenerator.Roslyn3\VYaml.SourceGenerator.Roslyn3.csproj">
+            <OutputItemType>Analyzer</OutputItemType>
+            <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+        </ProjectReference>
     </ItemGroup>
-
 
     <!-- Copy files for Unity -->
     <PropertyGroup>

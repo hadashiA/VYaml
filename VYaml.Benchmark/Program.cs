@@ -8,7 +8,12 @@ static class Program
 {
     static int Main()
     {
-        BenchmarkRunner.Run<SimpleParsingBenchmark>();
+        var switcher = new BenchmarkSwitcher(new[]
+        {
+            typeof(SimpleParsingBenchmark),
+            typeof(DynamicDeserializationBenchmark),
+        });
+        switcher.Run();
         return 0;
     }
 }

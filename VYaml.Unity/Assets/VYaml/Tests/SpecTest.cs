@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using NUnit.Framework;
 using VYaml.Internal;
+using VYaml.Parser;
 
 namespace VYaml.Tests
 {

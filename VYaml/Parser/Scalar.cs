@@ -136,7 +136,6 @@ namespace VYaml.Parser
         /// <remarks>
         /// null | Null | NULL | ~
         /// </remarks>
-        /// <see href="https://yaml.org/type/null.html"/>
         public bool IsNull()
         {
             var span = AsSpan();
@@ -158,7 +157,6 @@ namespace VYaml.Parser
         /// <remarks>
         /// true|True|TRUE|false|False|FALSE
         /// </remarks>
-        /// <see href="https://yaml.org/type/bool.html" />
         public bool TryGetBool(out bool value)
         {
             var span = AsSpan();
@@ -180,9 +178,58 @@ namespace VYaml.Parser
             return false;
         }
 
-        /// <summary>
-        /// </summary>
-        /// <see href="https://yaml.org/type/int.html"/>
+        public bool TryGetInt16(out short value)
+        {
+            var span = AsSpan();
+
+            if (Utf8Parser.TryParse(span, out value, out var bytesConsumed) &&
+                bytesConsumed == span.Length)
+            {
+                return true;
+            }
+
+            if (TryDetectHex(span, out var hexNumber))
+            {
+                return Utf8Parser.TryParse(hexNumber, out value, out bytesConsumed, 'x') &&
+                       bytesConsumed == hexNumber.Length;
+            }
+
+            if (TryDetectHexNegative(span, out hexNumber) &&
+                Utf8Parser.TryParse(hexNumber, out value, out bytesConsumed, 'x') &&
+                bytesConsumed == hexNumber.Length)
+            {
+                value -= 1;
+                return true;
+            }
+            return false;
+        }
+
+        public bool TryGetInt32(out int value)
+        {
+            var span = AsSpan();
+
+            if (Utf8Parser.TryParse(span, out value, out var bytesConsumed) &&
+                bytesConsumed == span.Length)
+            {
+                return true;
+            }
+
+            if (TryDetectHex(span, out var hexNumber))
+            {
+                return Utf8Parser.TryParse(hexNumber, out value, out bytesConsumed, 'x') &&
+                       bytesConsumed == hexNumber.Length;
+            }
+
+            if (TryDetectHexNegative(span, out hexNumber) &&
+                Utf8Parser.TryParse(hexNumber, out value, out bytesConsumed, 'x') &&
+                bytesConsumed == hexNumber.Length)
+            {
+                value -= 1;
+                return true;
+            }
+            return false;
+        }
+
         public bool TryGetInt64(out long value)
         {
             var span = buffer.AsSpan();
@@ -210,10 +257,7 @@ namespace VYaml.Parser
             return false;
         }
 
-        /// <summary>
-        /// </summary>
-        /// <see href="https://yaml.org/type/int.html"/>
-        public bool TryGetInt32(out int value)
+        public bool TryGetUInt16(out ushort value)
         {
             var span = AsSpan();
 
@@ -223,27 +267,51 @@ namespace VYaml.Parser
                 return true;
             }
 
-            if (span.Length > YamlCodes.HexPrefix.Length && span.StartsWith(YamlCodes.HexPrefix))
+            if (TryDetectHex(span, out var hexNumber))
             {
-                var slice = span[YamlCodes.HexPrefix.Length..];
-                return Utf8Parser.TryParse(slice, out value, out var bytesConsumedHex, 'x') &&
-                       bytesConsumedHex == slice.Length;
-            }
-            if (span.Length > YamlCodes.HexPrefixNegative.Length && span.StartsWith(YamlCodes.HexPrefixNegative))
-            {
-                var slice = span[YamlCodes.HexPrefixNegative.Length..];
-                if (Utf8Parser.TryParse(slice, out value, out var bytesConsumedHex, 'x') && bytesConsumedHex == slice.Length)
-                {
-                    value = -value;
-                    return true;
-                }
+                return Utf8Parser.TryParse(hexNumber, out value, out bytesConsumed, 'x') &&
+                       bytesConsumed == hexNumber.Length;
             }
             return false;
         }
 
-        /// <summary>
-        /// </summary>
-        /// <see href="https://yaml.org/type/float.html"/>
+
+        public bool TryGetUInt32(out uint value)
+        {
+            var span = AsSpan();
+
+            if (Utf8Parser.TryParse(span, out value, out var bytesConsumed) &&
+                bytesConsumed == span.Length)
+            {
+                return true;
+            }
+
+            if (TryDetectHex(span, out var hexNumber))
+            {
+                return Utf8Parser.TryParse(hexNumber, out value, out bytesConsumed, 'x') &&
+                       bytesConsumed == hexNumber.Length;
+            }
+            return false;
+        }
+
+        public bool TryGetUInt64(out ulong value)
+        {
+            var span = AsSpan();
+
+            if (Utf8Parser.TryParse(span, out value, out var bytesConsumed) &&
+                bytesConsumed == span.Length)
+            {
+                return true;
+            }
+
+            if (TryDetectHex(span, out var hexNumber))
+            {
+                return Utf8Parser.TryParse(hexNumber, out value, out bytesConsumed, 'x') &&
+                       bytesConsumed == hexNumber.Length;
+            }
+            return false;
+        }
+
         public bool TryGetDouble(out double value)
         {
             var span = AsSpan();
@@ -292,10 +360,6 @@ namespace VYaml.Parser
             return false;
         }
 
-
-        /// <summary>
-        /// </summary>
-        /// <see href="https://yaml.org/type/float.html"/>
         public bool TryGetFloat(out float value)
         {
             var span = AsSpan();
@@ -344,14 +408,44 @@ namespace VYaml.Parser
             return false;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool SequenceEqual(Scalar other)
         {
             return AsSpan().SequenceEqual(other.AsSpan());
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool SequenceEqual(ReadOnlySpan<byte> span)
         {
             return AsSpan().SequenceEqual(span);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static bool TryDetectHex(ReadOnlySpan<byte> span, out ReadOnlySpan<byte> slice)
+        {
+            if (span.Length > YamlCodes.HexPrefix.Length + 1 &&
+                span.StartsWith(YamlCodes.HexPrefix))
+            {
+                slice = span[YamlCodes.HexPrefix.Length..];
+                return true;
+            }
+
+            slice = default;
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static bool TryDetectHexNegative(ReadOnlySpan<byte> span, out ReadOnlySpan<byte> slice)
+        {
+            if (span.Length > YamlCodes.HexPrefixNegative.Length + 1 &&
+                span.StartsWith(YamlCodes.HexPrefixNegative))
+            {
+                slice = span[YamlCodes.HexPrefixNegative.Length..];
+                return true;
+            }
+
+            slice = default;
+            return false;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

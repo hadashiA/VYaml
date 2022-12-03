@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VYaml.Tests", "VYaml.Tests\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VYaml.Benchmark", "VYaml.Benchmark\VYaml.Benchmark.csproj", "{D4FB8270-6E93-447C-B97F-851E711CEC4B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VYaml.SourceGenerator.Roslyn3", "VYaml.SourceGenerator.Roslyn3\VYaml.SourceGenerator.Roslyn3.csproj", "{3B6077D9-02FB-470C-88CD-F254FD5802D4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{D4FB8270-6E93-447C-B97F-851E711CEC4B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D4FB8270-6E93-447C-B97F-851E711CEC4B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D4FB8270-6E93-447C-B97F-851E711CEC4B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3B6077D9-02FB-470C-88CD-F254FD5802D4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3B6077D9-02FB-470C-88CD-F254FD5802D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3B6077D9-02FB-470C-88CD-F254FD5802D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3B6077D9-02FB-470C-88CD-F254FD5802D4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
