@@ -14,11 +14,17 @@ namespace VYaml.Serialization
             aliases.Clear();
         }
 
-        public T? DeserializeWithAlias<T>(IYamlFormatter<T> innerFormatter, ref YamlParser parser)
+        public T DeserializeWithAlias<T>(ref YamlParser parser)
+        {
+            var formatter = Resolver.GetFormatterWithVerify<T>();
+            return DeserializeWithAlias(formatter, ref parser);
+        }
+
+        public T DeserializeWithAlias<T>(IYamlFormatter<T> innerFormatter, ref YamlParser parser)
         {
             if (TryResolveCurrentAlias<T>(ref parser, out var aliasValue))
             {
-                return aliasValue;
+                return aliasValue!;
             }
 
             var withAnchor = parser.TryGetCurrentAnchor(out var anchor);

@@ -7,6 +7,7 @@ class MemberMeta
 {
     public ISymbol Symbol { get; }
     public string Name { get; }
+    public string FullTypeName { get; }
     public ITypeSymbol MemberType { get; }
     public INamedTypeSymbol? CustomFormatter { get; }
     public string? CustomFormatterName { get; }
@@ -49,6 +50,7 @@ class MemberMeta
         {
             throw new Exception("member is not field or property.");
         }
+        FullTypeName = MemberType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
     }
 
     public Location GetLocation(TypeDeclarationSyntax fallback)

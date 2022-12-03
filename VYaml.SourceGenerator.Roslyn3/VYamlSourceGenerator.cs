@@ -146,8 +146,6 @@ public class VYamlSourceGenerator : ISourceGenerator
     {
         var memberMetas = typeMeta.GetSerializeMembers();
 
-
-
         foreach (var memberMeta in memberMetas)
         {
             codeWriter.Append($"static readonly byte[] {memberMeta.Name}KeyUtf8Bytes = ");
@@ -160,15 +158,14 @@ public class VYamlSourceGenerator : ISourceGenerator
 
         using (codeWriter.BeginBlockScope("if (parser.IsNullScalar())"))
         {
-            codeWriter.AppendLine("return null;");
+            codeWriter.AppendLine("return default;");
         }
 
         codeWriter.AppendLine("parser.ReadWithVerify(ParseEventType.MappingStart);");
         codeWriter.AppendLine();
         foreach (var memberMeta in memberMetas)
         {
-            var memberFullTypeName = memberMeta.Symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-            codeWriter.AppendLine($"var __{memberMeta.Name}__ = default({memberFullTypeName});");
+            codeWriter.AppendLine($"var __{memberMeta.Name}__ = default({memberMeta.FullTypeName});");
         }
 
         using (codeWriter.BeginBlockScope("while (!parser.End && parser.CurrentEventType != ParseEventType.MappingEnd)"))
@@ -183,7 +180,7 @@ public class VYamlSourceGenerator : ISourceGenerator
                 codeWriter.AppendLine("throw new YamlSerializerException(\"Deserialize supports only string key\");");
             }
             codeWriter.AppendLine();
-            using (codeWriter.BeginBlockScope("switch (span.Length)"))
+            using (codeWriter.BeginBlockScope("switch (key.Length)"))
             {
                 var membersByNameLength = memberMetas.GroupBy(x => x.NameUtf8Bytes.Length);
                 foreach (var group in membersByNameLength)
@@ -195,7 +192,7 @@ public class VYamlSourceGenerator : ISourceGenerator
                             using (codeWriter.BeginBlockScope($"if (key.SequenceEqual({memberMeta.Name}KeyUtf8Bytes))"))
                             {
                                 codeWriter.AppendLine(
-                                    $"__{memberMeta.Name}__ = context.DeserializeWithAlias<>(ref parser);");
+                                    $"__{memberMeta.Name}__ = context.DeserializeWithAlias<{memberMeta.FullTypeName}>(ref parser);");
                             }
                         }
                         codeWriter.AppendLine("continue;");

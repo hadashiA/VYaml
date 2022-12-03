@@ -3,7 +3,7 @@ using VYaml.Serialization;
 namespace VYaml.Tests.TypeDeclarations
 {
     [YamlObject]
-    public class SimpleTypeZero
+    public partial class SimpleTypeZero
     {
     }
 
