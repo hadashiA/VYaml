@@ -7,6 +7,7 @@ namespace VYaml.Serialization
         public static readonly IYamlFormatterResolver[] DefaultResolvers =
         {
             BuiltinResolver.Instance,
+            GeneratedResolver.Instance,
         };
 
         static class FormatterCache<T>

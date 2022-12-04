@@ -21,4 +21,9 @@ namespace VYaml.Serialization
     public sealed class YamlConstructorAttribute : Attribute
     {
     }
+
+    // Preserve for Unity IL2CPP(internal but used for code generator)
+    public sealed class PreserveAttribute : Attribute
+    {
+    }
 }

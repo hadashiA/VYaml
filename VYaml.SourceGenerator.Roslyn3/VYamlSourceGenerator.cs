@@ -109,8 +109,8 @@ public class VYamlSourceGenerator : ISourceGenerator
 
             using (codeWriter.BeginBlockScope($"partial {typeDecralationKeyword} {typeMeta.TypeName}"))
             {
+                EmitRegisterMethod(typeMeta, codeWriter, in context);
                 EmitFormatter(typeMeta, codeWriter, in context);
-                EmitDeserializeMethod(typeMeta, codeWriter, in context);
             }
 
             if (!ns.IsGlobalNamespace)
@@ -129,11 +129,22 @@ public class VYamlSourceGenerator : ISourceGenerator
         }
     }
 
+    static void EmitRegisterMethod(
+        TypeMeta typeMeta,
+        CodeWriter codeWriter,
+        in GeneratorExecutionContext context)
+    {
+        codeWriter.AppendLine("[Preserve]");
+        using var _ = codeWriter.BeginBlockScope("public static void __RegisterVYamlFormatter()");
+        codeWriter.AppendLine($"global::VYaml.Serialization.GeneratedResolver.Register(new {typeMeta.TypeName}GeneratedFormatter());");
+    }
+
     static void EmitFormatter(
         TypeMeta typeMeta,
         CodeWriter codeWriter,
         in GeneratorExecutionContext context)
     {
+        codeWriter.AppendLine("[Preserve]");
         using var _ = codeWriter.BeginBlockScope($"public class {typeMeta.TypeName}GeneratedFormatter : IYamlFormatter<{typeMeta.TypeName}>");
 
         EmitDeserializeMethod(typeMeta, codeWriter, in context);
@@ -148,11 +159,13 @@ public class VYamlSourceGenerator : ISourceGenerator
 
         foreach (var memberMeta in memberMetas)
         {
+            codeWriter.AppendLine("[Preserve]");
             codeWriter.Append($"static readonly byte[] {memberMeta.Name}KeyUtf8Bytes = ");
             codeWriter.ApeendByteArrayString(memberMeta.NameUtf8Bytes);
             codeWriter.AppendLine(";");
         }
 
+        codeWriter.AppendLine("[Preserve]");
         using var methodScope = codeWriter.BeginBlockScope(
             $"public {typeMeta.FullTypeName} Deserialize(ref YamlParser parser, YamlDeserializationContext context)");
 
