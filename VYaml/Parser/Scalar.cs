@@ -178,32 +178,6 @@ namespace VYaml.Parser
             return false;
         }
 
-        public bool TryGetInt16(out short value)
-        {
-            var span = AsSpan();
-
-            if (Utf8Parser.TryParse(span, out value, out var bytesConsumed) &&
-                bytesConsumed == span.Length)
-            {
-                return true;
-            }
-
-            if (TryDetectHex(span, out var hexNumber))
-            {
-                return Utf8Parser.TryParse(hexNumber, out value, out bytesConsumed, 'x') &&
-                       bytesConsumed == hexNumber.Length;
-            }
-
-            if (TryDetectHexNegative(span, out hexNumber) &&
-                Utf8Parser.TryParse(hexNumber, out value, out bytesConsumed, 'x') &&
-                bytesConsumed == hexNumber.Length)
-            {
-                value -= 1;
-                return true;
-            }
-            return false;
-        }
-
         public bool TryGetInt32(out int value)
         {
             var span = AsSpan();
@@ -257,25 +231,6 @@ namespace VYaml.Parser
             return false;
         }
 
-        public bool TryGetUInt16(out ushort value)
-        {
-            var span = AsSpan();
-
-            if (Utf8Parser.TryParse(span, out value, out var bytesConsumed) &&
-                bytesConsumed == span.Length)
-            {
-                return true;
-            }
-
-            if (TryDetectHex(span, out var hexNumber))
-            {
-                return Utf8Parser.TryParse(hexNumber, out value, out bytesConsumed, 'x') &&
-                       bytesConsumed == hexNumber.Length;
-            }
-            return false;
-        }
-
-
         public bool TryGetUInt32(out uint value)
         {
             var span = AsSpan();
@@ -308,54 +263,6 @@ namespace VYaml.Parser
             {
                 return Utf8Parser.TryParse(hexNumber, out value, out bytesConsumed, 'x') &&
                        bytesConsumed == hexNumber.Length;
-            }
-            return false;
-        }
-
-        public bool TryGetDouble(out double value)
-        {
-            var span = AsSpan();
-            if (Utf8Parser.TryParse(span, out value, out var bytesConsumed) &&
-                bytesConsumed == span.Length)
-            {
-                return true;
-            }
-
-            switch (span.Length)
-            {
-                case 4:
-                    if (span.SequenceEqual(YamlCodes.Inf0) ||
-                        span.SequenceEqual(YamlCodes.Inf1) ||
-                        span.SequenceEqual(YamlCodes.Inf2))
-                    {
-                        value = double.PositiveInfinity;
-                        return true;
-                    }
-
-                    if (span.SequenceEqual(YamlCodes.Nan0) ||
-                        span.SequenceEqual(YamlCodes.Nan1) ||
-                        span.SequenceEqual(YamlCodes.Nan2))
-                    {
-                        value = double.NaN;
-                        return true;
-                    }
-                    break;
-                case 5:
-                    if (span.SequenceEqual(YamlCodes.Inf3) ||
-                        span.SequenceEqual(YamlCodes.Inf4) ||
-                        span.SequenceEqual(YamlCodes.Inf5))
-                    {
-                        value = double.PositiveInfinity;
-                        return true;
-                    }
-                    if (span.SequenceEqual(YamlCodes.NegInf0) ||
-                        span.SequenceEqual(YamlCodes.NegInf1) ||
-                        span.SequenceEqual(YamlCodes.NegInf2))
-                    {
-                        value = double.NegativeInfinity;
-                        return true;
-                    }
-                    break;
             }
             return false;
         }
@@ -401,6 +308,54 @@ namespace VYaml.Parser
                         span.SequenceEqual(YamlCodes.NegInf2))
                     {
                         value = float.NegativeInfinity;
+                        return true;
+                    }
+                    break;
+            }
+            return false;
+        }
+
+        public bool TryGetDouble(out double value)
+        {
+            var span = AsSpan();
+            if (Utf8Parser.TryParse(span, out value, out var bytesConsumed) &&
+                bytesConsumed == span.Length)
+            {
+                return true;
+            }
+
+            switch (span.Length)
+            {
+                case 4:
+                    if (span.SequenceEqual(YamlCodes.Inf0) ||
+                        span.SequenceEqual(YamlCodes.Inf1) ||
+                        span.SequenceEqual(YamlCodes.Inf2))
+                    {
+                        value = double.PositiveInfinity;
+                        return true;
+                    }
+
+                    if (span.SequenceEqual(YamlCodes.Nan0) ||
+                        span.SequenceEqual(YamlCodes.Nan1) ||
+                        span.SequenceEqual(YamlCodes.Nan2))
+                    {
+                        value = double.NaN;
+                        return true;
+                    }
+                    break;
+                case 5:
+                    if (span.SequenceEqual(YamlCodes.Inf3) ||
+                        span.SequenceEqual(YamlCodes.Inf4) ||
+                        span.SequenceEqual(YamlCodes.Inf5))
+                    {
+                        value = double.PositiveInfinity;
+                        return true;
+                    }
+                    if (span.SequenceEqual(YamlCodes.NegInf0) ||
+                        span.SequenceEqual(YamlCodes.NegInf1) ||
+                        span.SequenceEqual(YamlCodes.NegInf2))
+                    {
+                        value = double.NegativeInfinity;
                         return true;
                     }
                     break;

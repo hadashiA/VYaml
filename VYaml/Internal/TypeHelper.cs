@@ -1,3 +1,6 @@
+using System;
+using System.Runtime.CompilerServices;
+
 namespace VYaml.Internal
 {
     static class TypeHelper
