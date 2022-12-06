@@ -737,6 +737,7 @@ namespace VYaml.Parser
             }
         }
 
+        // TODO: Use Uri
         int ConsumeUriEscapes(bool directive)
         {
             var width = 0;

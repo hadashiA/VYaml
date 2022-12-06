@@ -79,6 +79,7 @@ public class VYamlSourceGenerator : ISourceGenerator
             codeWriter.AppendLine("#pragma warning disable CS0219 // Variable assigned but never used");
             codeWriter.AppendLine("#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.");
             codeWriter.AppendLine("#pragma warning disable CS8601 // Possible null reference assignment");
+            codeWriter.AppendLine("#pragma warning disable CS8602 // Possible null return");
             codeWriter.AppendLine("#pragma warning disable CS8604 // Possible null reference argument for parameter");
             codeWriter.AppendLine("#pragma warning disable CS8631 // The type cannot be used as type parameter in the generic type or method");
             codeWriter.AppendLine();
@@ -117,6 +118,14 @@ public class VYamlSourceGenerator : ISourceGenerator
             {
                 codeWriter.EndBlock();
             }
+
+            codeWriter.AppendLine("#pragma warning restore CS0162 // Unreachable code");
+            codeWriter.AppendLine("#pragma warning restore CS0219 // Variable assigned but never used");
+            codeWriter.AppendLine("#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.");
+            codeWriter.AppendLine("#pragma warning restore CS8601 // Possible null reference assignment");
+            codeWriter.AppendLine("#pragma warning restore CS8602 // Possible null return");
+            codeWriter.AppendLine("#pragma warning restore CS8604 // Possible null reference argument for parameter");
+            codeWriter.AppendLine("#pragma warning restore CS8631 // The type cannot be used as type parameter in the generic type or method");
 
             context.AddSource($"{fullType}.YamlFormatter.g.cs", codeWriter.ToString());
         }
@@ -159,10 +168,10 @@ public class VYamlSourceGenerator : ISourceGenerator
 
         foreach (var memberMeta in memberMetas)
         {
+            var byteArray = codeWriter.CreateEmbededByteArrayString(memberMeta.KeyNameUtf8Bytes);
             codeWriter.AppendLine("[Preserve]");
-            codeWriter.Append($"static readonly byte[] {memberMeta.Name}KeyUtf8Bytes = ");
-            codeWriter.ApeendByteArrayString(memberMeta.NameUtf8Bytes);
-            codeWriter.AppendLine(";");
+            codeWriter.AppendLine($"static readonly byte[] {memberMeta.Name}KeyUtf8Bytes = {byteArray}; // {memberMeta.KeyName}");
+            codeWriter.AppendLine();
         }
 
         codeWriter.AppendLine("[Preserve]");
@@ -171,6 +180,7 @@ public class VYamlSourceGenerator : ISourceGenerator
 
         using (codeWriter.BeginBlockScope("if (parser.IsNullScalar())"))
         {
+            codeWriter.AppendLine("parser.Read();");
             codeWriter.AppendLine("return default;");
         }
 
@@ -192,10 +202,11 @@ public class VYamlSourceGenerator : ISourceGenerator
             {
                 codeWriter.AppendLine("throw new YamlSerializerException(\"Deserialize supports only string key\");");
             }
+            codeWriter.AppendLine("parser.Read();");
             codeWriter.AppendLine();
             using (codeWriter.BeginBlockScope("switch (key.Length)"))
             {
-                var membersByNameLength = memberMetas.GroupBy(x => x.NameUtf8Bytes.Length);
+                var membersByNameLength = memberMetas.GroupBy(x => x.KeyNameUtf8Bytes.Length);
                 foreach (var group in membersByNameLength)
                 {
                     using (codeWriter.BeginIndentScope($"case {group.Key}:"))

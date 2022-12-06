@@ -5,6 +5,28 @@ namespace VYaml.Serialization
 {
     public class BuiltinResolver : IYamlFormatterResolver
     {
+        static class FormatterCache<T>
+        {
+            public static readonly IYamlFormatter<T>? Formatter;
+
+            static FormatterCache()
+            {
+                if (FormatterMap.TryGetValue(typeof(T), out var formatter))
+                {
+                    Formatter = (IYamlFormatter<T>)formatter;
+                    return;
+                }
+
+                if (CreateGenericFormatter(typeof(T)) is IYamlFormatter<T> f)
+                {
+                    Formatter = f;
+                    return;
+                }
+
+                Formatter = null;
+            }
+        }
+
         public static readonly BuiltinResolver Instance = new();
 
         static readonly Dictionary<Type, object> FormatterMap = new()
@@ -89,23 +111,128 @@ namespace VYaml.Serialization
             // { typeof(System.Numerics.Complex?), new StaticNullableFormatter<System.Numerics.Complex>(ComplexFormatter.Instance) },
         };
 
+        public static readonly Dictionary<Type, Type> KnownGenericTypes = new()
+        {
+            // { typeof(Tuple<>), typeof(TupleFormatter<>) },
+            // { typeof(ValueTuple<>), typeof(ValueTupleFormatter<>) },
+            // { typeof(Tuple<,>), typeof(TupleFormatter<,>) },
+            // { typeof(ValueTuple<,>), typeof(ValueTupleFormatter<,>) },
+            // { typeof(Tuple<,,>), typeof(TupleFormatter<,,>) },
+            // { typeof(ValueTuple<,,>), typeof(ValueTupleFormatter<,,>) },
+            // { typeof(Tuple<,,,>), typeof(TupleFormatter<,,,>) },
+            // { typeof(ValueTuple<,,,>), typeof(ValueTupleFormatter<,,,>) },
+            // { typeof(Tuple<,,,,>), typeof(TupleFormatter<,,,,>) },
+            // { typeof(ValueTuple<,,,,>), typeof(ValueTupleFormatter<,,,,>) },
+            // { typeof(Tuple<,,,,,>), typeof(TupleFormatter<,,,,,>) },
+            // { typeof(ValueTuple<,,,,,>), typeof(ValueTupleFormatter<,,,,,>) },
+            // { typeof(Tuple<,,,,,,>), typeof(TupleFormatter<,,,,,,>) },
+            // { typeof(ValueTuple<,,,,,,>), typeof(ValueTupleFormatter<,,,,,,>) },
+            // { typeof(Tuple<,,,,,,,>), typeof(TupleFormatter<,,,,,,,>) },
+            // { typeof(ValueTuple<,,,,,,,>), typeof(ValueTupleFormatter<,,,,,,,>) },
+            //
+            // { typeof(KeyValuePair<,>), typeof(KeyValuePairFormatter<,>) },
+            // { typeof(Lazy<>), typeof(LazyFormatter<>) },
+            { typeof(Nullable<>), typeof(NullableFormatter<>) },
+
+            // { typeof(ArraySegment<>), typeof(ArraySegmentFormatter<>) },
+            // { typeof(Memory<>), typeof(MemoryFormatter<>) },
+            // { typeof(ReadOnlyMemory<>), typeof(ReadOnlyMemoryFormatter<>) },
+            // { typeof(ReadOnlySequence<>), typeof(ReadOnlySequenceFormatter<>) },
+
+            { typeof(List<>), typeof(ListFormatter<>) },
+            // { typeof(Stack<>), typeof(StackFormatter<>) },
+            // { typeof(Queue<>), typeof(QueueFormatter<>) },
+            // { typeof(LinkedList<>), typeof(LinkedListFormatter<>) },
+            // { typeof(HashSet<>), typeof(HashSetFormatter<>) },
+            // { typeof(SortedSet<>), typeof(SortedSetFormatter<>) },
+
+            // { typeof(ObservableCollection<>), typeof(ObservableCollectionFormatter<>) },
+            // { typeof(Collection<>), typeof(CollectionFormatter<>) },
+            // { typeof(ConcurrentQueue<>), typeof(ConcurrentQueueFormatter<>) },
+            // { typeof(ConcurrentStack<>), typeof(ConcurrentStackFormatter<>) },
+            // { typeof(ConcurrentBag<>), typeof(ConcurrentBagFormatter<>) },
+            { typeof(Dictionary<,>), typeof(DictionaryFormatter<,>) },
+            // { typeof(SortedDictionary<,>), typeof(SortedDictionaryFormatter<,>) },
+            // { typeof(SortedList<,>), typeof(SortedListFormatter<,>) },
+            // { typeof(ConcurrentDictionary<,>), typeof(ConcurrentDictionaryFormatter<,>) },
+            // { typeof(ReadOnlyCollection<>), typeof(ReadOnlyCollectionFormatter<>) },
+            // { typeof(ReadOnlyObservableCollection<>), typeof(ReadOnlyObservableCollectionFormatter<>) },
+            // { typeof(BlockingCollection<>), typeof(BlockingCollectionFormatter<>) },
+
+            { typeof(IEnumerable<>), typeof(InterfaceEnumerableFormatter<>) },
+            { typeof(ICollection<>), typeof(InterfaceCollectionFormatter<>) },
+            { typeof(IReadOnlyCollection<>), typeof(InterfaceReadOnlyCollectionFormatter<>) },
+            { typeof(IList<>), typeof(InterfaceListFormatter<>) },
+            { typeof(IReadOnlyList<>), typeof(InterfaceReadOnlyListFormatter<>) },
+            { typeof(IDictionary<,>), typeof(InterfaceDictionaryFormatter<,>) },
+            { typeof(IReadOnlyDictionary<,>), typeof(InterfaceReadOnlyDictionaryFormatter<,>) },
+            // { typeof(ILookup<,>), typeof(InterfaceLookupFormatter<,>) },
+            // { typeof(IGrouping<,>), typeof(InterfaceGroupingFormatter<,>) },
+            // { typeof(ISet<>), typeof(InterfaceSetFormatter<>) },
+        };
+
         public IYamlFormatter<T>? GetFormatter<T>()
         {
             return FormatterCache<T>.Formatter;
         }
 
-        static class FormatterCache<T>
+        static object? CreateGenericFormatter(Type type)
         {
-            public static readonly IYamlFormatter<T>? Formatter;
+            Type? formatterType = null;
 
-            static FormatterCache()
+            if (type.IsArray)
             {
-                if (FormatterMap.TryGetValue(typeof(T), out var formatter))
+                if (type.IsSZArray)
                 {
-                    Formatter = (IYamlFormatter<T>)formatter;
+                    formatterType = typeof(ArrayFormatter<>).MakeGenericType(type.GetElementType()!);
                 }
-                Formatter = null;
+                else
+                {
+                    var rank = type.GetArrayRank();
+                    switch (rank)
+                    {
+                        // case 2:
+                        //     formatterType = typeof(TwoDimensionalArrayFormatter<>).MakeGenericType(type.GetElementType()!);
+                        //     break;
+                        // case 3:
+                        //     formatterType = typeof(ThreeDimensionalArrayFormatter<>).MakeGenericType(type.GetElementType()!);
+                        //     break;
+                        // case 4:
+                        //     formatterType = typeof(FourDimensionalArrayFormatter<>).MakeGenericType(type.GetElementType()!);
+                        //     break;
+                        // default:
+                        //     break; // not supported
+                    }
+                }
             }
+            else if (type.IsEnum)
+            {
+                formatterType = typeof(EnumAsStringFormatter<>).MakeGenericType(type);
+            }
+            else
+            {
+                formatterType = TryCreateGenericFormatterType(type, KnownGenericTypes);
+            }
+
+            if (formatterType != null)
+            {
+                return Activator.CreateInstance(formatterType);
+            }
+            return null;
+        }
+
+        static Type? TryCreateGenericFormatterType(Type type, IDictionary<Type, Type> knownTypes)
+        {
+            if (type.IsGenericType)
+            {
+                var genericDefinition = type.GetGenericTypeDefinition();
+
+                if (knownTypes.TryGetValue(genericDefinition, out var formatterType))
+                {
+                    return formatterType.MakeGenericType(type.GetGenericArguments());
+                }
+            }
+            return null;
         }
     }
 }

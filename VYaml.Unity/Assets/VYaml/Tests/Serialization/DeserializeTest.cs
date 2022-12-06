@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using VYaml.Internal;
 using VYaml.Serialization;
+using VYaml.Tests.TypeDeclarations;
 
 namespace VYaml.Tests.Serialization
 {
@@ -8,11 +9,24 @@ namespace VYaml.Tests.Serialization
     public class DeserializeTest
     {
         [Test]
-        public void Deserialize_dynamic()
+        public void Deserialize_NoMember()
         {
-            var bytes = StringEncoding.Utf8.GetBytes(SpecExamples.Ex2_27);
-            var result = YamlSerializer.Deserialize<dynamic>(bytes);
-            Assert.That(result, Is.Null);
+            var result = Deserialize<SimpleTypeZero>("{}");
+            Assert.That(result, Is.InstanceOf<SimpleTypeZero>());
+        }
+
+        [Test]
+        public void Deserialize_PrimitiveMembers()
+        {
+            var result = Deserialize<SimpleTypeOne>("{ one: 100 }");
+            Assert.That(result, Is.InstanceOf<SimpleTypeOne>());
+            Assert.That(result.One, Is.EqualTo(100));
+        }
+
+        static T Deserialize<T>(string yaml)
+        {
+            var bytes = StringEncoding.Utf8.GetBytes(yaml);
+            return YamlSerializer.Deserialize<T>(bytes);
         }
     }
 }

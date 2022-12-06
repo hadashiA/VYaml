@@ -34,45 +34,71 @@ namespace VYaml.Parser
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly bool GetScalarAsBool()
         {
-            if (currentScalar is { } scalar)
+            if (currentScalar is { } scalar && scalar.TryGetBool(out var value))
             {
-                scalar.TryGetBool(out var value);
                 return value;
             }
-            throw new YamlParserException(CurrentMark, $"Cannot detect scalar value : {CurrentEventType}");
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly short GetScalarAsInt16()
-        {
-            if (currentScalar is { } scalar)
-            {
-                scalar.TryGetInt16(out var value);
-                return value;
-            }
-            throw new YamlParserException(CurrentMark, $"Cannot detect scalar value : {CurrentEventType}");
+            throw new YamlParserException(CurrentMark, $"Cannot detect a scalar value as bool : {CurrentEventType} {currentScalar}");
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly int GetScalarAsInt32()
         {
-            if (currentScalar is { } scalar)
+            if (currentScalar is { } scalar && scalar.TryGetInt32(out var value))
             {
-                scalar.TryGetInt32(out var value);
                 return value;
             }
-            throw new YamlParserException(CurrentMark, $"Cannot detect scalar value : {CurrentEventType}");
+            throw new YamlParserException(CurrentMark, $"Cannot detect a scalar value as Int32: {CurrentEventType} {currentScalar}");
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly long GetScalarAsInt64()
         {
-            if (currentScalar is { } scalar)
+            if (currentScalar is { } scalar && scalar.TryGetInt64(out var value))
             {
-                scalar.TryGetInt64(out var value);
                 return value;
             }
-            throw new YamlParserException(CurrentMark, $"Cannot detect scalar value : {CurrentEventType}");
+            throw new YamlParserException(CurrentMark, $"Cannot detect a scalar value as Int64: {CurrentEventType} {currentScalar}");
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly uint GetScalarAsUInt32()
+        {
+            if (currentScalar is { } scalar && scalar.TryGetUInt32(out var value))
+            {
+                return value;
+            }
+            throw new YamlParserException(CurrentMark, $"Cannot detect a scalar value as UInt32 : {CurrentEventType} {currentScalar}");
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly ulong GetScalarAsUInt64()
+        {
+            if (currentScalar is { } scalar && scalar.TryGetUInt64(out var value))
+            {
+                return value;
+            }
+            throw new YamlParserException(CurrentMark, $"Cannot detect a scalar value as UInt64 : {CurrentEventType} ({currentScalar})");
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly float GetScalarAsFloat()
+        {
+            if (currentScalar is { } scalar && scalar.TryGetFloat(out var value))
+            {
+                return value;
+            }
+            throw new YamlParserException(CurrentMark, $"Cannot detect scalar value as float : {CurrentEventType} {currentScalar}");
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly double GetScalarAsDouble()
+        {
+            if (currentScalar is { } scalar && scalar.TryGetDouble(out var value))
+            {
+                return value;
+            }
+            throw new YamlParserException(CurrentMark, $"Cannot detect a scalar value as double : {CurrentEventType} {currentScalar}");
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -80,6 +106,15 @@ namespace VYaml.Parser
         {
             if (currentScalar is { } scalar)
                 return scalar.TryGetBool(out value);
+            value = default;
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly bool TryGetScalarAsInt32(out int value)
+        {
+            if (currentScalar is { } scalar)
+                return scalar.TryGetInt32(out value);
             value = default;
             return false;
         }
@@ -94,10 +129,10 @@ namespace VYaml.Parser
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly bool TryGetScalarAsInt32(out int value)
+        public readonly bool TryGetScalarAsFloat(out float value)
         {
             if (currentScalar is { } scalar)
-                return scalar.TryGetInt32(out value);
+                return scalar.TryGetFloat(out value);
             value = default;
             return false;
         }

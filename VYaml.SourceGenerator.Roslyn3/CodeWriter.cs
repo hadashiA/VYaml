@@ -43,7 +43,7 @@ public class CodeWriter
 
     public void Append(string value)
     {
-        buffer.Append(value);
+        buffer.AppendLine($"{new string(' ', indentLevel * 4)} {value}");
     }
 
     public void AppendLine(string? value = null)
@@ -58,20 +58,22 @@ public class CodeWriter
         }
     }
 
-    public void ApeendByteArrayString(byte[] bytes)
+    public string CreateEmbededByteArrayString(byte[] bytes)
     {
-        buffer.Append("{");
+        var result = new StringBuilder();
+        result.Append("{ ");
         var first = true;
         foreach (var x in bytes)
         {
             if (!first)
             {
-                buffer.Append(", ");
+                result.Append(", ");
             }
-            buffer.Append(x);
+            result.Append(x);
             first = false;
         }
-        buffer.AppendLine(" }");
+        result.Append(" }");
+        return result.ToString();
     }
 
     public override string ToString() => buffer.ToString();

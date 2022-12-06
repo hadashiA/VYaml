@@ -19,8 +19,11 @@ class MemberMeta
     public int Order { get; }
     public bool HasExplicitOrder { get; }
 
-    public byte[] NameUtf8Bytes => nameUtf8Bytes ??= System.Text.Encoding.UTF8.GetBytes(Name);
-    byte[]? nameUtf8Bytes;
+    public string KeyName => keyName ??= KeyNameHelper.ToCamelCase(Name);
+    public byte[] KeyNameUtf8Bytes => keyNameUtf8Bytes ??= System.Text.Encoding.UTF8.GetBytes(KeyName);
+
+    string? keyName;
+    byte[]? keyNameUtf8Bytes;
 
     public MemberMeta(ISymbol symbol, ReferenceSymbols references, int sequentialOrder)
     {

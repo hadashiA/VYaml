@@ -22,6 +22,7 @@ namespace VYaml.Serialization
         {
             if (parser.IsNullScalar())
             {
+                parser.Read();
                 return default;
             }
 
