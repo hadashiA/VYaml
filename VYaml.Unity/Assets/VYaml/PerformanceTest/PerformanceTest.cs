@@ -2,6 +2,7 @@ using System.IO;
 using System.Text;
 using NUnit.Framework;
 using Unity.PerformanceTesting;
+using YamlDotNet.Serialization.NamingConventions;
 
 namespace VYaml.PerformanceTest
 {
@@ -15,7 +16,46 @@ namespace VYaml.PerformanceTest
         public void SimpleParsing()
         {
             var yamlBytes = Encoding.UTF8.GetBytes(YAML);
-            var yamldotNetDeserializer = new YamlDotNet.Serialization.DeserializerBuilder().Build();
+
+            Measure.Method(() =>
+                {
+                    var parser = VYaml.Parser.YamlParser.FromBytes(yamlBytes);
+                    while (parser.Read())
+                    {
+                    }
+                })
+                .WarmupCount(5)
+                .IterationsPerMeasurement(100)
+                .MeasurementCount(20)
+                .GC()
+                .SampleGroup("VYaml.Parse")
+                .Run();
+
+            Measure.Method(() =>
+                {
+                    using var reader = new StringReader(YAML);
+                    var parser = new YamlDotNet.Core.Parser(reader);
+                    while (parser.MoveNext())
+                    {
+                    }
+                })
+                .WarmupCount(5)
+                .IterationsPerMeasurement(100)
+                .MeasurementCount(20)
+                .GC()
+                .SampleGroup("YamlDotNet.Parse")
+                .Run();
+        }
+
+        [Test]
+        [Performance]
+        public void DynamicDeserialize()
+        {
+            var yamlBytes = Encoding.UTF8.GetBytes(YAML);
+            var yamldotNetDeserializer = new YamlDotNet.Serialization.DeserializerBuilder()
+                .WithNamingConvention(CamelCaseNamingConvention.Instance)
+                .IgnoreUnmatchedProperties()
+                .Build();
 
             Measure.Method(() =>
                 {
@@ -46,7 +86,6 @@ namespace VYaml.PerformanceTest
                 .SampleGroup("YamlDotNet.Parser")
                 .Run();
 
-
             Measure.Method(() =>
                 {
                     VYaml.Serialization.YamlSerializer.Deserialize<dynamic>(yamlBytes);
@@ -68,7 +107,40 @@ namespace VYaml.PerformanceTest
                 .GC()
                 .SampleGroup("YamlDotNet.Deserialize<dynamic>")
                 .Run();
-
         }
+
+        [Test]
+        [Performance]
+        public void Deserialize()
+        {
+            var yamlBytes = Encoding.UTF8.GetBytes(YAML);
+            var yamldotNetDeserializer = new YamlDotNet.Serialization.DeserializerBuilder()
+                .WithNamingConvention(CamelCaseNamingConvention.Instance)
+                .IgnoreUnmatchedProperties()
+                .Build();
+
+            Measure.Method(() =>
+                {
+                    VYaml.Serialization.YamlSerializer.Deserialize<SampleEnvoy>(yamlBytes);
+                })
+                .WarmupCount(5)
+                .IterationsPerMeasurement(100)
+                .MeasurementCount(20)
+                .GC()
+                .SampleGroup("VYaml.Deserialize<T>")
+                .Run();
+
+            Measure.Method(() =>
+                {
+                    yamldotNetDeserializer.Deserialize<SampleEnvoy>(YAML);
+                })
+                .WarmupCount(5)
+                .IterationsPerMeasurement(100)
+                .MeasurementCount(20)
+                .GC()
+                .SampleGroup("YamlDotNet.Deserialize<T>")
+                .Run();
+        }
+
     }
 }

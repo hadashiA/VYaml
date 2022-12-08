@@ -191,6 +191,13 @@ public class VYamlSourceGenerator : ISourceGenerator
             codeWriter.AppendLine("return default;");
         }
 
+        if (memberMetas.Length <= 0)
+        {
+            codeWriter.AppendLine("parser.SkipCurrentNode();");
+            codeWriter.AppendLine($"return new {typeMeta.TypeName}();");
+            return;
+        }
+
         codeWriter.AppendLine("parser.ReadWithVerify(ParseEventType.MappingStart);");
         codeWriter.AppendLine();
         foreach (var memberMeta in memberMetas)
@@ -227,6 +234,11 @@ public class VYamlSourceGenerator : ISourceGenerator
                                     $"__{memberMeta.Name}__ = context.DeserializeWithAlias<{memberMeta.FullTypeName}>(ref parser);");
                             }
                             branching = "else if";
+                        }
+                        using (codeWriter.BeginBlockScope("else"))
+                        {
+                            codeWriter.AppendLine("parser.Read(); // skip key");
+                            codeWriter.AppendLine("parser.SkipCurrentNode(); // skip value");
                         }
                         codeWriter.AppendLine("continue;");
                     }

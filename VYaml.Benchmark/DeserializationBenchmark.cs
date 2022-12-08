@@ -22,6 +22,7 @@ public class DeserializationBenchmark
         yamlString = Encoding.UTF8.GetString(yamlBytes);
         yamlDotNetDeserializer = new YamlDotNet.Serialization.DeserializerBuilder()
             .WithNamingConvention(UnderscoredNamingConvention.Instance)
+            .IgnoreUnmatchedProperties()
             .Build();
     }
 

@@ -6,6 +6,7 @@ namespace VYaml.Benchmark.Examples;
 public partial class TypedConfig
 {
     [YamlMember("@type")]
+    [YamlDotNet.Serialization.YamlMember(Alias = "@type")]
     public string Type { get; init; }
 
     [YamlMember("stat_prefix")]
@@ -22,24 +23,24 @@ public partial class TypedConfig
 public partial class RouteConfig
 {
     public string Name { get; init; }
-    //
-    // [YamlMember("virtual_hosts")]
-    // public IReadOnlyList<VirtualHost> VirtualHosts { get; init; }
+
+    [YamlMember("virtual_hosts")]
+    public List<VirtualHost> VirtualHosts { get; init; }
 }
 
 [YamlObject]
-public partial class Route
+public partial class Routes
 {
-    public IReadOnlyDictionary<string, string> Match { get; init; }
-    public IReadOnlyDictionary<string, string> Routes { get; init; }
+    public Dictionary<string, string> Match { get; init; }
+    public Dictionary<string, string> Route { get; init; }
 }
 
 [YamlObject]
 public partial class VirtualHost
 {
     public string Name { get; init; }
-    public IReadOnlyList<string> Domains { get; init; }
-    public IReadOnlyList<Route> Routes { get; init; }
+    public List<string> Domains { get; init; }
+    public List<Routes> Routes { get; init; }
 }
 
 [YamlObject]
@@ -61,7 +62,6 @@ public partial class Address
 [YamlObject]
 public partial class Admin
 {
-    [YamlMember("address")]
     public Address Address { get; init; }
 }
 
@@ -72,13 +72,13 @@ public partial class Listener
     public Address Address { get; init; }
 
     [YamlMember("filter_chains")]
-    public IReadOnlyList<FilterChain> FilterChains { get; init; }
+    public List<FilterChain> FilterChains { get; init; }
 }
 
 [YamlObject]
 public partial class FilterChain
 {
-    public IReadOnlyList<Filter> Filters { get; init; }
+    public List<Filter> Filters { get; init; }
 }
 
 [YamlObject]
@@ -89,8 +89,8 @@ public partial class Filter
     [YamlMember("typed_config")]
     public TypedConfig TypedConfig { get; init; }
 
-    // [YamlMember("http_filters")]
-    // public IReadOnlyList<Filter> HttpFilters { get; init; }
+    [YamlMember("http_filters")]
+    public List<HttpFilter> HttpFilters { get; init; }
 }
 
 [YamlObject]
@@ -98,13 +98,14 @@ public partial class HttpFilter
 {
     public string Name { get; init; }
 
+    [YamlMember("typed_config")]
+    public TypedConfig TypedConfig { get; init; }
 }
 
 [YamlObject]
 public partial class StaticResources
 {
-    [YamlMember("listeners")]
-    public IReadOnlyList<Listener> Listeners { get; init; }
+    public List<Listener> Listeners { get; init; }
 }
 
 [YamlObject]

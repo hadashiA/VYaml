@@ -41,7 +41,6 @@ namespace VYaml.Tests.Parser
             parser.SkipCurrentNode();
             Assert.That(parser.GetScalarAsString(), Is.EqualTo("e"));
 
-
             parser.Read();
             parser.SkipCurrentNode();
             Assert.That(parser.GetScalarAsString(), Is.EqualTo("f"));
