@@ -110,6 +110,7 @@ public class VYamlSourceGenerator : ISourceGenerator
 
             using (codeWriter.BeginBlockScope($"partial {typeDecralationKeyword} {typeMeta.TypeName}"))
             {
+                // EmitCCtor(typeMeta, codeWriter, in context);
                 EmitRegisterMethod(typeMeta, codeWriter, in context);
                 EmitFormatter(typeMeta, codeWriter, in context);
             }
@@ -136,6 +137,15 @@ public class VYamlSourceGenerator : ISourceGenerator
                 Location.None,
                 ex.ToString().Replace(Environment.NewLine, " ")));
         }
+    }
+
+    static void EmitCCtor(
+        TypeMeta typeMeta,
+        CodeWriter codeWriter,
+        in GeneratorExecutionContext context)
+    {
+        using var _ = codeWriter.BeginBlockScope($"static {typeMeta.TypeName}()");
+        codeWriter.AppendLine($"__RegisterVYamlFormatter();");
     }
 
     static void EmitRegisterMethod(

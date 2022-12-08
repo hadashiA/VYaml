@@ -17,14 +17,13 @@ static class Program
             typeof(DeserializationBenchmark),
         });
         switcher.Run();
-        //
+
         // var path = Path.Combine(Directory.GetCurrentDirectory(), "Examples", "sample_envoy.yaml");
         // var yamlBytes = File.ReadAllBytes(path);
-        // // yamlString = Encoding.UTF8.GetString(yamlBytes);
-        // // yamlDotNetDeserializer = new YamlDotNet.Serialization.DeserializerBuilder()
-        // //     .WithNamingConvention(UnderscoredNamingConvention.Instance)
-        // //     .Build();
-        // var result = YamlSerializer.Deserialize<SampleEnvoy>(yamlBytes);
+        // for (var i = 0; i < 100; i++)
+        // {
+        //     var result = YamlSerializer.Deserialize<SampleEnvoy>(yamlBytes);
+        // }
 
         return 0;
     }

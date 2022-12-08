@@ -136,10 +136,9 @@ namespace VYaml.Parser
                 if (!needMore)
                 {
                     StaleSimpleKeyCandidates();
-                    var span = simpleKeyCandidates.AsSpan();
-                    for (var i = 0; i < span.Length; i++)
+                    for (var i = 0; i < simpleKeyCandidates.Length; i++)
                     {
-                        ref var simpleKeyState = ref span[i];
+                        ref var simpleKeyState = ref simpleKeyCandidates[i];
                         if (simpleKeyState.Possible && simpleKeyState.TokenNumber == tokensParsed)
                         {
                             needMore = true;
@@ -991,7 +990,7 @@ namespace VYaml.Parser
             var isLeadingBlanks = false;
             var scalar = scalarPool.Rent();
 
-            Span<byte> whitespaceBuffer = stackalloc byte[128];
+            Span<byte> whitespaceBuffer = stackalloc byte[32];
             var whitespaceLength = 0;
 
             // Eat the left quote
@@ -1230,7 +1229,7 @@ namespace VYaml.Parser
             var isLeadingBlanks = false;
             var scalar = scalarPool.Rent();
 
-            Span<byte> whitespaceBuffer = stackalloc byte[128];
+            Span<byte> whitespaceBuffer = stackalloc byte[32];
             var whitespaceLength = 0;
 
             while (true)

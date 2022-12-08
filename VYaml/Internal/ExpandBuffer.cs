@@ -30,13 +30,7 @@ namespace VYaml.Internal
             get => buffer.Length;
         }
 
-        public int Length
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get;
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            set;
-        }
+        public int Length { get; private set; }
 
         public void Dispose()
         {
