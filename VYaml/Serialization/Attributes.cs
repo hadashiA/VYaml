@@ -10,6 +10,12 @@ namespace VYaml.Serialization
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
     public sealed class YamlMemberAttribute : Attribute
     {
+        public string? Name { get; }
+
+        public YamlMemberAttribute(string? name = null)
+        {
+            Name = name;
+        }
     }
 
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false, Inherited = false)]

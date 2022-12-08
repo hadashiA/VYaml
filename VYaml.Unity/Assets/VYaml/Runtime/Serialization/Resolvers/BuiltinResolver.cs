@@ -151,7 +151,7 @@ namespace VYaml.Serialization
             // { typeof(ConcurrentQueue<>), typeof(ConcurrentQueueFormatter<>) },
             // { typeof(ConcurrentStack<>), typeof(ConcurrentStackFormatter<>) },
             // { typeof(ConcurrentBag<>), typeof(ConcurrentBagFormatter<>) },
-            // { typeof(Dictionary<,>), typeof(DictionaryFormatter<,>) },
+            { typeof(Dictionary<,>), typeof(DictionaryFormatter<,>) },
             // { typeof(SortedDictionary<,>), typeof(SortedDictionaryFormatter<,>) },
             // { typeof(SortedList<,>), typeof(SortedListFormatter<,>) },
             // { typeof(ConcurrentDictionary<,>), typeof(ConcurrentDictionaryFormatter<,>) },
@@ -159,13 +159,13 @@ namespace VYaml.Serialization
             // { typeof(ReadOnlyObservableCollection<>), typeof(ReadOnlyObservableCollectionFormatter<>) },
             // { typeof(BlockingCollection<>), typeof(BlockingCollectionFormatter<>) },
 
-            // { typeof(IEnumerable<>), typeof(InterfaceEnumerableFormatter<>) },
-            // { typeof(ICollection<>), typeof(InterfaceCollectionFormatter<>) },
-            // { typeof(IReadOnlyCollection<>), typeof(InterfaceReadOnlyCollectionFormatter<>) },
-            // { typeof(IList<>), typeof(InterfaceListFormatter<>) },
-            // { typeof(IReadOnlyList<>), typeof(InterfaceReadOnlyListFormatter<>) },
-            // { typeof(IDictionary<,>), typeof(InterfaceDictionaryFormatter<,>) },
-            // { typeof(IReadOnlyDictionary<,>), typeof(InterfaceReadOnlyDictionaryFormatter<,>) },
+            { typeof(IEnumerable<>), typeof(InterfaceEnumerableFormatter<>) },
+            { typeof(ICollection<>), typeof(InterfaceCollectionFormatter<>) },
+            { typeof(IReadOnlyCollection<>), typeof(InterfaceReadOnlyCollectionFormatter<>) },
+            { typeof(IList<>), typeof(InterfaceListFormatter<>) },
+            { typeof(IReadOnlyList<>), typeof(InterfaceReadOnlyListFormatter<>) },
+            { typeof(IDictionary<,>), typeof(InterfaceDictionaryFormatter<,>) },
+            { typeof(IReadOnlyDictionary<,>), typeof(InterfaceReadOnlyDictionaryFormatter<,>) },
             // { typeof(ILookup<,>), typeof(InterfaceLookupFormatter<,>) },
             // { typeof(IGrouping<,>), typeof(InterfaceGroupingFormatter<,>) },
             // { typeof(ISet<>), typeof(InterfaceSetFormatter<>) },
@@ -232,7 +232,6 @@ namespace VYaml.Serialization
                     return formatterType.MakeGenericType(type.GetGenericArguments());
                 }
             }
-
             return null;
         }
     }

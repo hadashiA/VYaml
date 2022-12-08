@@ -262,6 +262,54 @@ namespace VYaml.Parser
             }
         }
 
+        public void SkipCurrentNode()
+        {
+            switch (CurrentEventType)
+            {
+                case ParseEventType.Alias:
+                case ParseEventType.Scalar:
+                    Read();
+                    break;
+
+                case ParseEventType.SequenceStart:
+                {
+                    var depth = 1;
+                    while (Read())
+                    {
+                        switch (CurrentEventType)
+                        {
+                            case ParseEventType.SequenceStart:
+                                ++depth;
+                                break;
+                            case ParseEventType.SequenceEnd when --depth <= 0:
+                                Read();
+                                return;
+                        }
+                    }
+                    break;
+                }
+                case ParseEventType.MappingStart:
+                {
+                    var depth = 1;
+                    while (Read())
+                    {
+                        switch (CurrentEventType)
+                        {
+                            case ParseEventType.MappingStart:
+                                ++depth;
+                                break;
+                            case ParseEventType.MappingEnd when --depth <= 0:
+                                Read();
+                                return;
+                        }
+                    }
+                    break;
+                }
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+
         void ParseStreamStart()
         {
             if (CurrentTokenType == TokenType.None)

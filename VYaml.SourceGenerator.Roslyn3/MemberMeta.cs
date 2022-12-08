@@ -30,7 +30,15 @@ class MemberMeta
         Symbol = symbol;
         Name = symbol.Name;
         Order = sequentialOrder;
-        // var memberAttribute = symbol.GetAttribute(references.YamlMemberAttribute);
+
+        var memberAttribute = symbol.GetAttribute(references.YamlMemberAttribute);
+        if (memberAttribute != null)
+        {
+            if (memberAttribute.ConstructorArguments.Length > 0)
+            {
+                keyName = (string?)memberAttribute.ConstructorArguments[0].Value;
+            }
+        }
 
         if (symbol is IFieldSymbol f)
         {

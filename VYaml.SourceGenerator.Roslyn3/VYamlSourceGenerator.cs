@@ -153,8 +153,12 @@ public class VYamlSourceGenerator : ISourceGenerator
         CodeWriter codeWriter,
         in GeneratorExecutionContext context)
     {
+        var returnType = typeMeta.Symbol.IsValueType
+            ? typeMeta.FullTypeName
+            : $"{typeMeta.FullTypeName}?";
+
         codeWriter.AppendLine("[Preserve]");
-        using var _ = codeWriter.BeginBlockScope($"public class {typeMeta.TypeName}GeneratedFormatter : IYamlFormatter<{typeMeta.TypeName}>");
+        using var _ = codeWriter.BeginBlockScope($"public class {typeMeta.TypeName}GeneratedFormatter : IYamlFormatter<{returnType}>");
 
         EmitDeserializeMethod(typeMeta, codeWriter, in context);
     }
@@ -168,15 +172,18 @@ public class VYamlSourceGenerator : ISourceGenerator
 
         foreach (var memberMeta in memberMetas)
         {
-            var byteArray = codeWriter.CreateEmbededByteArrayString(memberMeta.KeyNameUtf8Bytes);
-            codeWriter.AppendLine("[Preserve]");
-            codeWriter.AppendLine($"static readonly byte[] {memberMeta.Name}KeyUtf8Bytes = {byteArray}; // {memberMeta.KeyName}");
+            codeWriter.Append($"static readonly byte[] {memberMeta.Name}KeyUtf8Bytes = ");
+            codeWriter.AppendByteArrayString(memberMeta.KeyNameUtf8Bytes);
+            codeWriter.AppendLine($"; // {memberMeta.KeyName}", false);
             codeWriter.AppendLine();
         }
 
+        var returnType = typeMeta.Symbol.IsValueType
+            ? typeMeta.FullTypeName
+            : $"{typeMeta.FullTypeName}?";
         codeWriter.AppendLine("[Preserve]");
         using var methodScope = codeWriter.BeginBlockScope(
-            $"public {typeMeta.FullTypeName} Deserialize(ref YamlParser parser, YamlDeserializationContext context)");
+            $"public {returnType} Deserialize(ref YamlParser parser, YamlDeserializationContext context)");
 
         using (codeWriter.BeginBlockScope("if (parser.IsNullScalar())"))
         {
@@ -195,14 +202,13 @@ public class VYamlSourceGenerator : ISourceGenerator
         {
             using (codeWriter.BeginBlockScope("if (parser.CurrentEventType != ParseEventType.Scalar)"))
             {
-                codeWriter.AppendLine("throw new YamlSerializerException(\"Deserialize supports only string key\");");
+                codeWriter.AppendLine("throw new YamlSerializerException(parser.CurrentMark, \"Custom type deserialization supports only string key\");");
             }
             codeWriter.AppendLine();
             using (codeWriter.BeginBlockScope("if (!parser.TryGetScalarAsSpan(out var key))"))
             {
-                codeWriter.AppendLine("throw new YamlSerializerException(\"Deserialize supports only string key\");");
+                codeWriter.AppendLine("throw new YamlSerializerException(parser.CurrentMark, \"Custom type deserialization supports only string key\");");
             }
-            codeWriter.AppendLine("parser.Read();");
             codeWriter.AppendLine();
             using (codeWriter.BeginBlockScope("switch (key.Length)"))
             {
@@ -211,13 +217,16 @@ public class VYamlSourceGenerator : ISourceGenerator
                 {
                     using (codeWriter.BeginIndentScope($"case {group.Key}:"))
                     {
+                        var branching = "if";
                         foreach (var memberMeta in group)
                         {
-                            using (codeWriter.BeginBlockScope($"if (key.SequenceEqual({memberMeta.Name}KeyUtf8Bytes))"))
+                            using (codeWriter.BeginBlockScope($"{branching} (key.SequenceEqual({memberMeta.Name}KeyUtf8Bytes))"))
                             {
+                                codeWriter.AppendLine("parser.Read(); // skip key");
                                 codeWriter.AppendLine(
                                     $"__{memberMeta.Name}__ = context.DeserializeWithAlias<{memberMeta.FullTypeName}>(ref parser);");
                             }
+                            branching = "else if";
                         }
                         codeWriter.AppendLine("continue;");
                     }
@@ -225,7 +234,8 @@ public class VYamlSourceGenerator : ISourceGenerator
 
                 using (codeWriter.BeginIndentScope("default:"))
                 {
-                    codeWriter.AppendLine("parser.Read();");
+                    codeWriter.AppendLine("parser.Read(); // skip key");
+                    codeWriter.AppendLine("parser.SkipCurrentNode(); // skip value");
                     codeWriter.AppendLine("continue;");
                 }
             }

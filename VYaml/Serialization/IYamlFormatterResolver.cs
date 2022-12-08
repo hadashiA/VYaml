@@ -44,5 +44,4 @@ namespace VYaml.Serialization
             throw new YamlSerializerException(t.FullName + $"{t} is not registered in resolver: {resolver.GetType()}");
         }
     }
-
 }

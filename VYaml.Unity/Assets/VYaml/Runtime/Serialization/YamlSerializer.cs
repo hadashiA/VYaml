@@ -9,6 +9,10 @@ namespace VYaml.Serialization
         public YamlSerializerException(string message) : base(message)
         {
         }
+
+        public YamlSerializerException(Marker mark, string message) : base($"{message} at {mark}")
+        {
+        }
     }
 
     public static class YamlSerializer

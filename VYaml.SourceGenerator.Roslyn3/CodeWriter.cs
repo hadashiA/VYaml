@@ -41,39 +41,48 @@ public class CodeWriter
     readonly StringBuilder buffer = new();
     int indentLevel;
 
-    public void Append(string value)
+    public void Append(string value, bool indent = true)
     {
-        buffer.AppendLine($"{new string(' ', indentLevel * 4)} {value}");
+        if (indent)
+        {
+            buffer.Append($"{new string(' ', indentLevel * 4)} {value}");
+        }
+        else
+        {
+            buffer.Append(value);
+        }
     }
 
-    public void AppendLine(string? value = null)
+    public void AppendLine(string? value = null, bool indent = true)
     {
         if (string.IsNullOrEmpty(value))
         {
             buffer.AppendLine();
         }
-        else
+        else if (indent)
         {
             buffer.AppendLine($"{new string(' ', indentLevel * 4)} {value}");
         }
+        else
+        {
+            buffer.AppendLine(value);
+        }
     }
 
-    public string CreateEmbededByteArrayString(byte[] bytes)
+    public void AppendByteArrayString(byte[] bytes)
     {
-        var result = new StringBuilder();
-        result.Append("{ ");
+        buffer.Append("{ ");
         var first = true;
         foreach (var x in bytes)
         {
             if (!first)
             {
-                result.Append(", ");
+                buffer.Append(", ");
             }
-            result.Append(x);
+            buffer.Append(x);
             first = false;
         }
-        result.Append(" }");
-        return result.ToString();
+        buffer.Append(" }");
     }
 
     public override string ToString() => buffer.ToString();
