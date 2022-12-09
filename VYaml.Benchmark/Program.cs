@@ -1,5 +1,6 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
+using System.Text.Json;
 using BenchmarkDotNet.Running;
 using VYaml.Benchmark.Examples;
 using VYaml.Serialization;
@@ -15,6 +16,7 @@ static class Program
             typeof(SimpleParsingBenchmark),
             typeof(DynamicDeserializationBenchmark),
             typeof(DeserializationBenchmark),
+            typeof(JsonDeserializationBenchmark),
         });
         switcher.Run();
 
@@ -24,6 +26,13 @@ static class Program
         // {
         //     var result = YamlSerializer.Deserialize<SampleEnvoy>(yamlBytes);
         // }
+
+        // var path = Path.Combine(Directory.GetCurrentDirectory(), "Examples", "sample_envoy.json");
+        // var bytes = File.ReadAllBytes(path);
+        // var json = JsonSerializer.Deserialize<SampleEnvoy>(bytes, new JsonSerializerOptions
+        // {
+        //     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        // });
 
         return 0;
     }

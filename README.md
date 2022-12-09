@@ -2,35 +2,37 @@
 
 Extra fast, GC free YAML parser for C# and Unity.
 
-The reason VYaml is fast is it handles utf8 byte sequences directly and uses a new API in C# ( `System.Buffers.*`, etc).
+The reason VYaml is fast is it handles utf8 byte sequences directly and uses new APIs in C# ( `System.Buffers.*`, etc).
 In parsing, scalar values are pooled and no allocation occurs until `Scalar.ToString()`. This works with very low overhead in environments such as Unity.
 
-Performance comparison of simple parsing with YamlDotNet, about 4x faster in .NET6〜, more than 20x faster in Unity IL2CPP environment.
-
-Features:
-- Unity supported 
-    - Only 2022.1 and higher
-- YAML 1.2 almost fully supported parser
-- Deserialization
-    - NOTE: Currently, simple dynamic object type deserialization only.
 
 
-## Roadmap
+## Currently supported Features:
 
-- [ ] Deserialization
-    - [x] Deserialize to `dynamic`
-    - [ ] Deserialize to user decralation types
-    - [ ] Some options
-- [ ] Serialization
-    - [ ] YAML Emitter / Writer
-    - [ ] Serialize from user decralation types
-- [ ] Provide `YAMLDocument` like model. It with full handling of yaml tags and other metadata.
+- Parser 
+    - [YAML 1.2 almost fully supported](##)
+- Deserialize
+- Mainly focused on Unity
+    - Only 2022.1 and higher (netstandard2.1 compatible)
 
-## Parsing (Low-level API)
+## Most recent roadmap
+
+- NuGet package
+- Deserialize
+    - [ ] Restrict max depth
+    - [ ] Interface-typed and abstract class-typed objects
+    - [ ] Custom formatter
+    - [ ] Specific constructor
+- [ ] Yaml Writer
+- [ ] Serialize
+
+## Basic Usage
+
+## Deserialize
 
 wip
 
-## Deserialization
+## Parsing (Low-level API)
 
 wip
 
