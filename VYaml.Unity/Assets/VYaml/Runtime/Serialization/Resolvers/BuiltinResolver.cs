@@ -17,7 +17,7 @@ namespace VYaml.Serialization
                     return;
                 }
 
-                if (CreateGenericFormatter(typeof(T)) is IYamlFormatter<T> f)
+                if (TryCreateGenericFormatter(typeof(T)) is IYamlFormatter<T> f)
                 {
                     Formatter = f;
                     return;
@@ -176,7 +176,7 @@ namespace VYaml.Serialization
             return FormatterCache<T>.Formatter;
         }
 
-        static object? CreateGenericFormatter(Type type)
+        static object? TryCreateGenericFormatter(Type type)
         {
             Type? formatterType = null;
 
