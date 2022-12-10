@@ -180,10 +180,10 @@ namespace VYaml.Parser
                     case (byte)'%':
                         ConsumeDirective();
                         return;
-                    case (byte)'-' when reader.IsNext(YamlCodes.StreamStart) && EmptyNext(YamlCodes.StreamStart.Length):
+                    case (byte)'-' when reader.IsNext(YamlCodes.StreamStart) && IsEmptyNext(YamlCodes.StreamStart.Length):
                         ConsumeDocumentIndicator(TokenType.DocumentStart);
                         return;
-                    case (byte)'.' when reader.IsNext(YamlCodes.DocStart) && EmptyNext(YamlCodes.DocStart.Length):
+                    case (byte)'.' when reader.IsNext(YamlCodes.DocStart) && IsEmptyNext(YamlCodes.DocStart.Length):
                         ConsumeDocumentIndicator(TokenType.DocumentEnd);
                         return;
                 }
@@ -1236,10 +1236,14 @@ namespace VYaml.Parser
             {
                 // Check for a document indicator
                 if (mark.Col == 0 &&
-                    (reader.IsNext(YamlCodes.StreamStart) || reader.IsNext(YamlCodes.DocStart)) &&
-                    EmptyNext(3))
+                    (currentCode == YamlCodes.StreamStart[0] ||
+                     currentCode == YamlCodes.DocStart[0]))
                 {
-                    break;
+                    if ((reader.IsNext(YamlCodes.StreamStart) || reader.IsNext(YamlCodes.DocStart)) &&
+                        IsEmptyNext(3))
+                    {
+                        break;
+                    }
                 }
 
                 if (currentCode == YamlCodes.Comment)
@@ -1525,8 +1529,7 @@ namespace VYaml.Parser
             simpleKeyCandidates.Pop();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        readonly bool EmptyNext(int offset)
+        readonly bool IsEmptyNext(int offset)
         {
             if (reader.End || reader.Remaining <= offset)
                 return true;

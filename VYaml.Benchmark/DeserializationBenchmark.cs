@@ -9,6 +9,8 @@ namespace VYaml.Benchmark;
 [MemoryDiagnoser]
 public class DeserializationBenchmark
 {
+    const int N = 100;
+
     byte[]? yamlBytes;
     string? yamlString;
 

@@ -1,3 +1,4 @@
+// #if NET7_0_OR_GREATER
 // using Microsoft.CodeAnalysis;
 // using System;
 // using System.Collections.Generic;
@@ -7,29 +8,21 @@
 // using System.Security.Cryptography.X509Certificates;
 // using System.Text;
 // using System.Threading.Tasks;
+// using Microsoft.CodeAnalysis.CSharp;
+// using Microsoft.CodeAnalysis.Diagnostics;
+// using NUnit.Framework;
+// using VYaml.SourceGenerator;
 //
-// namespace VYaml.Tests;
-//
-// public class GeneratorDiagnosticsTest
+// namespace VYaml.Tests
 // {
-//     void Compile(int id, string code, bool allowMultipleError = false)
+//     [TestFixture]
+//     public class GeneratorDiagnosticsTest
 //     {
-//         var diagnostics = CSharpGeneratorRunner.RunGenerator(code);
-//         if (!allowMultipleError)
+//         [Test]
+//         public void MEMPACK001_MuestBePartial()
 //         {
-//             diagnostics.Length.Should().Be(1);
-//             diagnostics[0].Id.Should().Be("MEMPACK" + id.ToString("000"));
-//         }
-//         else
-//         {
-//             diagnostics.Select(x => x.Id).Should().Contain("MEMPACK" + id.ToString("000"));
-//         }
-//     }
 //
-//     [Fact]
-//     public void MEMPACK001_MuestBePartial()
-//     {
-//         Compile(1, """
+//             Compile(1, """
 // using MemoryPack;
 //
 // [MemoryPackable]
@@ -37,12 +30,12 @@
 // {
 // }
 // """);
-//     }
+//         }
 //
-//     [Fact]
-//     public void MEMPACK002_NestedNotAllow()
-//     {
-//         Compile(2, """
+//         [Fact]
+//         public void MEMPACK002_NestedNotAllow()
+//         {
+//             Compile(2, """
 // using MemoryPack;
 //
 // public partial class Hoge
@@ -53,12 +46,12 @@
 //     }
 // }
 // """);
-//     }
+//         }
 //
-//     [Fact]
-//     public void MEMPACK003_AbstractMustUnion()
-//     {
-//         Compile(3, """
+//         [Fact]
+//         public void MEMPACK003_AbstractMustUnion()
+//         {
+//             Compile(3, """
 // using MemoryPack;
 //
 // [MemoryPackable]
@@ -67,7 +60,7 @@
 // }
 // """);
 //
-//         Compile(3, """
+//             Compile(3, """
 // using MemoryPack;
 //
 // [MemoryPackable]
@@ -75,12 +68,12 @@
 // {
 // }
 // """);
-//     }
+//         }
 //
-//     [Fact]
-//     public void MEMPACK004_MultipleCtorWithoutAttribute()
-//     {
-//         Compile(4, """
+//         [Fact]
+//         public void MEMPACK004_MultipleCtorWithoutAttribute()
+//         {
+//             Compile(4, """
 // using MemoryPack;
 //
 // [MemoryPackable]
@@ -95,12 +88,12 @@
 //     }
 // }
 // """);
-//     }
+//         }
 //
-//     [Fact]
-//     public void MEMPACK005_MultipleCtorAttribute()
-//     {
-//         Compile(5, """
+//         [Fact]
+//         public void MEMPACK005_MultipleCtorAttribute()
+//         {
+//             Compile(5, """
 // using MemoryPack;
 //
 // [MemoryPackable]
@@ -117,12 +110,12 @@
 //     }
 // }
 // """);
-//     }
+//         }
 //
-//     [Fact]
-//     public void MEMPACK006_ConstructorHasNoMatchedParameter()
-//     {
-//         Compile(6, """
+//         [Fact]
+//         public void MEMPACK006_ConstructorHasNoMatchedParameter()
+//         {
+//             Compile(6, """
 // using MemoryPack;
 //
 // [MemoryPackable]
@@ -137,12 +130,12 @@
 //     }
 // }
 // """);
-//     }
+//         }
 //
-//     [Fact]
-//     public void MEMPACK007_OnMethodHasParameter()
-//     {
-//         Compile(7, """
+//         [Fact]
+//         public void MEMPACK007_OnMethodHasParameter()
+//         {
+//             Compile(7, """
 // using MemoryPack;
 //
 // [MemoryPackable]
@@ -154,12 +147,12 @@
 //     }
 // }
 // """);
-//     }
+//         }
 //
-//     [Fact]
-//     public void MEMPACK008_OnMethodInUnamannagedType()
-//     {
-//         Compile(8, """
+//         [Fact]
+//         public void MEMPACK008_OnMethodInUnamannagedType()
+//         {
+//             Compile(8, """
 // using MemoryPack;
 //
 // [MemoryPackable]
@@ -171,12 +164,12 @@
 //     }
 // }
 // """);
-//     }
+//         }
 //
-//     [Fact]
-//     public void MEMPACK009_OverrideMemberCantAddAnnotation()
-//     {
-//         Compile(9, """
+//         [Fact]
+//         public void MEMPACK009_OverrideMemberCantAddAnnotation()
+//         {
+//             Compile(9, """
 // using MemoryPack;
 //
 // public abstract class MyClass
@@ -192,7 +185,7 @@
 // }
 // """);
 //
-//         Compile(9, """
+//             Compile(9, """
 // using MemoryPack;
 //
 // public abstract class MyClass
@@ -208,12 +201,12 @@
 // }
 //
 // """);
-//     }
+//         }
 //
-//     [Fact]
-//     public void MEMPACK010_016_Union()
-//     {
-//         Compile(10, """
+//         [Fact]
+//         public void MEMPACK010_016_Union()
+//         {
+//             Compile(10, """
 // using MemoryPack;
 //
 // [MemoryPackable]
@@ -223,7 +216,7 @@
 // }
 // """, allowMultipleError: true);
 //
-//         Compile(11, """
+//             Compile(11, """
 // using MemoryPack;
 //
 // [MemoryPackable]
@@ -233,7 +226,7 @@
 // }
 // """, allowMultipleError: true);
 //
-//         Compile(12, """
+//             Compile(12, """
 // using MemoryPack;
 //
 // [MemoryPackable]
@@ -254,7 +247,7 @@
 // }
 // """, allowMultipleError: true);
 //
-//         Compile(13, """
+//             Compile(13, """
 // using MemoryPack;
 //
 // [MemoryPackable]
@@ -275,7 +268,7 @@
 // }
 // """, allowMultipleError: true);
 //
-//         Compile(14, """
+//             Compile(14, """
 // using MemoryPack;
 //
 // [MemoryPackable]
@@ -296,7 +289,7 @@
 // }
 // """, allowMultipleError: true);
 //
-//         Compile(15, """
+//             Compile(15, """
 // using MemoryPack;
 //
 // [MemoryPackable]
@@ -317,7 +310,7 @@
 // }
 // """, allowMultipleError: true);
 //
-//         Compile(16, """
+//             Compile(16, """
 // using MemoryPack;
 //
 // [MemoryPackable]
@@ -338,14 +331,14 @@
 // }
 // """, allowMultipleError: true);
 //
-//     }
+//         }
 //
 //
 //
-//     [Fact]
-//     public void MEMPACK018_MemberCantSerializeType()
-//     {
-//         Compile(18, """
+//         [Fact]
+//         public void MEMPACK018_MemberCantSerializeType()
+//         {
+//             Compile(18, """
 // using MemoryPack;
 //
 // [MemoryPackable]
@@ -355,7 +348,7 @@
 // }
 // """);
 //
-//         Compile(18, """
+//             Compile(18, """
 // using MemoryPack;
 //
 // [MemoryPackable]
@@ -365,7 +358,7 @@
 // }
 // """);
 //
-//         Compile(18, """
+//             Compile(18, """
 // using MemoryPack;
 //
 // [MemoryPackable]
@@ -374,12 +367,12 @@
 //     public System.Action Foo { get; set;}
 // }
 // """);
-//     }
+//         }
 //
-//     [Fact]
-//     public void MEMPACK019_MemberIsNotMemoryPackable()
-//     {
-//         Compile(19, """
+//         [Fact]
+//         public void MEMPACK019_MemberIsNotMemoryPackable()
+//         {
+//             Compile(19, """
 // using MemoryPack;
 //
 // [MemoryPackable]
@@ -390,12 +383,12 @@
 //
 // public class Foo { }
 // """);
-//     }
+//         }
 //
-//     [Fact]
-//     public void MEMPACK020_TypeIsRefStruct()
-//     {
-//         Compile(20, """
+//         [Fact]
+//         public void MEMPACK020_TypeIsRefStruct()
+//         {
+//             Compile(20, """
 // using MemoryPack;
 //
 // [MemoryPackable]
@@ -404,12 +397,12 @@
 //     public int Bar { get; set;}
 // }
 // """);
-//     }
+//         }
 //
-//     [Fact]
-//     public void MEMPACK021_MemberIsRefStruct()
-//     {
-//         Compile(21, """
+//         [Fact]
+//         public void MEMPACK021_MemberIsRefStruct()
+//         {
+//             Compile(21, """
 // using System;
 // using MemoryPack;
 //
@@ -420,12 +413,12 @@
 //     public ReadOnlySpan<byte> SpanProp => b;
 // }
 // """);
-//     }
+//         }
 //
-//     [Fact]
-//     public void MEMPACK022_CollectionGenerateIsAbstract()
-//     {
-//         Compile(22, """
+//         [Fact]
+//         public void MEMPACK022_CollectionGenerateIsAbstract()
+//         {
+//             Compile(22, """
 // using System.Collections.Generic;
 // using MemoryPack;
 //
@@ -434,12 +427,12 @@
 // {
 // }
 // """);
-//     }
+//         }
 //
-//     [Fact]
-//     public void MEMPACK023_CollectionGenerateNotImplementedInterface()
-//     {
-//         Compile(23, """
+//         [Fact]
+//         public void MEMPACK023_CollectionGenerateNotImplementedInterface()
+//         {
+//             Compile(23, """
 // using MemoryPack;
 //
 // [MemoryPackable(GenerateType.Collection)]
@@ -447,12 +440,12 @@
 // {
 // }
 // """);
-//     }
+//         }
 //
-//     [Fact]
-//     public void MEMPACK024_CollectionGenerateNoParameterlessConstructor()
-//     {
-//         Compile(24, """
+//         [Fact]
+//         public void MEMPACK024_CollectionGenerateNoParameterlessConstructor()
+//         {
+//             Compile(24, """
 // using System.Collections.Generic;
 // using MemoryPack;
 //
@@ -465,12 +458,12 @@
 //     }
 // }
 // """);
-//     }
+//         }
 //
-//     [Fact]
-//     public void MEMPACK025_AllMembersMustAnnotateOrder()
-//     {
-//         Compile(25, """
+//         [Fact]
+//         public void MEMPACK025_AllMembersMustAnnotateOrder()
+//         {
+//             Compile(25, """
 // using MemoryPack;
 //
 // [MemoryPackable(SerializeLayout.Explicit)]
@@ -481,12 +474,12 @@
 //     public int Prop2 { get; set; }
 // }
 // """);
-//     }
+//         }
 //
-//     [Fact]
-//     public void MEMPACK026_AllMembersMustBeContinuousNumber()
-//     {
-//         Compile(26, """
+//         [Fact]
+//         public void MEMPACK026_AllMembersMustBeContinuousNumber()
+//         {
+//             Compile(26, """
 // using MemoryPack;
 //
 // [MemoryPackable(SerializeLayout.Explicit)]
@@ -498,12 +491,12 @@
 //     public int Prop2 { get; set; }
 // }
 // """);
-//     }
+//         }
 //
-//     [Fact]
-//     public void MEMPACK033_CircularReferenceOnlyAllowsParameterlessConstructor()
-//     {
-//         Compile(33, """
+//         [Fact]
+//         public void MEMPACK033_CircularReferenceOnlyAllowsParameterlessConstructor()
+//         {
+//             Compile(33, """
 // using MemoryPack;
 //
 // [MemoryPackable(GenerateType.CircularReference)]
@@ -521,5 +514,52 @@
 //     }
 // }
 // """);
+//         }
+//
+//         static Compilation baseCompilation = default!;
+//
+//         [ModuleInitializer]
+//         public static void InitializeCompilation()
+//         {
+//             // running .NET Core system assemblies dir path
+//             var baseAssemblyPath = Path.GetDirectoryName(typeof(object).Assembly.Location)!;
+//             var systemAssemblies = Directory.GetFiles(baseAssemblyPath)
+//                 .Where(x =>
+//                 {
+//                     var fileName = Path.GetFileName(x);
+//                     if (fileName.EndsWith("Native.dll")) return false;
+//                     return fileName.StartsWith("System") || (fileName is "mscorlib.dll" or "netstandard.dll");
+//                 });
+//
+//             var references = systemAssemblies
+//                 .Append(typeof(MemoryPackableAttribute).Assembly.Location) // System Assemblies + MemoryPack.Core.dll
+//                 .Select(x => MetadataReference.CreateFromFile(x))
+//                 .ToArray();
+//
+//             var compilation = CSharpCompilation.Create("generatortest",
+//                 references: references,
+//                 options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+//
+//             baseCompilation = compilation;
+//         }
+//
+//         static Diagnostic[] RunGenerator(string source, AnalyzerConfigOptionsProvider? options = null)
+//         {
+//             var driver = CSharpGeneratorDriver.Create(new VYamlSourceGenerator());
+//             if (options != null)
+//             {
+//                 driver = (Microsoft.CodeAnalysis.CSharp.CSharpGeneratorDriver)driver.WithUpdatedAnalyzerConfigOptions(options);
+//             }
+//
+//             // var compilation = baseCompilation.AddSyntaxTrees(CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.CSharp11))); // use C#11
+//             var compilation = CSharpCompilation.Create("compilation", );
+//
+//             driver.RunGeneratorsAndUpdateCompilation(compilation, out var newCompilation, out var diagnostics);
+//
+//             // combine diagnostics as result.(ignore warning)
+//             var compilationDiagnostics = newCompilation.GetDiagnostics();
+//             return diagnostics.Concat(compilationDiagnostics).Where(x => x.Severity == DiagnosticSeverity.Error).ToArray();
+//         }
 //     }
 // }
+// #endif

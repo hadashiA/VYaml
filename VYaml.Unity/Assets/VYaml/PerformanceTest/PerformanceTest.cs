@@ -15,13 +15,17 @@ namespace VYaml.PerformanceTest
         [Performance]
         public void SimpleParsing()
         {
+            const int N = 100;
             var yamlBytes = Encoding.UTF8.GetBytes(YAML);
 
             Measure.Method(() =>
                 {
-                    var parser = VYaml.Parser.YamlParser.FromBytes(yamlBytes);
-                    while (parser.Read())
+                    for (var i = 0; i < N; i++)
                     {
+                        var parser = VYaml.Parser.YamlParser.FromBytes(yamlBytes);
+                        while (parser.Read())
+                        {
+                        }
                     }
                 })
                 .WarmupCount(5)
@@ -34,9 +38,12 @@ namespace VYaml.PerformanceTest
             Measure.Method(() =>
                 {
                     using var reader = new StringReader(YAML);
-                    var parser = new YamlDotNet.Core.Parser(reader);
-                    while (parser.MoveNext())
+                    for (var i = 0; i < N; i++)
                     {
+                        var parser = new YamlDotNet.Core.Parser(reader);
+                        while (parser.MoveNext())
+                        {
+                        }
                     }
                 })
                 .WarmupCount(5)

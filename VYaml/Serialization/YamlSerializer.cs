@@ -43,26 +43,26 @@ namespace VYaml.Serialization
         public static T Deserialize<T>(in ReadOnlySequence<byte> sequence, YamlSerializerOptions options)
         {
             var parser = YamlParser.FromSequence(sequence);
+            return Deserialize<T>(ref parser, options);
+        }
+
+        public static T Deserialize<T>(ref YamlParser parser, YamlSerializerOptions options)
+        {
             try
             {
-                return Deserialize<T>(ref parser, options);
+                var contextLocal = deserializationContext ??= new YamlDeserializationContext();
+                contextLocal.Reset();
+                contextLocal.Resolver = options.Resolver;
+
+                parser.SkipAfter(ParseEventType.DocumentStart);
+
+                var formatter = options.Resolver.GetFormatterWithVerify<T>();
+                return contextLocal.DeserializeWithAlias(formatter, ref parser);
             }
             finally
             {
                 parser.Dispose();
             }
-        }
-
-        public static T Deserialize<T>(ref YamlParser parser, YamlSerializerOptions options)
-        {
-            var contextLocal = deserializationContext ??= new YamlDeserializationContext();
-            contextLocal.Reset();
-            contextLocal.Resolver = options.Resolver;
-
-            parser.SkipAfter(ParseEventType.DocumentStart);
-
-            var formatter = options.Resolver.GetFormatterWithVerify<T>();
-            return contextLocal.DeserializeWithAlias(formatter, ref parser);
         }
     }
 }

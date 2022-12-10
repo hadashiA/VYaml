@@ -126,6 +126,7 @@ namespace VYaml.Parser
             Length = -1;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override string ToString()
         {
             return StringEncoding.Utf8.GetString(AsSpan());
