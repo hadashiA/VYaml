@@ -1167,7 +1167,7 @@ namespace VYaml.Parser
                         }
                         else
                         {
-                            whitespaceBuffer.Clear();
+                            whitespaceLength = 0;
                             leadingBreak = ConsumeLineBreaks();
                             isLeadingBlanks = true;
                         }

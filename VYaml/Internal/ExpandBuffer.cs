@@ -69,7 +69,7 @@ namespace VYaml.Internal
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Add(T item)
         {
-            if (Length <= buffer.Length)
+            if (Length >= buffer.Length)
             {
                 Grow();
             }
