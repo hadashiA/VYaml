@@ -20,12 +20,12 @@
     </ItemGroup>
 
     <!-- Copy files for Unity -->
-    <PropertyGroup>
-        <DestinationRoot>$(MSBuildProjectDirectory)\..\VYaml.Unity\Assets\VYaml\Runtime</DestinationRoot>
-    </PropertyGroup>
-    <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="$(TargetFramework) == 'netstandard2.0'">
-        <Copy SourceFiles="$(OutputPath)" DestinationFiles="$(DestinationRoot)\%(TargetDir)\*.dll" SkipUnchangedFiles="true" />
-    </Target>
+<!--    <PropertyGroup>-->
+<!--        <DestinationRoot>$(MSBuildProjectDirectory)\..\VYaml.Unity\Assets\VYaml\Runtime</DestinationRoot>-->
+<!--    </PropertyGroup>-->
+<!--    <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="$(TargetFramework) == 'netstandard2.0'">-->
+<!--        <Copy SourceFiles="$(OutputPath)" DestinationFiles="$(DestinationRoot)\%(TargetDir)\*.dll" SkipUnchangedFiles="true" />-->
+<!--    </Target>-->
 
     <!-- for nuget publish -->
     <Target Name="PackBuildOutputs" DependsOnTargets="SatelliteDllsProjectOutputGroup;DebugSymbolsProjectOutputGroup">

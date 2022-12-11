@@ -1,10 +1,11 @@
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace VYaml.Internal
 {
-    class ExpandBuffer<T> : IDisposable
+    ref struct ExpandBuffer<T>
     {
         const int MinimumGrow = 4;
         const int GrowFactor = 200;
@@ -46,11 +47,11 @@ namespace VYaml.Internal
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public T Pop()
+        public ref T Pop()
         {
             if (Length == 0)
                 throw new InvalidOperationException("Cannot pop the empty buffer");
-            return buffer[--Length];
+            return ref buffer[--Length];
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

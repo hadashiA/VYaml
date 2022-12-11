@@ -1,10 +1,11 @@
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace VYaml.Internal
 {
-    class ExpandBuffer<T> : IDisposable
+    ref struct ExpandBuffer<T>
     {
         const int MinimumGrow = 4;
         const int GrowFactor = 200;
@@ -22,12 +23,6 @@ namespace VYaml.Internal
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get => ref buffer[index];
-        }
-
-        public int Capacity
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => buffer.Length;
         }
 
         public int Length { get; private set; }
@@ -52,11 +47,11 @@ namespace VYaml.Internal
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public T Pop()
+        public ref T Pop()
         {
             if (Length == 0)
                 throw new InvalidOperationException("Cannot pop the empty buffer");
-            return buffer[--Length];
+            return ref buffer[--Length];
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -74,7 +69,7 @@ namespace VYaml.Internal
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Add(T item)
         {
-            if (Length == buffer.Length)
+            if (Length <= buffer.Length)
             {
                 Grow();
             }
@@ -96,7 +91,7 @@ namespace VYaml.Internal
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void SetCapacity(int newCapacity)
         {
-            if (Capacity >= newCapacity) return;
+            if (buffer.Length >= newCapacity) return;
 
             var newBuffer = ArrayPool<T>.Shared.Rent(newCapacity);
             // var newBuffer = new T[newCapacity];

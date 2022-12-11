@@ -50,10 +50,10 @@ namespace VYaml.Parser
         bool tokenAvailable;
 
         readonly InsertionQueue<Token> tokens;
-        readonly ScalarPool scalarPool;
-        readonly ExpandBuffer<SimpleKeyState> simpleKeyCandidates;
-        readonly ExpandBuffer<int> indents;
-        readonly ExpandBuffer<byte> lineBreaksBuffer;
+        ScalarPool scalarPool;
+        ExpandBuffer<SimpleKeyState> simpleKeyCandidates;
+        ExpandBuffer<int> indents;
+        ExpandBuffer<byte> lineBreaksBuffer;
 
         public Utf8YamlTokenizer(in ReadOnlySequence<byte> sequence)
         {
@@ -63,7 +63,7 @@ namespace VYaml.Parser
             simpleKeyCandidates = new ExpandBuffer<SimpleKeyState>(16);
             indents = new ExpandBuffer<int>(16);
             lineBreaksBuffer = new ExpandBuffer<byte>(64);
-            scalarPool = new ScalarPool();
+            scalarPool = new ScalarPool(32);
 
             indent = -1;
             flowLevel = 0;
@@ -870,7 +870,7 @@ namespace VYaml.Parser
             }
 
             // Scan the leading line breaks and determine the indentation level if needed.
-            ConsumeBlockScalarBreaks(ref blockIndent, lineBreaksBuffer);
+            ConsumeBlockScalarBreaks(ref blockIndent, ref lineBreaksBuffer);
 
             while (mark.Col == blockIndent)
             {
@@ -906,7 +906,7 @@ namespace VYaml.Parser
 
                 leadingBreak = ConsumeLineBreaks();
                 // Eat the following indentation spaces and line breaks.
-                ConsumeBlockScalarBreaks(ref blockIndent, lineBreaksBuffer);
+                ConsumeBlockScalarBreaks(ref blockIndent, ref lineBreaksBuffer);
             }
 
             // Chomp the tail.
@@ -923,7 +923,7 @@ namespace VYaml.Parser
             tokens.Enqueue(new Token(tokenType, scalar));
         }
 
-        void ConsumeBlockScalarBreaks(ref int blockIndent, ExpandBuffer<byte> blockLineBreaks)
+        void ConsumeBlockScalarBreaks(ref int blockIndent, ref ExpandBuffer<byte> blockLineBreaks)
         {
             var maxIndent = 0;
             while (true)
@@ -1411,11 +1411,10 @@ namespace VYaml.Parser
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         LineBreakState ConsumeLineBreaks()
         {
-            // if (reader.End)
-            //     return LineBreakState.None;
+            if (reader.End)
+                return LineBreakState.None;
 
             switch (currentCode)
             {

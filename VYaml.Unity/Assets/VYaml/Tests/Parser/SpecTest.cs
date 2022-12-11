@@ -103,7 +103,7 @@ namespace VYaml.Tests.Parser
         }
 
         [Test]
-        public void Ex2_05_SequenceOfSequences()
+        public void kEx2_05_SequenceOfSequences()
         {
             AssertParseEvents(SpecExamples.Ex2_5, new []
             {
@@ -2345,7 +2345,7 @@ namespace VYaml.Tests.Parser
                     }
                     else if (expect.Scalar.IsNull())
                     {
-                        if (!parser.IsNullScalar())
+                        if (!parser.IsNullScalar() && parser.GetScalarAsString() != null)
                         {
                             Assert.Fail($"Expected null of {expect} at {i}\n" +
                                         $"  But was {parser.CurrentEventType} \"{parser.GetScalarAsString()}\"");

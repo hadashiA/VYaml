@@ -6,9 +6,14 @@ using VYaml.Internal;
 
 namespace VYaml.Parser
 {
-    class ScalarPool : IDisposable
+    ref struct ScalarPool
     {
-        readonly ExpandBuffer<Scalar> queue = new(32);
+        ExpandBuffer<Scalar> queue;
+
+        public ScalarPool(int capacity)
+        {
+            queue = new ExpandBuffer<Scalar>(capacity);
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Scalar Rent()
