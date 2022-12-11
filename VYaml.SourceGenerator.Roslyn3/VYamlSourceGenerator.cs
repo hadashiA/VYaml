@@ -14,11 +14,6 @@ public class VYamlSourceGenerator : ISourceGenerator
     {
         try
         {
-            var moduleName = context.Compilation.SourceModule.Name;
-            if (moduleName.StartsWith("UnityEngine.")) return;
-            if (moduleName.StartsWith("UnityEditor.")) return;
-            if (moduleName.StartsWith("Unity.")) return;
-
             var references = ReferenceSymbols.Create(context.Compilation);
             if (references is null) return;
 
@@ -28,6 +23,11 @@ public class VYamlSourceGenerator : ISourceGenerator
             var l = new List<TypeMeta>();
             foreach (var workItem in syntaxCollector.GetWorkItems())
             {
+                if (context.CancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
+
                 var typeMeta = workItem.Analyze(in context, references);
                 if (typeMeta is null) continue;
 

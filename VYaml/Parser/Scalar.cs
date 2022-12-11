@@ -46,6 +46,7 @@ namespace VYaml.Parser
 
         public Scalar(int capacity)
         {
+            Unsafe
             buffer = ArrayPool<byte>.Shared.Rent(capacity);
         }
 

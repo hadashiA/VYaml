@@ -1,9 +1,12 @@
 using System.Text;
 using System.Text.Json;
 using BenchmarkDotNet.Attributes;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using VYaml.Benchmark.Examples;
 using VYaml.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace VYaml.Benchmark;
 
@@ -20,6 +23,12 @@ public class JsonDeserializationBenchmark
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
+    readonly JsonSerializerSettings newtonsoftJsonSettings = new JsonSerializerSettings
+    {
+        ContractResolver = new CamelCasePropertyNamesContractResolver()
+    };
+
+
     [GlobalSetup]
     public void Setup()
     {
@@ -31,6 +40,7 @@ public class JsonDeserializationBenchmark
             .WithNamingConvention(UnderscoredNamingConvention.Instance)
             .IgnoreUnmatchedProperties()
             .Build();
+
     }
 
     [Benchmark]
@@ -43,6 +53,12 @@ public class JsonDeserializationBenchmark
     public void SystemTextJson_Deserialize()
     {
         JsonSerializer.Deserialize<SampleEnvoy>(jsonBytes, systemTextJsonOptions);
+    }
+
+    [Benchmark]
+    public void NewtonsoftJson_Deserialize()
+    {
+        JsonConvert.DeserializeObject<SampleEnvoy>(jsonString!, newtonsoftJsonSettings);
     }
 
     [Benchmark]

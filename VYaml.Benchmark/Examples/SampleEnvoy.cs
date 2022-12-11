@@ -1,5 +1,5 @@
-using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 using VYaml.Serialization;
 
 namespace VYaml.Benchmark.Examples;
@@ -9,19 +9,23 @@ public partial class TypedConfig
 {
     [YamlMember("@type")]
     [YamlDotNet.Serialization.YamlMember(Alias = "@type")]
+    [JsonProperty(PropertyName = "@type")]
     [JsonPropertyName("@type")]
     public string Type { get; init; }
 
     [YamlMember("stat_prefix")]
     [JsonPropertyName("stat_prefix")]
+    [JsonProperty(PropertyName = "stat_prefix")]
     public string StatPrefix { get; init; }
 
     [YamlMember("codec_type")]
     [JsonPropertyName("codec_type")]
+    [JsonProperty(PropertyName = "codec_type")]
     public string CodecType { get; init; }
 
     [YamlMember("route_config")]
     [JsonPropertyName("route_config")]
+    [JsonProperty(PropertyName = "route_config")]
     public RouteConfig RouteConfig { get; init; }
 }
 
@@ -32,6 +36,7 @@ public partial class RouteConfig
 
     [YamlMember("virtual_hosts")]
     [JsonPropertyName("virtual_hosts")]
+    [JsonProperty(PropertyName = "virtual_hosts")]
     public List<VirtualHost> VirtualHosts { get; init; }
 }
 
@@ -57,6 +62,7 @@ public partial class SocketAddress
 
     [YamlMember("port_value")]
     [JsonPropertyName("port_value")]
+    [JsonProperty(PropertyName = "port_value")]
     public int PortValue { get; init; }
 }
 
@@ -65,6 +71,7 @@ public partial class Address
 {
     [YamlMember("socket_address")]
     [JsonPropertyName("socket_address")]
+    [JsonProperty(PropertyName = "socket_address")]
     public SocketAddress SocketAddress { get; init; }
 }
 
@@ -82,6 +89,7 @@ public partial class Listener
 
     [YamlMember("filter_chains")]
     [JsonPropertyName("filter_chains")]
+    [JsonProperty(PropertyName = "filter_chains")]
     public List<FilterChain> FilterChains { get; init; }
 }
 
@@ -98,10 +106,12 @@ public partial class Filter
 
     [YamlMember("typed_config")]
     [JsonPropertyName("typed_config")]
+    [JsonProperty(PropertyName = "typed_config")]
     public TypedConfig TypedConfig { get; init; }
 
     [YamlMember("http_filters")]
     [JsonPropertyName("http_filters")]
+    [JsonProperty(PropertyName = "http_filters")]
     public List<HttpFilter> HttpFilters { get; init; }
 }
 
@@ -112,6 +122,7 @@ public partial class HttpFilter
 
     [YamlMember("typed_config")]
     [JsonPropertyName("typed_config")]
+    [JsonProperty(PropertyName = "typed_config")]
     public TypedConfig TypedConfig { get; init; }
 }
 
@@ -128,5 +139,6 @@ public partial class SampleEnvoy
 
     [YamlMember("static_resources")]
     [JsonPropertyName("static_resources")]
+    [JsonProperty(PropertyName = "static_resources")]
     public StaticResources StaticResources { get; init; }
 }

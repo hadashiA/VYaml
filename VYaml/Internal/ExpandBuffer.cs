@@ -24,12 +24,6 @@ namespace VYaml.Internal
             get => ref buffer[index];
         }
 
-        public int Capacity
-        {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => buffer.Length;
-        }
-
         public int Length { get; private set; }
 
         public void Dispose()
@@ -74,7 +68,7 @@ namespace VYaml.Internal
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Add(T item)
         {
-            if (Length == buffer.Length)
+            if (Length <= buffer.Length)
             {
                 Grow();
             }
@@ -96,7 +90,7 @@ namespace VYaml.Internal
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void SetCapacity(int newCapacity)
         {
-            if (Capacity >= newCapacity) return;
+            if (buffer.Length >= newCapacity) return;
 
             var newBuffer = ArrayPool<T>.Shared.Rent(newCapacity);
             // var newBuffer = new T[newCapacity];

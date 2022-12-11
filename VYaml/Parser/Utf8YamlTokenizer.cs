@@ -1235,17 +1235,17 @@ namespace VYaml.Parser
             while (true)
             {
                 // Check for a document indicator
-                if (mark.Col == 0 &&
-                    (currentCode == YamlCodes.StreamStart[0] ||
-                     currentCode == YamlCodes.DocStart[0]))
+                if (mark.Col == 0)
                 {
-                    if ((reader.IsNext(YamlCodes.StreamStart) || reader.IsNext(YamlCodes.DocStart)) &&
-                        IsEmptyNext(3))
+                    if (currentCode == (byte)'-' && reader.IsNext(YamlCodes.StreamStart) && IsEmptyNext(YamlCodes.StreamStart.Length))
+                    {
+                        break;
+                    }
+                    if (currentCode == (byte)'.' && reader.IsNext(YamlCodes.DocStart) && IsEmptyNext(YamlCodes.DocStart.Length))
                     {
                         break;
                     }
                 }
-
                 if (currentCode == YamlCodes.Comment)
                 {
                     break;
@@ -1263,7 +1263,7 @@ namespace VYaml.Parser
                             break;
                         }
                     }
-                    else if (YamlCodes.IsAnyFlowSymbol(currentCode) && flowLevel > 0)
+                    else if (flowLevel > 0 && YamlCodes.IsAnyFlowSymbol(currentCode))
                     {
                         break;
                     }

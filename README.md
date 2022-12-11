@@ -19,6 +19,7 @@ In parsing, scalar values are pooled and no allocation occurs until `Scalar.ToSt
 
 - NuGet package
 - Deserialize
+    - [ ] Support `Stream`
     - [ ] Restrict max depth
     - [ ] Interface-typed and abstract class-typed objects
     - [ ] Custom formatter
