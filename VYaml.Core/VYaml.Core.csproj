@@ -6,12 +6,13 @@
         <ImplicitUsings>disable</ImplicitUsings>
         <RootNamespace>VYaml</RootNamespace>
         <TargetFramework>netstandard2.1</TargetFramework>
+        <Description>VYaml core apis</Description>
     </PropertyGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\VYaml.Annotations\VYaml.Annotations.csproj" />
     </ItemGroup>
-    
+
     <!-- Copy files for Unity -->
     <PropertyGroup>
         <DestinationRoot>$(MSBuildProjectDirectory)\..\VYaml.Unity\Assets\VYaml\Runtime</DestinationRoot>

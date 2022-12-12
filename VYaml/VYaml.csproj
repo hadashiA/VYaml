@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>netstandard2.1</TargetFramework>
+        <ImplicitUsings>disable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+
+        <!-- This project is meta package -->
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <IncludeContentInPack>true</IncludeContentInPack>
+        <NoWarn>$(NoWarn);NU5128</NoWarn>
+        <PackageTags>yaml,serialization</PackageTags>
+        <Description>The extra fast YAML library for C#</Description>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\VYaml.Core\VYaml.Core.csproj" />
+        <ProjectReference Include="..\VYaml.SourceGenerator.Roslyn3\VYaml.SourceGenerator.Roslyn3.csproj" />
+    </ItemGroup>
+</Project>

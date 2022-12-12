@@ -10,10 +10,18 @@
         <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackBuildOutputs</TargetsForTfmSpecificContentInPackage>
         <LangVersion>11</LangVersion>
         <RootNamespace>VYaml.SourceGenerator</RootNamespace>
+        <IsRoslynComponent>true</IsRoslynComponent>
+        <PackageTags>yaml</PackageTags>
+        <Description>Code generator for VYaml</Description>
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.9.0" />
+        <!-- Mainly used for Unity, Unity 2021.3 has Roslyn 3.9.0(see: Editor\Data\DotNetSdkRoslyn\ -->
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.9.0" PrivateAssets="all" />
+        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.3">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
     </ItemGroup>
 
     <!-- Copy files for Unity -->
@@ -22,5 +30,13 @@
     </PropertyGroup>
     <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="$(Configuration) == 'Release'">
         <Copy SourceFiles="$(TargetPath)" DestinationFiles="$(DestinationRoot)\$(TargetFileName)" SkipUnchangedFiles="true" />
+    </Target>
+
+    <!-- for nuget publish -->
+    <Target Name="PackBuildOutputs" DependsOnTargets="SatelliteDllsProjectOutputGroup;DebugSymbolsProjectOutputGroup">
+        <ItemGroup>
+            <TfmSpecificPackageFile Include="$(TargetDir)\*.dll" PackagePath="analyzers\dotnet\cs" />
+            <TfmSpecificPackageFile Include="@(SatelliteDllsProjectOutputGroupOutput->'%(FinalOutputPath)')" PackagePath="analyzers\dotnet\cs\%(SatelliteDllsProjectOutputGroupOutput.Culture)\" />
+        </ItemGroup>
     </Target>
 </Project>

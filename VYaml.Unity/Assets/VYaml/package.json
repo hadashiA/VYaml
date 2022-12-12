@@ -6,7 +6,7 @@
   "description": "The extra fast YAML library",
   "keywords": ["yaml", "serialization", "parser"],
   "license": "MIT",
-    "documentationUrl": "https://github.com/hadashiA/VYaml",
+  "documentationUrl": "https://github.com/hadashiA/VYaml",
   "changelogUrl": "https://github.com/hadashiA/VYaml/releases",
   "licensesUrl": "https://github.com/hadashiA/VYaml/blob/master/LICENSE"
 }
