@@ -13,7 +13,7 @@ In parsing, scalar values are pooled and no allocation occurs until `Scalar.ToSt
     - [YAML 1.2 almost fully supported](##)
 - Deserialize
 - Mainly focused on Unity
-    - Only 2022.1 and higher (netstandard2.1 compatible)
+    - Only 2021.3 and higher (netstandard2.1 compatible)
 
 ## Most recent roadmap
 
