@@ -130,6 +130,7 @@ namespace VYaml.Parser
         public void Dispose()
         {
             tokenizer.Dispose();
+            stateStack.Dispose();
         }
 
         public bool Read()

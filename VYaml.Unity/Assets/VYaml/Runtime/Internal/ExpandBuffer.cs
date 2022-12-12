@@ -1,7 +1,6 @@
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace VYaml.Internal
 {
@@ -36,9 +35,6 @@ namespace VYaml.Internal
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Span<T> AsSpan() => buffer.AsSpan(0, Length);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Span<T> AsSpan(int start, int length) => buffer.AsSpan(start, length);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()

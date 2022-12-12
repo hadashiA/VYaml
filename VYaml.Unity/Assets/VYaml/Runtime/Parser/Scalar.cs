@@ -32,6 +32,7 @@ namespace VYaml.Parser
 
         public void Dispose()
         {
+            queue.Dispose();
             foreach (var scalar in queue.AsSpan())
             {
                 scalar.Dispose();
