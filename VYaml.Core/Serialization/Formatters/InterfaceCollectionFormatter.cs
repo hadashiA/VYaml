@@ -15,7 +15,7 @@ namespace VYaml.Serialization
 
             parser.ReadWithVerify(ParseEventType.SequenceStart);
 
-            var list = new List<T>();
+            var list = new List<T?>();
             var elementFormatter = context.Resolver.GetFormatterWithVerify<T>();
             while (!parser.End && parser.CurrentEventType != ParseEventType.SequenceEnd)
             {

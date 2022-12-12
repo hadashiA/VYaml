@@ -1,24 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
     <PropertyGroup>
-        <ImplicitUsings>disable</ImplicitUsings>
+        <TargetFramework>netstandard2.1</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <LangVersion>9</LangVersion>
         <ImplicitUsings>disable</ImplicitUsings>
-        <RootNamespace>VYaml</RootNamespace>
-        <TargetFramework>netstandard2.1</TargetFramework>
     </PropertyGroup>
-    
+
     <!-- Copy files for Unity -->
     <PropertyGroup>
-        <DestinationRoot>$(MSBuildProjectDirectory)\..\VYaml.Unity\Assets\VYaml\Runtime</DestinationRoot>
+        <DestinationRoot>$(MSBuildProjectDirectory)\..\VYaml.Unity\Assets\VYaml\Runtime\Annotations</DestinationRoot>
     </PropertyGroup>
     <ItemGroup>
         <TargetFiles1 Include="$(MSBuildProjectDirectory)\**\*.cs" Exclude="**\bin\**\*.*;**\obj\**\*.*" />
     </ItemGroup>
-
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">
         <Copy SourceFiles="@(TargetFiles1)" DestinationFiles="$(DestinationRoot)\%(RecursiveDir)%(Filename)%(Extension)" SkipUnchangedFiles="true" />
     </Target>
-
 </Project>

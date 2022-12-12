@@ -65,9 +65,9 @@ namespace VYaml.Serialization
 
                     foreach (IYamlFormatterResolver resolver in subResolvers)
                     {
-                        formatter = resolver.GetFormatter<T>();
-                        if (formatter != null)
+                        if (resolver.GetFormatter<T>() is { } f)
                         {
+                            formatter = f;
                             goto CACHE;
                         }
                     }

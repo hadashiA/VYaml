@@ -49,7 +49,7 @@ namespace VYaml.Parser
         int tokensParsed;
         bool tokenAvailable;
 
-        readonly InsertionQueue<Token> tokens;
+        InsertionQueue<Token> tokens;
         ScalarPool scalarPool;
         ExpandBuffer<SimpleKeyState> simpleKeyCandidates;
         ExpandBuffer<int> indents;

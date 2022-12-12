@@ -1,12 +1,14 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VYaml", "VYaml\VYaml.csproj", "{0B2198C7-97FC-4C22-81C3-89FCA1075F3C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VYaml.Core", "VYaml.Core\VYaml.Core.csproj", "{0B2198C7-97FC-4C22-81C3-89FCA1075F3C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VYaml.Tests", "VYaml.Tests\VYaml.Tests.csproj", "{A0EF9580-FACD-4DF0-83F6-83D4F0FF24EB}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VYaml.Benchmark", "VYaml.Benchmark\VYaml.Benchmark.csproj", "{D4FB8270-6E93-447C-B97F-851E711CEC4B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VYaml.SourceGenerator.Roslyn3", "VYaml.SourceGenerator.Roslyn3\VYaml.SourceGenerator.Roslyn3.csproj", "{3B6077D9-02FB-470C-88CD-F254FD5802D4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VYaml.Annotations", "VYaml.Annotations\VYaml.Annotations.csproj", "{4B8D8A3C-97B0-4DB9-8757-ED5AEDC0659A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -30,5 +32,9 @@ Global
 		{3B6077D9-02FB-470C-88CD-F254FD5802D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3B6077D9-02FB-470C-88CD-F254FD5802D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3B6077D9-02FB-470C-88CD-F254FD5802D4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4B8D8A3C-97B0-4DB9-8757-ED5AEDC0659A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4B8D8A3C-97B0-4DB9-8757-ED5AEDC0659A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4B8D8A3C-97B0-4DB9-8757-ED5AEDC0659A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4B8D8A3C-97B0-4DB9-8757-ED5AEDC0659A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

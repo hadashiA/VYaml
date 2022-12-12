@@ -18,13 +18,13 @@ In parsing, scalar values are pooled and no allocation occurs until `Scalar.ToSt
 ## Most recent roadmap
 
 - NuGet package
+- [ ] Support incremental source generator (Only Roslyn 4)
 - Deserialize
     - [ ] Support `Stream`
     - [ ] Restrict max depth
     - [ ] Interface-typed and abstract class-typed objects
     - [ ] Custom formatter
     - [ ] Specific constructor
-- [ ] Yaml Writer
 - [ ] Serialize
 
 ## Basic Usage

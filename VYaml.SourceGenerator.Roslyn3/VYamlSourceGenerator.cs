@@ -20,7 +20,7 @@ public class VYamlSourceGenerator : ISourceGenerator
             var codeWriter = new CodeWriter();
             if (context.SyntaxContextReceiver! is not SyntaxContextReceiver syntaxCollector) return;
 
-            var l = new List<TypeMeta>();
+            // var l = new List<TypeMeta>();
             foreach (var workItem in syntaxCollector.GetWorkItems())
             {
                 if (context.CancellationToken.IsCancellationRequested)
@@ -33,7 +33,7 @@ public class VYamlSourceGenerator : ISourceGenerator
 
                 Emit(typeMeta, codeWriter, references, in context);
                 codeWriter.Clear();
-                l.Add(typeMeta);
+                // l.Add(typeMeta);
             }
         }
         catch (Exception ex)
@@ -84,6 +84,7 @@ public class VYamlSourceGenerator : ISourceGenerator
             codeWriter.AppendLine("#pragma warning disable CS8631 // The type cannot be used as type parameter in the generic type or method");
             codeWriter.AppendLine();
             codeWriter.AppendLine("using System;");
+            codeWriter.AppendLine("using VYaml.Annotations;");
             codeWriter.AppendLine("using VYaml.Parser;");
             codeWriter.AppendLine("using VYaml.Serialization;");
             codeWriter.AppendLine();

@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 using Newtonsoft.Json;
-using VYaml.Serialization;
+using VYaml.Annotations;
 
 namespace VYaml.Benchmark.Examples;
 

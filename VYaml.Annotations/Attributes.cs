@@ -1,6 +1,6 @@
 using System;
 
-namespace VYaml.Serialization
+namespace VYaml.Annotations
 {
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface, Inherited = false)]
     public class YamlObjectAttribute : Attribute
@@ -28,7 +28,12 @@ namespace VYaml.Serialization
     {
     }
 
-    // Preserve for Unity IL2CPP(internal but used for code generator)
+    /// <summary>
+    /// Preserve for Unity IL2CPP(internal but used for code generator)
+    /// </summary>
+    /// <remarks>
+    /// > For 3rd party libraries that do not want to take on a dependency on UnityEngine.dll, it is also possible to define their own PreserveAttribute. The code stripper will respect that too, and it will consider any attribute with the exact name "PreserveAtribute" as a reason not to strip the thing it is applied on, regardless of the namespace or assembly of the attribute.
+    /// </remarks>
     public sealed class PreserveAttribute : Attribute
     {
     }

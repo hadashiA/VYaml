@@ -11,27 +11,16 @@
         <LangVersion>11</LangVersion>
         <RootNamespace>VYaml.SourceGenerator</RootNamespace>
     </PropertyGroup>
+
     <ItemGroup>
       <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.9.0" />
     </ItemGroup>
 
-    <ItemGroup>
-        <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
-    </ItemGroup>
-
     <!-- Copy files for Unity -->
-<!--    <PropertyGroup>-->
-<!--        <DestinationRoot>$(MSBuildProjectDirectory)\..\VYaml.Unity\Assets\VYaml\Runtime</DestinationRoot>-->
-<!--    </PropertyGroup>-->
-<!--    <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="$(TargetFramework) == 'netstandard2.0'">-->
-<!--        <Copy SourceFiles="$(OutputPath)" DestinationFiles="$(DestinationRoot)\%(TargetDir)\*.dll" SkipUnchangedFiles="true" />-->
-<!--    </Target>-->
-
-    <!-- for nuget publish -->
-    <Target Name="PackBuildOutputs" DependsOnTargets="SatelliteDllsProjectOutputGroup;DebugSymbolsProjectOutputGroup">
-        <ItemGroup>
-            <TfmSpecificPackageFile Include="$(TargetDir)\*.dll" PackagePath="analyzers\dotnet\cs" />
-            <TfmSpecificPackageFile Include="@(SatelliteDllsProjectOutputGroupOutput->'%(FinalOutputPath)')" PackagePath="analyzers\dotnet\cs\%(SatelliteDllsProjectOutputGroupOutput.Culture)\" />
-        </ItemGroup>
+    <PropertyGroup>
+        <DestinationRoot>$(MSBuildProjectDirectory)\..\VYaml.Unity\Assets\VYaml\Runtime</DestinationRoot>
+    </PropertyGroup>
+    <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="$(Configuration) == 'Release'">
+        <Copy SourceFiles="$(TargetPath)" DestinationFiles="$(DestinationRoot)\$(TargetFileName)" SkipUnchangedFiles="true" />
     </Target>
 </Project>

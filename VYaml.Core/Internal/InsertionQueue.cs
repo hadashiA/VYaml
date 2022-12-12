@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 
 namespace VYaml.Internal
 {
-    class InsertionQueue<T>
+    ref struct InsertionQueue<T>
     {
         const int MinimumGrow = 4;
         const int GrowFactor = 200;
@@ -11,62 +11,62 @@ namespace VYaml.Internal
         T[] array;
         int headIndex;
         int tailIndex;
-        int queueSize;
 
         public InsertionQueue(int capacity)
         {
             if (capacity < 0) throw new ArgumentOutOfRangeException("capacity");
             array = new T[capacity];
-            headIndex = tailIndex = queueSize = 0;
+            headIndex = tailIndex = Count = 0;
         }
 
         public int Count
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => queueSize;
+            get;
+            private set;
         }
 
         public T Peek()
         {
-            if (queueSize == 0) ThrowForEmptyQueue();
+            if (Count == 0) ThrowForEmptyQueue();
             return array[headIndex];
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Enqueue(T item)
         {
-            if (queueSize == array.Length)
+            if (Count == array.Length)
             {
                 Grow();
             }
 
             array[tailIndex] = item;
             MoveNext(ref tailIndex);
-            queueSize++;
+            Count++;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public T Dequeue()
         {
-            if (queueSize == 0) ThrowForEmptyQueue();
+            if (Count == 0) ThrowForEmptyQueue();
 
             var removed = array[headIndex];
             MoveNext(ref headIndex);
-            queueSize--;
+            Count--;
             return removed;
         }
 
         public void Insert(int posTo, T item)
         {
-            if (queueSize == array.Length)
+            if (Count == array.Length)
             {
                 Grow();
             }
-            
+
             MoveNext(ref tailIndex);
-            queueSize++;
-            
-            for (var pos = queueSize - 1; pos > posTo; pos--)
+            Count++;
+
+            for (var pos = Count - 1; pos > posTo; pos--)
             {
                 var index = (headIndex + pos) % array.Length;
                 var indexPrev = index == 0 ? array.Length - 1 : index - 1;
@@ -88,11 +88,11 @@ namespace VYaml.Internal
         void SetCapacity(int capacity)
         {
             var newArray = new T[capacity];
-            if (queueSize > 0)
+            if (Count > 0)
             {
                 if (headIndex < tailIndex)
                 {
-                    Array.Copy(array, headIndex, newArray, 0, queueSize);
+                    Array.Copy(array, headIndex, newArray, 0, Count);
                 }
                 else
                 {
@@ -103,7 +103,7 @@ namespace VYaml.Internal
 
             array = newArray;
             headIndex = 0;
-            tailIndex = queueSize == capacity ? 0 : queueSize;
+            tailIndex = Count == capacity ? 0 : Count;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -117,5 +117,5 @@ namespace VYaml.Internal
         {
             throw new InvalidOperationException("EmptyQueue");
         }
-    }    
+    }
 }

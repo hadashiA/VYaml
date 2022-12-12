@@ -10,17 +10,21 @@ namespace VYaml.Tests
         [Test]
         public void Enqueue()
         {
-            var q = new InsertionQueue<int>(4);
-            q.Enqueue(100);
-            q.Enqueue(200);
-            q.Enqueue(300);
-            q.Enqueue(400);
+            Assert.Throws<InvalidOperationException>(() =>
+            {
+                var q = new InsertionQueue<int>(4);
+                q.Enqueue(100);
+                q.Enqueue(200);
+                q.Enqueue(300);
+                q.Enqueue(400);
 
-            Assert.That(q.Dequeue(), Is.EqualTo(100));
-            Assert.That(q.Dequeue(), Is.EqualTo(200));
-            Assert.That(q.Dequeue(), Is.EqualTo(300));
-            Assert.That(q.Dequeue(), Is.EqualTo(400));
-            Assert.Throws<InvalidOperationException>(() => q.Dequeue());
+                Assert.That(q.Dequeue(), Is.EqualTo(100));
+                Assert.That(q.Dequeue(), Is.EqualTo(200));
+                Assert.That(q.Dequeue(), Is.EqualTo(300));
+                Assert.That(q.Dequeue(), Is.EqualTo(400));
+
+                q.Dequeue();
+            });
         }
 
         [Test]

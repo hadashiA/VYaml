@@ -1,4 +1,4 @@
-using VYaml.Serialization;
+using VYaml.Annotations;
 
 namespace VYaml.Tests.TypeDeclarations
 {
@@ -12,7 +12,6 @@ namespace VYaml.Tests.TypeDeclarations
     {
         public int One { get; set; }
     }
-
 
     [YamlObject]
     public partial class SimpleTypeTwo

@@ -23,12 +23,13 @@ class SyntaxContextReceiver : ISyntaxContextReceiver
             var typeSyntax = (TypeDeclarationSyntax)node;
             if (typeSyntax.AttributeLists.Count > 0)
             {
-                var attr = typeSyntax.AttributeLists.SelectMany(x => x.Attributes)
+                var attr = typeSyntax.AttributeLists
+                    .SelectMany(x => x.Attributes)
                     .FirstOrDefault(x => x.Name.ToString() is
                         "YamlObject" or
-                        "MemoryPackableAttribute" or
-                        "MemoryPack.MemoryPackable" or
-                        "MemoryPack.MemoryPackableAttribute");
+                        "YamlObjectAttribute" or
+                        "VYaml.Annotations.YamlObject" or
+                        "VYaml.Annotations.YamlObjectAttribute");
                 if (attr != null)
                 {
                     classDeclarations.Add(typeSyntax);

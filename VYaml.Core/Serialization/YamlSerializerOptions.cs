@@ -7,7 +7,7 @@ namespace VYaml.Serialization
             Resolver = StandardResolver.Instance
         };
 
-        public IYamlFormatterResolver Resolver { get; set; }
+        public IYamlFormatterResolver Resolver { get; set; } = null!;
         public bool SupportAliasForDeserialization { get; set; } = true;
     }
 }

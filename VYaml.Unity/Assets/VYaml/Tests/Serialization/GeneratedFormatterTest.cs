@@ -40,7 +40,7 @@ namespace VYaml.Tests.Serialization
         public void Deserialize_ArrayMember()
         {
             var result1 = Deserialize<WithArray>("{ one: [{ one: 1 }, { one: 2 }] }");
-            Assert.That(result1.One.Length, Is.EqualTo(2));
+            Assert.That(result1.One!.Length, Is.EqualTo(2));
         }
 
         static T Deserialize<T>(string yaml)

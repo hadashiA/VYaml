@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using VYaml.Serialization;
+using VYaml.Annotations;
 
 namespace VYaml.Tests.TypeDeclarations
 {

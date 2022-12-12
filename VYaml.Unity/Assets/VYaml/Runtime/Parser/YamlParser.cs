@@ -392,10 +392,10 @@ namespace VYaml.Parser
 
         void ParseDocumentEnd()
         {
-            var _implicit = true;
+            // var _implicit = true;
             if (CurrentTokenType == TokenType.DocumentEnd)
             {
-                _implicit = false;
+                // _implicit = false;
                 tokenizer.Read();
             }
 
