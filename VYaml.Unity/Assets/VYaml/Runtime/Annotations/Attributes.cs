@@ -2,9 +2,19 @@ using System;
 
 namespace VYaml.Annotations
 {
+    public enum NamingConvention
+    {
+        LowerCamelCase,
+        UpperCamelCase,
+        SnakeCase,
+        KebabCase,
+    }
+
     [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface, Inherited = false)]
     public class YamlObjectAttribute : Attribute
     {
+        // TODO:
+        // public NamingConvention NamingConvention { get; set; }
     }
 
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false, Inherited = false)]

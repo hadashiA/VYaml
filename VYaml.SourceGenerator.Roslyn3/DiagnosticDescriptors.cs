@@ -29,4 +29,20 @@ static class DiagnosticDescriptors
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor YamlMemberPropertyMustHaveSetter = new(
+        id: "VYAML004",
+        title: "A yaml serializable property with must have setter.",
+        messageFormat: "The VYaml serializable object '{0}' property '{1}' must have setter.",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor YamlMemberFieldCannotBeReadonly = new(
+        id: "VYAML005",
+        title: "A yaml serializable field cannot be readonly",
+        messageFormat: "The VYaml serializable object '{0}' field '{1}' cannot be readonly.",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
 }

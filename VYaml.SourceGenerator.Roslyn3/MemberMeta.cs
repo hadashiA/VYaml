@@ -14,7 +14,6 @@ class MemberMeta
     public bool IsField { get; }
     public bool IsProperty { get; }
     public bool IsSettable { get; }
-    public bool IsAssignable { get; }
     public bool IsConstructorParameter { get; }
     public int Order { get; }
     public bool HasExplicitOrder { get; }
@@ -45,7 +44,6 @@ class MemberMeta
             IsProperty = false;
             IsField = true;
             IsSettable = !f.IsReadOnly; // readonly field can not set.
-            IsAssignable = IsSettable;
             MemberType = f.Type;
 
         }
@@ -54,7 +52,6 @@ class MemberMeta
             IsProperty = true;
             IsField = false;
             IsSettable = !p.IsReadOnly;
-            IsAssignable = IsSettable;
             MemberType = p.Type;
         }
         else

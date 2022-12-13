@@ -1,18 +1,16 @@
 # VYaml
 
-Extra fast, GC free YAML parser for C# and Unity.
+Extra fast, GC free YAML parser for C# (.NET and Unity).
 
-The reason VYaml is fast is it handles utf8 byte sequences directly and uses new APIs in C# ( `System.Buffers.*`, etc).
-In parsing, scalar values are pooled and no allocation occurs until `Scalar.ToString()`. This works with very low memory footprint and performance overhead, in environments such as Unity.
+The reason VYaml is fast is it handles utf8 byte sequences directly with new faces in C# ( `System.Buffers.*`, etc).
+In parsing, scalar values are pooled and no allocation occurs until `Scalar.ToString()`. This works with very low memory footprint and low performance overhead, in environments such as Unity.
 
+![screenshot_benchmark_dotnet.png](./screenshots/screenshot_benchmark_dotnet.png)
+![screenshot_benchmark_unity.png](./screenshots/screenshot_benchmark_dotnet.png)
 
-## Motivation
+Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular yaml library in C#), basically 6x faster and about 1/50 heap allocations in some case.
 
-YamlDotNet はグレートです。しかし私
-- カスタマイズしやすいものが必要でした
-- ゲームのDSLようなものを コンパイルする方針よりも、yamlがそのまま高速/低メモリでロードできることが扱いやすい
-
-## Currently supported Features:
+## Currentry supported fetures
 
 - Parser 
     - [YAML 1.2 almost fully supported](##)
@@ -22,7 +20,6 @@ YamlDotNet はグレートです。しかし私
 
 ## Most recent roadmap
 
-- NuGet package
 - [ ] Support incremental source generator (Only Roslyn 4)
 - Deserialize
     - [ ] Support `Stream`
@@ -32,40 +29,130 @@ YamlDotNet はグレートです。しかし私
     - [ ] Specific constructor
 - [ ] Serialize
 
+## Installation
+
+### NuGet
+
+NOTE: Require netstandard2.1 or later.
+
+
+```bash
+dotnet add package VYaml
+```
+
+### Unity
+
+#### Install via git url
+
+NOTE: Require Unity 2021.3 or later. (netstandard2.1 compatible)
+
+You can add following url to Unity Package Manager.
+
+```
+https://github.com/hadashiA/VYaml.git?path=VYaml.Unity/Assets/VYaml#0.1.0
+```
+
 ## Basic Usage
 
-## Deserialize
+### Deserialize
 
-wip
+Define a struct or class to be serialized and annotate it with the `[YamlObject]` attribute and the partial keyword.
 
-## Parsing (Low-level API)
+```
+using VYaml.Annotations;
 
-wip
+[YamlObject]
+public partial class Sample
+{
+    // these types are serialized by default
+    public int PublicField;
+    public int PublicProperty { get; set; }
+    public int PrivateSetPublicProperty { get; private set; }
+    public int InitProperty { get; init; }
+
+    // these types are not serialized by default
+    int privateProperty { get; set; }
+    int privateField;
+    readonly int privateReadOnlyField;
+
+    // use `[YamlIgnore]` to remove target of a public member
+    [YamlIgnore]
+    public int PublicProperty2 => PublicProperty + PublicField;
+}
+
+```
+
+Why partial is necessary ?
+- VYaml uses [SourceGenerator](https://learn.microsoft.com/en-us/dotnet/csharp/roslyn-sdk/source-generators-overview) for metaprogramming, which supports automatic generation of partial declarations, sets to private fields.
+
+The following yaml is deserializable to the above class `Sample`.
+
+```yaml
+publicField: 100
+publicProperty: 200
+privateSetPublicProperty: 300
+initProperty: 400
+```
+
+:exclamation: By default, VYaml
+
+```csharp
+var yamlUtf8Bytes = File.ReadAllBytes("path/to/yaml");
+var sample = YamlSerializer.Deserialize<Sample>(yamlUtf8Bytes);
+```
+
+
+
+#### Built-in supported types
+
+These types can be serialized by default:
+
+- .NET primitives (`byte`, `int`, `bool`, `char`, `double`, etc.)
+- Any enum (Currently, only simple string representation)
+- `string`, `decimal`, `Half`
+- `TimeSpan`, `DateTime`
+- `Guid`, `Uri`
+- `T[]`
+- `Nullable<>`
+- `List<>`
+- `Dictionary<,>`
+- `IEnumerable<>`, `ICollection<>`, `IList<>`, `IReadOnlyCollection<>`, `IReadOnlyList<>`
+- `IDictionary<,>`, `IReadOnlyDictionary<,>`
+
+TODO: We plan add more.
+
+
+## Low-Level API
+
+### Parser
+
+
+
+```csharp
+```
+
 
 
 ## YAML 1.2 spec support status
 
 ### Implicit primitive type conversion of scalar
 
-- https://yaml.org/type/bool.html
-    - :white_check_mark: true|True|TRUE|false|False|FALSE
-    - :white_check_mark: y|Y|yes|Yes|YES|n|N|no|No|NO
-    - :white_check_mark: on|On|ON|off|Off|OFF
-- https://yaml.org/type/float.html
-    - :white_check_mark: [-+]?([0-9][0-9_]*)?\.[0-9.]*([eE][-+][0-9]+)? (base 10)
-    - :x: [-+]?[0-9][0-9_]*(:[0-5]?[0-9])+\.[0-9_]* (base 60)
-    - :white_check_mark: [-+]?\.(inf|Inf|INF) # (infinity)
-    - :white_check_mark: \.(nan|NaN|NAN) # (not a number)     
-- https://yaml.org/type/int.
-    - :white_check_mark: [-+]?(0|[1-9][0-9_]*) # (base 10)
-    - :x: [-+]?0b[0-1_]+ # (base 2)
-    - :x: [-+]?0[0-7_]+ # (base 8)
-    - :white_check_mark: [-+]?0x[0-9a-fA-F_]+ # (base 16)
-    - :x: [-+]?[1-9][0-9_]*(:[0-5]?[0-9])+ # (base 60)
-- https://yaml.org/type/null.html
-    - :white_check_mark: ~ # (canonical)
-    - :white_check_mark: null|Null|NULL # (English)
-    - :white_check_mark:  # (Empty)
+
+When VYaml parses scalar, basically, it follows YAML Core Schema.
+https://yaml.org/spec/1.2.2/#103-core-schema
+
+The following is the implicit type interpretation.
+
+|Support|Regular expression|Resolved to type|
+| :white_check_mark: | `null | Null | NULL | ~` |null|
+| :white_check_mark: | /* Empty */ | null |
+| :white_check_mark: | `true | True | TRUE | false | False | FALSE` | boolean |
+| :white_check_mark: | `[-+]? [0-9]+` | int  (Base 10) |
+| :x: | `0o [0-7]+` | int (Base 8) |
+| :white_check_mark: | `0x [0-9a-fA-F]+` | int (Base 16) |
+| :white_check_mark: | `[-+]? ( \. [0-9]+ | [0-9]+ ( \. [0-9]* )? ) ( [eE] [-+]? [0-9]+ )?` | float |
+| :white_check_mark: | `[-+]? ( \.inf | \.Inf | \.INF )` | float (Infinity) |
+| :white_check_mark: | `\.nan | \.NaN | \.NAN` | float (Not a number) |
 
 ### https://yaml.org/spec/1.2.2
 
