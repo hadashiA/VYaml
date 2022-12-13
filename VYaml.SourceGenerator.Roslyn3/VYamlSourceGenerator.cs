@@ -170,7 +170,7 @@ public class VYamlSourceGenerator : ISourceGenerator
 
     static void EmitRegisterMethod(TypeMeta typeMeta, CodeWriter codeWriter, in GeneratorExecutionContext context)
     {
-        codeWriter.AppendLine("[Preserve]");
+        codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
         using var _ = codeWriter.BeginBlockScope("public static void __RegisterVYamlFormatter()");
         codeWriter.AppendLine($"global::VYaml.Serialization.GeneratedResolver.Register(new {typeMeta.TypeName}GeneratedFormatter());");
     }
@@ -185,7 +185,7 @@ public class VYamlSourceGenerator : ISourceGenerator
             ? typeMeta.FullTypeName
             : $"{typeMeta.FullTypeName}?";
 
-        codeWriter.AppendLine("[Preserve]");
+        codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
         using var _ = codeWriter.BeginBlockScope($"public class {typeMeta.TypeName}GeneratedFormatter : IYamlFormatter<{returnType}>");
 
         EmitDeserializeMethod(typeMeta, members, codeWriter, in context);
@@ -208,7 +208,7 @@ public class VYamlSourceGenerator : ISourceGenerator
         var returnType = typeMeta.Symbol.IsValueType
             ? typeMeta.FullTypeName
             : $"{typeMeta.FullTypeName}?";
-        codeWriter.AppendLine("[Preserve]");
+        codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
         using var methodScope = codeWriter.BeginBlockScope(
             $"public {returnType} Deserialize(ref YamlParser parser, YamlDeserializationContext context)");
 
