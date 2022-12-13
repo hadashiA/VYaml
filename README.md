@@ -18,7 +18,7 @@ Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular y
 ## Currentry supported fetures
 
 - Parser 
-    - [YAML 1.2 almost fully supported](##)
+    - [YAML 1.2 mostly supported](#httpsyamlorgspec122)
 - Deserialize
 - Mainly focused on Unity
     - Only 2021.3 and higher (netstandard2.1 compatible)
