@@ -3,8 +3,8 @@
 
 VYaml is a pure C# YAML 1.2 implementation, which is extra fast, low memory footprint with focued on .NET and Unity.
 
-- The parser is heavily influenced by yaml-rust, and libyaml, yaml-cpp.
-- Serialization interface/implementation heavily influenced by Utf8Json, MessagePack-CSharp, MemoryPack.
+- The parser is heavily influenced by [yaml-rust](https://github.com/chyh1990/yaml-rust), and libyaml, yaml-cpp.
+- Serialization interface/implementation heavily influenced by [Utf8Json](https://github.com/neuecc/Utf8Json), [MessagePack-CSharp](https://github.com/neuecc/MessagePack-CSharp), [MemoryPack](https://github.com/Cysharp/MemoryPack).
 
 The reason VYaml is fast is it handles utf8 byte sequences directly with new face api set in C# ( `System.Buffers.*`, etc).
 In parsing, scalar values are pooled and no allocation occurs until `Scalar.ToString()`. This works with very low memory footprint and low performance overhead, in environments such as Unity.
@@ -429,8 +429,8 @@ Following is the results of the [test](https://github.com/hadashiA/VYaml/blob/ma
 
 VYaml is inspired by:
 
-- yaml-rust
-- Utf8Json, MessagePack-Csharp, MemoryPack
+- [yaml-rust](https://github.com/chyh1990/yaml-rust)
+- [Utf8Json](https://github.com/neuecc/Utf8Json), [MessagePack-CSharp](https://github.com/neuecc/MessagePack-CSharp), [MemoryPack](https://github.com/Cysharp/MemoryPack)
 
 ## Aurhor
 
