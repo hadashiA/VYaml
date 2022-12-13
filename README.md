@@ -1,14 +1,19 @@
 # VYaml
 
-Extra fast, GC free YAML parser for C# (.NET and Unity).
 
-The reason VYaml is fast is it handles utf8 byte sequences directly with new faces in C# ( `System.Buffers.*`, etc).
+VYaml is a pure C# YAML 1.2 implementation, which is extra fast, low memory footprint with focued on .NET and Unity.
+
+- The parser is heavily influenced by yaml-rust, and libyaml, yaml-cpp.
+- Serialization interface/implementation heavily influenced by Utf8Json, MessagePack-CSharp, MemoryPack.
+
+The reason VYaml is fast is it handles utf8 byte sequences directly with new face api set in C# ( `System.Buffers.*`, etc).
 In parsing, scalar values are pooled and no allocation occurs until `Scalar.ToString()`. This works with very low memory footprint and low performance overhead, in environments such as Unity.
 
 ![screenshot_benchmark_dotnet.png](./screenshots/screenshot_benchmark_dotnet.png)
 ![screenshot_benchmark_unity.png](./screenshots/screenshot_benchmark_dotnet.png)
 
 Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular yaml library in C#), basically 6x faster and about 1/50 heap allocations in some case.
+
 
 ## Currentry supported fetures
 
@@ -52,7 +57,7 @@ You can add following url to Unity Package Manager.
 https://github.com/hadashiA/VYaml.git?path=VYaml.Unity/Assets/VYaml#0.1.0
 ```
 
-## Basic Usage
+## Usage
 
 ### Deserialize
 
@@ -94,14 +99,25 @@ privateSetPublicProperty: 300
 initProperty: 400
 ```
 
-:exclamation: By default, VYaml
-
 ```csharp
 var yamlUtf8Bytes = File.ReadAllBytes("path/to/yaml");
+// var yamlUtf8Bytes = System.Text.Encofing.UTF8.GetBytes("<yaml string....>");
 var sample = YamlSerializer.Deserialize<Sample>(yamlUtf8Bytes);
 ```
 
+#### Naming convention
 
+:exclamation: By default, VYaml maps C# property names in lower camel case (e.g. `propertyName`) format to yaml keys.
+You can customize this behaviour with `[YamlMember("name")]`
+
+```csharp
+[YamlObject]
+public partial class Sample
+{
+    [YamlMember("foo-bar")]
+    public int FooBar { get; init; }
+}
+```
 
 #### Built-in supported types
 
@@ -126,22 +142,125 @@ TODO: We plan add more.
 
 ### Parser
 
+`YamlParser` struct provides access to the complete meta-information of yaml.
 
+
+- `YamlParser.ParseEventType` indicates the state of the currently read yaml parsing result.
+- `YamlParser.Read()` reads through to the next syntax on yaml. (If end of stream then return false.)
+- How to access scalar value:
+    - `YamlParser.GetScalarAs*` families take the result of converting a scalar at the current position to a specified type.
+    - Or we can use `YamlParser.TryGetScalarAs*` style.
+- How to access meta information:
+    - `YamlParser.TryGetTag(out Tag tag)` 
+    - `YamlParser.TryGetCurrentAnchor(out Anchor anchor)`
+
+Basic example:
 
 ```csharp
+using var parser = YamlParser.FromBytes(utf8Bytes);
+
+// YAML may contain more than one `Document`. 
+// Here we skip to before first document content.
+parser.SkipAfter(ParseEventType.DocumentStart);
+
+// Scanning...
+while (parser.Read())
+{
+    // If the current syntax is Scalar, we can:
+    if (parser.CurrentEventType == ParseEventType.Scalar)
+    {
+        var intValue = parser.GetScalarAsInt32();
+        var stringValue = parser.GetScalarAsString();
+        // ...
+        
+        if (parser.TryGetCurrentTag(out var tag))
+        {
+            // Check for the tag...
+        }
+        
+        if (parser.TryGetCurrentAnchor(out var anchor))
+        {
+            // Check for the anchor...
+        }        
+    }
+    
+    // Sequence (Like a list in yaml)
+    else if (parser.CurrentEventType == ParseEventType.SequenceStart)
+    {
+        // We can check for the tag...
+        // We can check for the anchor...
+
+        // Read to end of sequence
+        while (!parser.End && parser.CurrentEventType != ParseEventType.SequenceEnd)
+        {
+             // 
+             if (parser.CurrentEventType = ParseEventType.Scalar)
+             {
+                 // ...
+             }
+             // ...
+             // ...
+             else
+             {
+                 // We can skip current element. (It could be a scalar, or alias, sequence, mapping...)
+                 parser.SkipCurrentNode();
+             }
+        }
+        parser.Read(); // Skip SequenceEnd.
+    }
+    
+    // Mapping (like a Dictionary in yaml)
+    else if (parser.CurrentEventType == ParseEventType.MappingStart)
+    {
+        // We can check for the tag...
+        // We can check for the anchor...
+
+        // Read to end of mapping
+        while (!parser.End && parser.CurrentEventType != ParseEventType.MappingEnd)
+        {
+             // 
+             if (parser.CurrentEventType = ParseEventType.Scalar)
+             {
+                 // ...
+             }
+             // ...
+             // ...
+             else
+             {
+                 // We can skip current element. (It could be a scalar, or alias, sequence, mapping...)
+                 parser.SkipCurrentNode(); // skip key
+                 parser.SkipCurrentNode(); // skip value
+             }
+        }
+        parser.Read(); // Skip MappingEnd.
+    }
+    
+    // Alias
+    else if (parser.CurrentEventType == ParseEventType.Alias)
+    {
+        // If Alias is used, the previous anchors must be holded somewhere.
+        // In the High level Deserialize API, `YamlDeserializationContext` does exactly this. 
+    }
+}
 ```
 
+
+## Customize serialization behaviour
+
+- `IYamlFormatter<T>` interface customize the serialization behaviour of a your particular type.
+- `IYamlFormatterResolver` interface can customize how it searches for `IYamlFormatter<T>` at runtime.
+
+TODO:
 
 
 ## YAML 1.2 spec support status
 
 ### Implicit primitive type conversion of scalar
 
+The following is the default implicit type interpretation.
 
-When VYaml parses scalar, basically, it follows YAML Core Schema.
+Basically, it follows YAML Core Schema.
 https://yaml.org/spec/1.2.2/#103-core-schema
-
-The following is the implicit type interpretation.
 
 |Support|Regular expression|Resolved to type|
 | :white_check_mark: | `null | Null | NULL | ~` |null|
@@ -154,7 +273,11 @@ The following is the implicit type interpretation.
 | :white_check_mark: | `[-+]? ( \.inf | \.Inf | \.INF )` | float (Infinity) |
 | :white_check_mark: | `\.nan | \.NaN | \.NAN` | float (Not a number) |
 
-### https://yaml.org/spec/1.2.2
+### https://yaml.org/spec/1.2.2/
+
+(YAML specifictiaon)(https://yaml.org/spec/1.2.2/)
+
+https://github.com/hadashiA/VYaml/blob/master/VYaml.Tests/Parser/SpecTest.cs
 
 - 2.1. Collections
   - :white_check_mark: Example 2.1 Sequence of Scalars (ball players)
@@ -295,5 +418,18 @@ The following is the implicit type interpretation.
   - :white_check_mark: Example 8.21 Block Scalar Nodes
   - :white_check_mark: Example 8.22 Block Collection Nodes
 
+## Credits
 
+VYaml is inspired by:
+
+- yaml-rust
+- Utf8Json, MessagePack-Csharp, MemoryPack
+
+## Aurhor
+
+@hadashiA
+
+## License
+
+MIT
 
