@@ -63,7 +63,7 @@ https://github.com/hadashiA/VYaml.git?path=VYaml.Unity/Assets/VYaml#0.1.0
 
 Define a struct or class to be serialized and annotate it with the `[YamlObject]` attribute and the partial keyword.
 
-```
+```csharp
 using VYaml.Annotations;
 
 [YamlObject]
