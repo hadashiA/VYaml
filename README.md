@@ -263,15 +263,16 @@ Basically, it follows YAML Core Schema.
 https://yaml.org/spec/1.2.2/#103-core-schema
 
 |Support|Regular expression|Resolved to type|
-| :white_check_mark: | `null | Null | NULL | ~` |null|
-| :white_check_mark: | /* Empty */ | null |
-| :white_check_mark: | `true | True | TRUE | false | False | FALSE` | boolean |
+|:-----|:-------|:-------|
+| :white_check_mark: | `null \| Null \| NULL \| ~` | null |
+| :white_check_mark: | `/* Empty */` | null |
+| :white_check_mark: | `true \| True \| TRUE \| false \| False \| FALSE` | boolean |
 | :white_check_mark: | `[-+]? [0-9]+` | int  (Base 10) |
 | :x: | `0o [0-7]+` | int (Base 8) |
 | :white_check_mark: | `0x [0-9a-fA-F]+` | int (Base 16) |
-| :white_check_mark: | `[-+]? ( \. [0-9]+ | [0-9]+ ( \. [0-9]* )? ) ( [eE] [-+]? [0-9]+ )?` | float |
-| :white_check_mark: | `[-+]? ( \.inf | \.Inf | \.INF )` | float (Infinity) |
-| :white_check_mark: | `\.nan | \.NaN | \.NAN` | float (Not a number) |
+| :white_check_mark: | `[-+]? ( \. [0-9]+ \| [0-9]+ ( \. [0-9]* )? ) ( [eE] [-+]? [0-9]+ )?` | float |
+| :white_check_mark: | `[-+]? ( \.inf \| \.Inf \| \.INF )` | float (Infinity) |
+| :white_check_mark: | `\.nan \| \.NaN \| \.NAN` | float (Not a number) |
 
 ### https://yaml.org/spec/1.2.2/
 
