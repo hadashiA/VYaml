@@ -105,7 +105,7 @@ var yamlUtf8Bytes = File.ReadAllBytes("path/to/yaml");
 var sample = YamlSerializer.Deserialize<Sample>(yamlUtf8Bytes);
 ```
 
-#### Deserialize<dynamic>
+#### Deserialize as `dynamic`
 
 You can deserialize into primitive  type implicitly.
 
