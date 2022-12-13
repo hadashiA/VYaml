@@ -276,9 +276,7 @@ https://yaml.org/spec/1.2.2/#103-core-schema
 
 ### https://yaml.org/spec/1.2.2/
 
-(YAML specifictiaon)(https://yaml.org/spec/1.2.2/)
-
-https://github.com/hadashiA/VYaml/blob/master/VYaml.Tests/Parser/SpecTest.cs
+Following is the results of the [test](https://github.com/hadashiA/VYaml/blob/master/VYaml.Tests/Parser/SpecTest.cs) for the following examples from the  [yaml spec page].
 
 - 2.1. Collections
   - :white_check_mark: Example 2.1 Sequence of Scalars (ball players)
