@@ -6,7 +6,7 @@ VYaml is a pure C# YAML 1.2 implementation, which is extra fast, low memory foot
 - The parser is heavily influenced by [yaml-rust](https://github.com/chyh1990/yaml-rust), and libyaml, yaml-cpp.
 - Serialization interface/implementation heavily influenced by [Utf8Json](https://github.com/neuecc/Utf8Json), [MessagePack-CSharp](https://github.com/neuecc/MessagePack-CSharp), [MemoryPack](https://github.com/Cysharp/MemoryPack).
 
-The reason VYaml is fast is it handles utf8 byte sequences directly with new face api set in C# ( `System.Buffers.*`, etc).
+The reason VYaml is fast is it handles utf8 byte sequences directly with newface api set of C# (`System.Buffers.*`, etc).
 In parsing, scalar values are pooled and no allocation occurs until `Scalar.ToString()`. This works with very low memory footprint and low performance overhead, in environments such as Unity.
 
 ![screenshot_benchmark_dotnet.png](./screenshots/screenshot_benchmark_dotnet.png)
@@ -27,9 +27,10 @@ Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular y
 
 - [ ] Support incremental source generator (Only Roslyn 4)
 - Deserialize
+    - [ ] Support `Stream`
+    - [ ] Custom formatter
     - [ ] Restrict max depth
     - [ ] Interface-typed and abstract class-typed objects
-    - [ ] Custom formatter
     - [ ] Specific constructor
 - [ ] Serialize
 
@@ -37,8 +38,10 @@ Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular y
 
 ### NuGet
 
-NOTE: Require netstandard2.1 or later.
+Require netstandard2.1 or later.
 
+You can install the following nuget package.
+https://www.nuget.org/packages/VYaml
 
 ```bash
 dotnet add package VYaml
@@ -46,9 +49,9 @@ dotnet add package VYaml
 
 ### Unity
 
-#### Install via git url
+Require Unity 2021.3 or later. 
 
-NOTE: Require Unity 2021.3 or later. (netstandard2.1 compatible)
+#### Install via git url
 
 You can add following url to Unity Package Manager.
 
@@ -68,16 +71,11 @@ using VYaml.Annotations;
 [YamlObject]
 public partial class Sample
 {
-    // these types are serialized by default
-    public int PublicField;
-    public int PublicProperty { get; set; }
-    public int PrivateSetPublicProperty { get; private set; }
-    public int InitProperty { get; init; }
-
-    // these types are not serialized by default
-    int privateProperty { get; set; }
-    int privateField;
-    readonly int privateReadOnlyField;
+    // By default, public fields and properties are serializable.
+    public string A; // public field
+    public string B { get; set; } // public property
+    public string C { get; private set; } // public property (private setter)
+    public string D { get; init; } // public property (init-only setter)
 
     // use `[YamlIgnore]` to remove target of a public member
     [YamlIgnore]
@@ -92,10 +90,10 @@ Why partial is necessary ?
 The following yaml is deserializable to the above class `Sample`.
 
 ```yaml
-publicField: 100
-publicProperty: 200
-privateSetPublicProperty: 300
-initProperty: 400
+a: hello
+b: aaa
+c: hoge
+d: ddd
 ```
 
 ```csharp
@@ -111,17 +109,32 @@ var sample = await YamlSerializer.DeserializeAsync<Sample>(stream);
 // var sample = YamlSerializer.Deserialize<Sample>(yamlUtf8Bytes);
 ```
 
+```csharp
+sample.A // #=> "hello"
+sample.B // #=> "aaa"
+sample.C // #=> "hoge"
+sample.D // #=> "ddd"
+```
+
 #### Deserialize as `dynamic`
 
-You can deserialize into primitive  type implicitly.
+You can also deserialize into primitive `object` type implicitly.
 
 ``` csharp
 var yaml = YamlSerializer.Deserialize<dynamic>(yamlUtf8Bytes);
 ```
 
+```csharp
+yaml["a"] // #=> "hello"
+yaml["b"] // #=> "aaa"
+yaml["c"] // #=> "hoge"
+yaml["d"] // #=> "ddd"
+```
+
 #### Naming convention
 
 :exclamation: By default, VYaml maps C# property names in lower camel case (e.g. `propertyName`) format to yaml keys.
+
 You can customize this behaviour with `[YamlMember("name")]`
 
 ```csharp
@@ -159,8 +172,8 @@ TODO: We plan add more.
 `YamlParser` struct provides access to the complete meta-information of yaml.
 
 
-- `YamlParser.ParseEventType` indicates the state of the currently read yaml parsing result.
 - `YamlParser.Read()` reads through to the next syntax on yaml. (If end of stream then return false.)
+- `YamlParser.ParseEventType` indicates the state of the currently read yaml parsing result.
 - How to access scalar value:
     - `YamlParser.GetScalarAs*` families take the result of converting a scalar at the current position to a specified type.
     - Or we can use `YamlParser.TryGetScalarAs*` style.
@@ -173,14 +186,14 @@ Basic example:
 ```csharp
 using var parser = YamlParser.FromBytes(utf8Bytes);
 
-// YAML may contain more than one `Document`. 
+// YAML contains more than one `Document`. 
 // Here we skip to before first document content.
 parser.SkipAfter(ParseEventType.DocumentStart);
 
 // Scanning...
 while (parser.Read())
 {
-    // If the current syntax is Scalar, we can:
+    // If the current syntax is Scalar, 
     if (parser.CurrentEventType == ParseEventType.Scalar)
     {
         var intValue = parser.GetScalarAsInt32();
@@ -198,16 +211,18 @@ while (parser.Read())
         }        
     }
     
-    // Sequence (Like a list in yaml)
+    // If the current syntax is Sequence (Like a list in yaml)
     else if (parser.CurrentEventType == ParseEventType.SequenceStart)
     {
         // We can check for the tag...
         // We can check for the anchor...
+        
+        parser.Read(); // Skip SequenceStart
 
         // Read to end of sequence
         while (!parser.End && parser.CurrentEventType != ParseEventType.SequenceEnd)
         {
-             // 
+             // A sequence element may be a scalar or other...
              if (parser.CurrentEventType = ParseEventType.Scalar)
              {
                  // ...
@@ -223,28 +238,25 @@ while (parser.Read())
         parser.Read(); // Skip SequenceEnd.
     }
     
-    // Mapping (like a Dictionary in yaml)
+    // If the current syntax is Mapping (like a Dictionary in yaml)
     else if (parser.CurrentEventType == ParseEventType.MappingStart)
     {
         // We can check for the tag...
         // We can check for the anchor...
+        
+        parser.Read(); // Skip MappingStart
 
         // Read to end of mapping
         while (!parser.End && parser.CurrentEventType != ParseEventType.MappingEnd)
         {
-             // 
-             if (parser.CurrentEventType = ParseEventType.Scalar)
-             {
-                 // ...
-             }
-             // ...
-             // ...
-             else
-             {
-                 // We can skip current element. (It could be a scalar, or alias, sequence, mapping...)
-                 parser.SkipCurrentNode(); // skip key
-                 parser.SkipCurrentNode(); // skip value
-             }
+             // After Mapping start, key and value appear alternately.
+             
+             var key = parser.GetScalarAsString();  // if key is scalar
+             var value = parser.GetScalarAsString(); // if value is scalar
+             
+             // Or we can skip current key/value. (It could be a scalar, or alias, sequence, mapping...)
+             // parser.SkipCurrentNode(); // skip key
+             // parser.SkipCurrentNode(); // skip value
         }
         parser.Read(); // Skip MappingEnd.
     }
@@ -258,6 +270,8 @@ while (parser.Read())
 }
 ```
 
+See [test code](https://github.com/hadashiA/VYaml/blob/master/VYaml.Tests/Parser/SpecTest.cs) for more information.
+The above test covers various patterns for the order of `ParsingEvent`.
 
 ## Customize serialization behaviour
 
