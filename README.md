@@ -263,6 +263,8 @@ while (parser.Read())
 }
 ```
 
+See [test code](https://github.com/hadashiA/VYaml/blob/master/VYaml.Tests/Parser/SpecTest.cs) for more information.
+The above test covers various patterns for the order of `ParsingEvent`.
 
 ## Customize serialization behaviour
 
