@@ -6,7 +6,7 @@ VYaml is a pure C# YAML 1.2 implementation, which is extra fast, low memory foot
 - The parser is heavily influenced by [yaml-rust](https://github.com/chyh1990/yaml-rust), and libyaml, yaml-cpp.
 - Serialization interface/implementation heavily influenced by [Utf8Json](https://github.com/neuecc/Utf8Json), [MessagePack-CSharp](https://github.com/neuecc/MessagePack-CSharp), [MemoryPack](https://github.com/Cysharp/MemoryPack).
 
-The reason VYaml is fast is it handles utf8 byte sequences directly with new face api set in C# ( `System.Buffers.*`, etc).
+The reason VYaml is fast is it handles utf8 byte sequences directly with newface api set of C# (`System.Buffers.*`, etc).
 In parsing, scalar values are pooled and no allocation occurs until `Scalar.ToString()`. This works with very low memory footprint and low performance overhead, in environments such as Unity.
 
 ![screenshot_benchmark_dotnet.png](./screenshots/screenshot_benchmark_dotnet.png)
@@ -28,9 +28,9 @@ Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular y
 - [ ] Support incremental source generator (Only Roslyn 4)
 - Deserialize
     - [ ] Support `Stream`
+    - [ ] Custom formatter
     - [ ] Restrict max depth
     - [ ] Interface-typed and abstract class-typed objects
-    - [ ] Custom formatter
     - [ ] Specific constructor
 - [ ] Serialize
 
@@ -69,16 +69,11 @@ using VYaml.Annotations;
 [YamlObject]
 public partial class Sample
 {
-    // these types are serialized by default
-    public int PublicField;
-    public int PublicProperty { get; set; }
-    public int PrivateSetPublicProperty { get; private set; }
-    public int InitProperty { get; init; }
-
-    // these types are not serialized by default
-    int privateProperty { get; set; }
-    int privateField;
-    readonly int privateReadOnlyField;
+    // By default, public fields and properties are serializable.
+    public string A; // public field
+    public string B { get; set; } // public property
+    public string C { get; private set; } // public property (private setter)
+    public string D { get; init; } // public property (init-only setter)
 
     // use `[YamlIgnore]` to remove target of a public member
     [YamlIgnore]
@@ -93,10 +88,10 @@ Why partial is necessary ?
 The following yaml is deserializable to the above class `Sample`.
 
 ```yaml
-publicField: 100
-publicProperty: 200
-privateSetPublicProperty: 300
-initProperty: 400
+a: hello
+b: aaa
+c: hoge
+d: ddd
 ```
 
 ```csharp
@@ -113,9 +108,17 @@ You can deserialize into primitive  type implicitly.
 var yaml = YamlSerializer.Deserialize<dynamic>(yamlUtf8Bytes);
 ```
 
+```csharp
+yaml["a"] // #=> "hello"
+yaml["b"] // #=> "aaa"
+yaml["c"] // #=> "hoge"
+yaml["d"] // #=> "ddd"
+```
+
 #### Naming convention
 
 :exclamation: By default, VYaml maps C# property names in lower camel case (e.g. `propertyName`) format to yaml keys.
+
 You can customize this behaviour with `[YamlMember("name")]`
 
 ```csharp
