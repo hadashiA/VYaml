@@ -27,7 +27,6 @@ Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular y
 
 - [ ] Support incremental source generator (Only Roslyn 4)
 - Deserialize
-    - [ ] Support `Stream`
     - [ ] Custom formatter
     - [ ] Restrict max depth
     - [ ] Interface-typed and abstract class-typed objects
