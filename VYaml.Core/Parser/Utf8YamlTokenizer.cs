@@ -637,15 +637,13 @@ namespace VYaml.Parser
                     {
                         ConsumeTagUri(false, handle, suffix);
                         handle.Clear();
+                        handle.Write((byte)'!');
                         // A special case: the '!' tag.  Set the handle to '' and the
                         // suffix to '!'.
                         if (suffix.Length <= 0)
                         {
+                            handle.Clear();
                             suffix.Clear();
-                            suffix.Write((byte)'!');
-                        }
-                        else
-                        {
                             suffix.Write((byte)'!');
                         }
                     }

@@ -10,5 +10,7 @@ namespace VYaml.Parser
             Handle = handle;
             Suffix = suffix;
         }
+
+        public override string ToString() => $"{Handle} {Suffix}";
     }
 }

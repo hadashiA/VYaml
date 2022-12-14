@@ -26,12 +26,5 @@ namespace VYaml.Tests.Serialization
             var result = Deserialize<DataMemberLabeledEnum>("c-alias");
             Assert.That(result, Is.EqualTo(DataMemberLabeledEnum.C));
         }
-
-        [Test]
-        public void Deserialize_WithYamlMember()
-        {
-            var result = Deserialize<YamlMemberLabeledEnum>("c-alias");
-            Assert.That(result, Is.EqualTo(YamlMemberLabeledEnum.C));
-        }
     }
 }
