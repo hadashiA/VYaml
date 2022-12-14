@@ -165,8 +165,8 @@ TODO: We plan add more.
 `YamlParser` struct provides access to the complete meta-information of yaml.
 
 
-- `YamlParser.ParseEventType` indicates the state of the currently read yaml parsing result.
 - `YamlParser.Read()` reads through to the next syntax on yaml. (If end of stream then return false.)
+- `YamlParser.ParseEventType` indicates the state of the currently read yaml parsing result.
 - How to access scalar value:
     - `YamlParser.GetScalarAs*` families take the result of converting a scalar at the current position to a specified type.
     - Or we can use `YamlParser.TryGetScalarAs*` style.
@@ -179,14 +179,14 @@ Basic example:
 ```csharp
 using var parser = YamlParser.FromBytes(utf8Bytes);
 
-// YAML may contain more than one `Document`. 
+// YAML contains more than one `Document`. 
 // Here we skip to before first document content.
 parser.SkipAfter(ParseEventType.DocumentStart);
 
 // Scanning...
 while (parser.Read())
 {
-    // If the current syntax is Scalar, we can:
+    // If the current syntax is Scalar, 
     if (parser.CurrentEventType == ParseEventType.Scalar)
     {
         var intValue = parser.GetScalarAsInt32();
@@ -204,16 +204,18 @@ while (parser.Read())
         }        
     }
     
-    // Sequence (Like a list in yaml)
+    // If the current syntax is Sequence (Like a list in yaml)
     else if (parser.CurrentEventType == ParseEventType.SequenceStart)
     {
         // We can check for the tag...
         // We can check for the anchor...
+        
+        parser.Read(); // Skip SequenceStart
 
         // Read to end of sequence
         while (!parser.End && parser.CurrentEventType != ParseEventType.SequenceEnd)
         {
-             // 
+             // A sequence element may be a scalar or other...
              if (parser.CurrentEventType = ParseEventType.Scalar)
              {
                  // ...
@@ -229,28 +231,25 @@ while (parser.Read())
         parser.Read(); // Skip SequenceEnd.
     }
     
-    // Mapping (like a Dictionary in yaml)
+    // If the current syntax is Mapping (like a Dictionary in yaml)
     else if (parser.CurrentEventType == ParseEventType.MappingStart)
     {
         // We can check for the tag...
         // We can check for the anchor...
+        
+        parser.Read(); // Skip MappingStart
 
         // Read to end of mapping
         while (!parser.End && parser.CurrentEventType != ParseEventType.MappingEnd)
         {
-             // 
-             if (parser.CurrentEventType = ParseEventType.Scalar)
-             {
-                 // ...
-             }
-             // ...
-             // ...
-             else
-             {
-                 // We can skip current element. (It could be a scalar, or alias, sequence, mapping...)
-                 parser.SkipCurrentNode(); // skip key
-                 parser.SkipCurrentNode(); // skip value
-             }
+             // After Mapping start, key and value appear alternately.
+             
+             var key = parser.GetScalarAsString();  // if key is scalar
+             var value = parser.GetScalarAsString(); // if value is scalar
+             
+             // Or we can skip current key/value. (It could be a scalar, or alias, sequence, mapping...)
+             // parser.SkipCurrentNode(); // skip key
+             // parser.SkipCurrentNode(); // skip value
         }
         parser.Read(); // Skip MappingEnd.
     }
