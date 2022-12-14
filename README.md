@@ -102,9 +102,16 @@ var yamlUtf8Bytes = File.ReadAllBytes("path/to/yaml");
 var sample = YamlSerializer.Deserialize<Sample>(yamlUtf8Bytes);
 ```
 
+```csharp
+sample.A // #=> "hello"
+sample.B // #=> "aaa"
+sample.C // #=> "hoge"
+sample.D // #=> "ddd"
+```
+
 #### Deserialize as `dynamic`
 
-You can deserialize into primitive  type implicitly.
+You can also deserialize into primitive `object` type implicitly.
 
 ``` csharp
 var yaml = YamlSerializer.Deserialize<dynamic>(yamlUtf8Bytes);
