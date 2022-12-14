@@ -115,6 +115,24 @@ sample.C // #=> "hoge"
 sample.D // #=> "ddd"
 ```
 
+#### Built-in supported types
+
+These types can be serialized by default:
+
+- .NET primitives (`byte`, `int`, `bool`, `char`, `double`, etc.)
+- Any enum (Currently, only simple string representation)
+- `string`, `decimal`, `Half`
+- `TimeSpan`, `DateTime`, `DateTimeOffset`
+- `Guid`, `Uri`
+- `T[]`
+- `Nullable<>`, `KeyValuePair<,>`, `Tuple<,...>`, `ValueTuple<,...>`
+- `List<>`
+- `Dictionary<,>`
+- `IEnumerable<>`, `ICollection<>`, `IList<>`, `IReadOnlyCollection<>`, `IReadOnlyList<>`
+- `IDictionary<,>`, `IReadOnlyDictionary<,>`
+
+TODO: We plan add more.
+
 #### Deserialize as `dynamic`
 
 You can also deserialize into primitive `object` type implicitly.
@@ -145,24 +163,62 @@ public partial class Sample
 }
 ```
 
-#### Built-in supported types
+#### enum
 
-These types can be serialized by default:
+Deserialize a string in `camelCase` format as an enum.
 
-- .NET primitives (`byte`, `int`, `bool`, `char`, `double`, etc.)
-- Any enum (Currently, only simple string representation)
-- `string`, `decimal`, `Half`
-- `TimeSpan`, `DateTime`, `DateTimeOffset`
-- `Guid`, `Uri`
-- `T[]`
-- `Nullable<>`, `KeyValuePair<,>`, `Tuple<,...>`, `ValueTuple<,...>`
-- `List<>`
-- `Dictionary<,>`
-- `IEnumerable<>`, `ICollection<>`, `IList<>`, `IReadOnlyCollection<>`, `IReadOnlyList<>`
-- `IDictionary<,>`, `IReadOnlyDictionary<,>`
+``` csharp
+enum Foo
+{
+    Item1,
+    Item2,
+    Item3,
+}
+```
 
-TODO: We plan add more.
+``` csharp
+YamlSerializer.Deserialize<Foo>(Utf8.GetBytes("item1")); // #=> Foo.Item1
+```
 
+It respect `[EnumMember]`.
+
+``` csharp
+enum Foo
+{
+    [EnumMember(Value = "item1-alias")]
+    Item1,
+    
+    [EnumMember(Value = "item2-alias")]
+    Item2,
+    
+    [EnumMember(Value = "item3-alias")]
+    Item3,
+}
+```
+
+``` csharp
+YamlSerializer.Deserialize<Foo>(Utf8.GetBytes("item1-alias")); // #=> Foo.Item1
+```
+
+Also we can use `[DataMember]` attributes.
+
+``` csharp
+enum Foo
+{
+    [DataMember(Name = "item1-alias")]
+    Item1,
+    
+    [DataMember(Name = "item2-alias")]
+    Item2,
+    
+    [DAtaMember(Name = "item3-alias")]
+    Item3,
+}
+```
+
+``` csharp
+YamlSerializer.Deserialize<Foo>(Utf8.GetBytes("item1-alias")); // #=> Foo.Item1
+```
 
 ## Low-Level API
 
