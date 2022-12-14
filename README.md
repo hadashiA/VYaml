@@ -153,10 +153,10 @@ These types can be serialized by default:
 - .NET primitives (`byte`, `int`, `bool`, `char`, `double`, etc.)
 - Any enum (Currently, only simple string representation)
 - `string`, `decimal`, `Half`
-- `TimeSpan`, `DateTime`
+- `TimeSpan`, `DateTime`, `DateTimeOffset`
 - `Guid`, `Uri`
 - `T[]`
-- `Nullable<>`
+- `Nullable<>`, `KeyValuePair<,>`, `Tuple<,...>`, `ValueTuple<,...>`
 - `List<>`
 - `Dictionary<,>`
 - `IEnumerable<>`, `ICollection<>`, `IList<>`, `IReadOnlyCollection<>`, `IReadOnlyList<>`
