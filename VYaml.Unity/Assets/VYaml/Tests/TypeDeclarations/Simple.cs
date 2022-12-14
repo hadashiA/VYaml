@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.Serialization;
 using VYaml.Annotations;
 
 namespace VYaml.Tests.TypeDeclarations
@@ -53,6 +54,49 @@ namespace VYaml.Tests.TypeDeclarations
         public ValueTuple<int> One { get; set; }
         public ValueTuple<int, int> Two { get; set; }
         public ValueTuple<int, int, int> Three { get; set; }
+    }
+
+    public enum SimpleEnum
+    {
+        A,
+        B,
+        C,
+    }
+
+    public enum EnumMemberLabeledEnum
+    {
+        [EnumMember(Value = "a-alias")]
+        A,
+
+        [EnumMember(Value = "b-alias")]
+        B,
+
+        [EnumMember(Value = "c-alias")]
+        C,
+    }
+
+    public enum DataMemberLabeledEnum
+    {
+        [DataMember(Name = "a-alias")]
+        A,
+
+        [DataMember(Name = "b-alias")]
+        B,
+
+        [DataMember(Name = "c-alias")]
+        C,
+    }
+
+    public enum YamlMemberLabeledEnum
+    {
+        [YamlMember("a-alias")]
+        A,
+
+        [YamlMember("b-alias")]
+        B,
+
+        [YamlMember("c-alias")]
+        C,
     }
 }
 

@@ -5,65 +5,53 @@ using System.Linq;
 
 namespace VYaml.Serialization
 {
-    public static class CompositeResolver
+    public class CompositeResolver : IYamlFormatterResolver
     {
-        static readonly IReadOnlyDictionary<Type, IYamlFormatter> EmptyFormattersByType =
-            new Dictionary<Type, IYamlFormatter>();
+        readonly ConcurrentDictionary<Type, IYamlFormatter> formattersCache = new();
+        readonly List<IYamlFormatter> formatters;
+        readonly List<IYamlFormatterResolver> resolvers;
 
-        public static IYamlFormatterResolver Create(IReadOnlyList<IYamlFormatter> formatters, IReadOnlyList<IYamlFormatterResolver> resolvers)
+        readonly object gate = new();
+
+        public static CompositeResolver Create(IEnumerable<IYamlFormatter> formatters, IEnumerable<IYamlFormatterResolver> resolvers)
         {
-            if (formatters is null)
-            {
-                throw new ArgumentNullException(nameof(formatters));
-            }
-
-            if (resolvers is null)
-            {
-                throw new ArgumentNullException(nameof(resolvers));
-            }
-
-            // Make a copy of the resolvers list provided by the caller to guard against them changing it later.
-            var immutableFormatters = formatters.ToArray();
-            var immutableResolvers = resolvers.ToArray();
-
-            return new CachingResolver(immutableFormatters, immutableResolvers);
+            return new CompositeResolver(formatters.ToList(), resolvers.ToList());
         }
 
-        public static IYamlFormatterResolver Create(params IYamlFormatterResolver[] resolvers) =>
-            Create(Array.Empty<IYamlFormatter>(), resolvers);
-
-        public static IYamlFormatterResolver Create(params IYamlFormatter[] formatters) =>
-            Create(formatters, Array.Empty<IYamlFormatterResolver>());
-
-        class CachingResolver : IYamlFormatterResolver
+        public static CompositeResolver Create(IEnumerable<IYamlFormatter> formatters)
         {
-            readonly ConcurrentDictionary<Type, IYamlFormatter> formattersCache = new();
-            readonly IYamlFormatter[] subFormatters;
-            readonly IYamlFormatterResolver[] subResolvers;
+            return new CompositeResolver(formatters.ToList());
+        }
 
-            /// <summary>
-            /// Initializes a new instance of the <see cref="CachingResolver"/> class.
-            /// </summary>
-            internal CachingResolver(IYamlFormatter[] subFormatters, IYamlFormatterResolver[] subResolvers)
-            {
-                this.subFormatters = subFormatters;
-                this.subResolvers = subResolvers;
-            }
+        public static CompositeResolver Create(IEnumerable<IYamlFormatterResolver> resolvers)
+        {
+            return new CompositeResolver(null, resolvers.ToList());
+        }
 
-            public IYamlFormatter<T> GetFormatter<T>()
+        CompositeResolver(
+            List<IYamlFormatter>? formatters = null,
+            List<IYamlFormatterResolver>? resolvers = null)
+        {
+            this.formatters = formatters ?? new List<IYamlFormatter>();
+            this.resolvers = resolvers ?? new List<IYamlFormatterResolver>();
+        }
+
+        public IYamlFormatter<T>? GetFormatter<T>()
+        {
+            if (!formattersCache.TryGetValue(typeof(T), out var formatter))
             {
-                if (!this.formattersCache.TryGetValue(typeof(T), out IYamlFormatter formatter))
+                lock (gate)
                 {
-                    foreach (var subFormatter in subFormatters)
+                    foreach (var f in formatters)
                     {
-                        if (subFormatter is IYamlFormatter<T>)
+                        if (f is IYamlFormatter<T>)
                         {
-                            formatter = subFormatter;
+                            formatter = f;
                             goto CACHE;
                         }
                     }
 
-                    foreach (IYamlFormatterResolver resolver in subResolvers)
+                    foreach (var resolver in resolvers)
                     {
                         if (resolver.GetFormatter<T>() is { } f)
                         {
@@ -71,13 +59,29 @@ namespace VYaml.Serialization
                             goto CACHE;
                         }
                     }
+                }
 
 // when not found, cache null.
 CACHE:
-                    formattersCache.TryAdd(typeof(T), formatter);
-                }
+                formattersCache.TryAdd(typeof(T), formatter);
+            }
 
-                return (IYamlFormatter<T>)formatter;
+            return formatter as IYamlFormatter<T>;
+        }
+
+        public void AddFormatter(IYamlFormatter formatter)
+        {
+            lock (gate)
+            {
+                formatters.Add(formatter);
+            }
+        }
+
+        public void AddResolver(IYamlFormatterResolver resolver)
+        {
+            lock (gate)
+            {
+                resolvers.Add(resolver);
             }
         }
     }
