@@ -453,7 +453,7 @@ VYaml is inspired by:
 
 ## Aurhor
 
-@hadashiA
+[@hadashiA](https://github.com/hadashiA)
 
 ## License
 
