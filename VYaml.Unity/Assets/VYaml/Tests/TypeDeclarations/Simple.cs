@@ -86,18 +86,6 @@ namespace VYaml.Tests.TypeDeclarations
         [DataMember(Name = "c-alias")]
         C,
     }
-
-    public enum YamlMemberLabeledEnum
-    {
-        [YamlMember("a-alias")]
-        A,
-
-        [YamlMember("b-alias")]
-        B,
-
-        [YamlMember("c-alias")]
-        C,
-    }
 }
 
 // another namespace, same type name
