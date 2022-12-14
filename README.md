@@ -38,8 +38,10 @@ Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular y
 
 ### NuGet
 
-NOTE: Require netstandard2.1 or later.
+Require netstandard2.1 or later.
 
+You can install the following nuget package.
+https://www.nuget.org/packages/VYaml
 
 ```bash
 dotnet add package VYaml
@@ -47,9 +49,9 @@ dotnet add package VYaml
 
 ### Unity
 
-#### Install via git url
+Require Unity 2021.3 or later. 
 
-NOTE: Require Unity 2021.3 or later. (netstandard2.1 compatible)
+#### Install via git url
 
 You can add following url to Unity Package Manager.
 
