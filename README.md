@@ -27,7 +27,6 @@ Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular y
 
 - [ ] Support incremental source generator (Only Roslyn 4)
 - Deserialize
-    - [ ] Support `Stream`
     - [ ] Restrict max depth
     - [ ] Interface-typed and abstract class-typed objects
     - [ ] Custom formatter
@@ -100,9 +99,16 @@ initProperty: 400
 ```
 
 ```csharp
-var yamlUtf8Bytes = File.ReadAllBytes("path/to/yaml");
+using var stream = File.Open("/path/to/yaml");
+var sample = await YamlSerializer.DeserializeAsync<Sample>(stream);
+
+// Or 
+// var yamlUtf8Bytes = File.ReadAllBytes("path/to/yaml");
+// var sample = YamlSerializer.Deserialize<Sample>(yamlUtf8Bytes);
+//
+// Or
 // var yamlUtf8Bytes = System.Text.Encofing.UTF8.GetBytes("<yaml string....>");
-var sample = YamlSerializer.Deserialize<Sample>(yamlUtf8Bytes);
+// var sample = YamlSerializer.Deserialize<Sample>(yamlUtf8Bytes);
 ```
 
 #### Deserialize as `dynamic`
