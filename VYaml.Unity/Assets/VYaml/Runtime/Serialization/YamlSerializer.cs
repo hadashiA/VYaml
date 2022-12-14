@@ -1,5 +1,8 @@
 using System;
 using System.Buffers;
+using System.IO;
+using System.Threading.Tasks;
+using VYaml.Internal;
 using VYaml.Parser;
 
 namespace VYaml.Serialization
@@ -28,26 +31,35 @@ namespace VYaml.Serialization
 
         static YamlSerializerOptions? defaultOptions;
 
-        public static T Deserialize<T>(ReadOnlyMemory<byte> memory)
-        {
-            var parser = YamlParser.FromSequence(new ReadOnlySequence<byte>(memory));
-            return Deserialize<T>(ref parser, DefaultOptions);
-        }
-
-        public static T Deserialize<T>(ReadOnlyMemory<byte> memory, YamlSerializerOptions options)
+        public static T Deserialize<T>(ReadOnlyMemory<byte> memory, YamlSerializerOptions? options = null)
         {
             var parser = YamlParser.FromSequence(new ReadOnlySequence<byte>(memory));
             return Deserialize<T>(ref parser, options);
         }
 
-        public static T Deserialize<T>(in ReadOnlySequence<byte> sequence, YamlSerializerOptions options)
+        public static T Deserialize<T>(in ReadOnlySequence<byte> sequence, YamlSerializerOptions? options = null)
         {
             var parser = YamlParser.FromSequence(sequence);
             return Deserialize<T>(ref parser, options);
         }
 
-        public static T Deserialize<T>(ref YamlParser parser, YamlSerializerOptions options)
+        public static async ValueTask<T> Deserialize<T>(Stream stream, YamlSerializerOptions? options = null)
         {
+            var byteSequenceBuilder = await StreamHelper.ReadAsSequenceAsync(stream);
+            try
+            {
+                var sequence = byteSequenceBuilder.Build();
+                return Deserialize<T>(in sequence, options);
+            }
+            finally
+            {
+                ReusableByteSequenceBuilderPool.Return(byteSequenceBuilder);
+            }
+        }
+
+        public static T Deserialize<T>(ref YamlParser parser, YamlSerializerOptions? options = null)
+        {
+            options ??= DefaultOptions;
             try
             {
                 var contextLocal = deserializationContext ??= new YamlDeserializationContext();
