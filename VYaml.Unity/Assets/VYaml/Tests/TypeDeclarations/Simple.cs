@@ -1,3 +1,4 @@
+using System;
 using VYaml.Annotations;
 
 namespace VYaml.Tests.TypeDeclarations
@@ -36,6 +37,22 @@ namespace VYaml.Tests.TypeDeclarations
     public partial class WithArray
     {
         public SimpleTypeOne[]? One { get; set; }
+    }
+
+    [YamlObject]
+    public partial class WithTuple
+    {
+        public Tuple<int> One { get; set; }
+        public Tuple<int, int> Two { get; set; }
+        public Tuple<int, int, int> Three { get; set; }
+    }
+
+    [YamlObject]
+    public partial class WithValueTuple
+    {
+        public ValueTuple<int> One { get; set; }
+        public ValueTuple<int, int> Two { get; set; }
+        public ValueTuple<int, int, int> Three { get; set; }
     }
 }
 
