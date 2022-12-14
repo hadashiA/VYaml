@@ -4,7 +4,6 @@ using VYaml.Parser;
 
 namespace VYaml.Tests.Parser
 {
-
     [TestFixture]
     public class ScalarTest
     {
@@ -25,23 +24,6 @@ namespace VYaml.Tests.Parser
         [TestCase("false", ExpectedResult = false)]
         [TestCase("False", ExpectedResult = false)]
         [TestCase("FALSE", ExpectedResult = false)]
-        [TestCase("y", ExpectedResult = true)]
-        [TestCase("Y", ExpectedResult = true)]
-        [TestCase("yes", ExpectedResult = true)]
-        [TestCase("Yes", ExpectedResult = true)]
-        [TestCase("YES", ExpectedResult = true)]
-        [TestCase("YES", ExpectedResult = true)]
-        [TestCase("n", ExpectedResult = false)]
-        [TestCase("N", ExpectedResult = false)]
-        [TestCase("no", ExpectedResult = false)]
-        [TestCase("No", ExpectedResult = false)]
-        [TestCase("NO", ExpectedResult = false)]
-        [TestCase("on", ExpectedResult = true)]
-        [TestCase("On", ExpectedResult = true)]
-        [TestCase("ON", ExpectedResult = true)]
-        [TestCase("off", ExpectedResult = false)]
-        [TestCase("Off", ExpectedResult = false)]
-        [TestCase("OFF", ExpectedResult = false)]
         public bool Boolean(string input)
         {
             var parsed = FromString(input).TryGetBool(out var value);
