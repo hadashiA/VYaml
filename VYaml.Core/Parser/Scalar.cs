@@ -205,7 +205,7 @@ namespace VYaml.Parser
                 Utf8Parser.TryParse(hexNumber, out value, out bytesConsumed, 'x') &&
                 bytesConsumed == hexNumber.Length)
             {
-                value -= 1;
+                value *= -1;
                 return true;
             }
             return false;
@@ -385,8 +385,7 @@ namespace VYaml.Parser
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static bool TryDetectHex(ReadOnlySpan<byte> span, out ReadOnlySpan<byte> slice)
         {
-            if (span.Length > YamlCodes.HexPrefix.Length + 1 &&
-                span.StartsWith(YamlCodes.HexPrefix))
+            if (span.Length > YamlCodes.HexPrefix.Length && span.StartsWith(YamlCodes.HexPrefix))
             {
                 slice = span[YamlCodes.HexPrefix.Length..];
                 return true;
@@ -399,7 +398,7 @@ namespace VYaml.Parser
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static bool TryDetectHexNegative(ReadOnlySpan<byte> span, out ReadOnlySpan<byte> slice)
         {
-            if (span.Length > YamlCodes.HexPrefixNegative.Length + 1 &&
+            if (span.Length > YamlCodes.HexPrefixNegative.Length &&
                 span.StartsWith(YamlCodes.HexPrefixNegative))
             {
                 slice = span[YamlCodes.HexPrefixNegative.Length..];
