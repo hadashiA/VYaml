@@ -86,6 +86,50 @@ namespace VYaml.Tests.TypeDeclarations
         [DataMember(Name = "c-alias")]
         C,
     }
+
+    [YamlObject]
+    [YamlObjectUnion("!impl1", typeof(InterfaceImpl1))]
+    [YamlObjectUnion("!impl2", typeof(InterfaceImpl2))]
+    public partial interface IUnion
+    {
+        public int A { get; }
+    }
+
+    [YamlObject]
+    public partial class InterfaceImpl1 : IUnion
+    {
+        public int A { get; set; }
+        public string B { get; set; }
+    }
+
+    [YamlObject]
+    public partial class InterfaceImpl2 : IUnion
+    {
+        public int A { get; set; }
+        public string C { get; set; }
+    }
+
+    [YamlObject]
+    [YamlObjectUnion("!impl1", typeof(AbstractImpl1))]
+    [YamlObjectUnion("!impl2", typeof(AbstractImpl2))]
+    public abstract partial class AbstractUnion
+    {
+        public abstract int A { get; protected set; }
+    }
+
+    [YamlObject]
+    public partial class AbstractImpl1 : AbstractUnion
+    {
+        public override int A { get; protected set; }
+        public string B { get; private set; }
+    }
+
+    [YamlObject]
+    public partial class AbstractImpl2 : AbstractUnion
+    {
+        public override int A { get; protected set; }
+        public string C { get; private set; }
+    }
 }
 
 // another namespace, same type name

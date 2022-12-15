@@ -38,6 +38,19 @@ namespace VYaml.Annotations
     {
     }
 
+    [AttributeUsage(AttributeTargets.Interface | AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
+    public sealed class YamlObjectUnionAttribute : Attribute
+    {
+        public string Tag { get; }
+        public Type SubType { get; }
+
+        public YamlObjectUnionAttribute(string tagString, Type subType)
+        {
+            Tag = tagString;
+            SubType = subType;
+        }
+    }
+
     /// <summary>
     /// Preserve for Unity IL2CPP(internal but used for code generator)
     /// </summary>

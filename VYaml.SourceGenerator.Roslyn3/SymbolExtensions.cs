@@ -56,6 +56,25 @@ static class SymbolExtensions
         }
     }
 
+    public static bool InheritsFrom(this INamedTypeSymbol symbol, INamedTypeSymbol baseSymbol)
+    {
+        var baseName = baseSymbol.ToString();
+        while (true)
+        {
+            if (symbol.ToString() == baseName)
+            {
+                return true;
+            }
+            if (symbol.BaseType != null)
+            {
+                symbol = symbol.BaseType;
+                continue;
+            }
+            break;
+        }
+        return false;
+    }
+
     public static IEnumerable<INamedTypeSymbol> GetAllBaseTypes(this INamedTypeSymbol symbol)
     {
         var t = symbol.BaseType;
