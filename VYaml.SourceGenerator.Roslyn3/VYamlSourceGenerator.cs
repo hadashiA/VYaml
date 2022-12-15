@@ -20,7 +20,6 @@ public class VYamlSourceGenerator : ISourceGenerator
             var codeWriter = new CodeWriter();
             if (context.SyntaxContextReceiver! is not SyntaxContextReceiver syntaxCollector) return;
 
-            // var l = new List<TypeMeta>();
             foreach (var workItem in syntaxCollector.GetWorkItems())
             {
                 if (context.CancellationToken.IsCancellationRequested)
@@ -31,9 +30,16 @@ public class VYamlSourceGenerator : ISourceGenerator
                 var typeMeta = workItem.Analyze(in context, references);
                 if (typeMeta is null) continue;
 
-                Emit(typeMeta, codeWriter, references, in context);
+                if (TryEmit(typeMeta, codeWriter, in context))
+                {
+                    var fullType = typeMeta.FullTypeName
+                        .Replace("global::", "")
+                        .Replace("<", "_")
+                        .Replace(">", "_");
+
+                    context.AddSource($"{fullType}.YamlFormatter.g.cs", codeWriter.ToString());
+                }
                 codeWriter.Clear();
-                // l.Add(typeMeta);
             }
         }
         catch (Exception ex)
@@ -45,14 +51,12 @@ public class VYamlSourceGenerator : ISourceGenerator
         }
     }
 
-    static void Emit(
-        TypeMeta typeMeta,
-        CodeWriter codeWriter,
-        ReferenceSymbols references,
-        in GeneratorExecutionContext context)
+    static bool TryEmit(TypeMeta typeMeta, CodeWriter codeWriter, in GeneratorExecutionContext context)
     {
         try
         {
+            var error = false;
+
             // verify is partial
             if (!typeMeta.IsPartial())
             {
@@ -60,7 +64,7 @@ public class VYamlSourceGenerator : ISourceGenerator
                     DiagnosticDescriptors.MustBePartial,
                     typeMeta.Syntax.Identifier.GetLocation(),
                     typeMeta.Symbol.Name));
-                return;
+                error = true;
             }
 
             // nested is not allowed
@@ -70,29 +74,120 @@ public class VYamlSourceGenerator : ISourceGenerator
                     DiagnosticDescriptors.NestedNotAllow,
                     typeMeta.Syntax.Identifier.GetLocation(),
                     typeMeta.Symbol.Name));
-                return;
+                error = true;
             }
 
-            // verify members
-            var memberMetas = typeMeta.GetSerializeMembers();
-            foreach (var memberMeta in memberMetas)
+            // verify abstract/interface
+            if (typeMeta.Symbol.IsAbstract)
             {
-                if (memberMeta is { IsProperty: true, IsSettable: false })
+                if (!typeMeta.IsUnion)
                 {
                     context.ReportDiagnostic(Diagnostic.Create(
-                        DiagnosticDescriptors.YamlMemberPropertyMustHaveSetter,
-                        memberMeta.GetLocation(typeMeta.Syntax),
-                        typeMeta.Symbol.Name,
-                        memberMeta.Symbol.Name));
+                        DiagnosticDescriptors.AbstractMustUnion,
+                        typeMeta.Syntax.Identifier.GetLocation(),
+                        typeMeta.TypeName));
+                    error = true;
                 }
-                if (memberMeta is { IsField: true, IsSettable: false })
+            }
+
+            // verify union
+            if (typeMeta.IsUnion)
+            {
+                if (!typeMeta.Symbol.IsAbstract)
                 {
                     context.ReportDiagnostic(Diagnostic.Create(
-                        DiagnosticDescriptors.YamlMemberFieldCannotBeReadonly,
-                        memberMeta.GetLocation(typeMeta.Syntax),
-                        typeMeta.Symbol.Name,
-                        memberMeta.Symbol.Name));
+                        DiagnosticDescriptors.ConcreteTypeCantBeUnion,
+                        typeMeta.Syntax.Identifier.GetLocation(),
+                        typeMeta.TypeName));
+                    error = true;
                 }
+
+                // verify tag duplication
+                foreach (var tagGroup in typeMeta.UnionMetas.GroupBy(x => x.SubTypeTag))
+                {
+                    if (tagGroup.Count() > 1)
+                    {
+                        context.ReportDiagnostic(Diagnostic.Create(
+                            DiagnosticDescriptors.UnionTagDuplicate,
+                            typeMeta.Syntax.Identifier.GetLocation(),
+                            tagGroup.Key));
+                        error = true;
+                    }
+                }
+
+                // verify interface impl
+                if (typeMeta.Symbol.TypeKind == TypeKind.Interface)
+                {
+                    foreach (var unionMeta in typeMeta.UnionMetas)
+                    {
+                        // interface, check interfaces.
+                        var check = unionMeta.SubTypeSymbol.IsGenericType
+                            ? unionMeta.SubTypeSymbol.OriginalDefinition.AllInterfaces.Any(x => x.EqualsUnconstructedGenericType(typeMeta.Symbol))
+                            : unionMeta.SubTypeSymbol.AllInterfaces.Any(x => SymbolEqualityComparer.Default.Equals(x, typeMeta.Symbol));
+
+                        if (!check)
+                        {
+                            context.ReportDiagnostic(Diagnostic.Create(
+                                DiagnosticDescriptors.UnionMemberTypeNotImplementBaseType,
+                                typeMeta.Syntax.Identifier.GetLocation(),
+                                typeMeta.TypeName,
+                                unionMeta.SubTypeSymbol.Name));
+                            error = true;
+                        }
+                    }
+                }
+                // verify abstract inherit
+                else
+                {
+                    foreach (var unionMeta in typeMeta.UnionMetas)
+                    {
+                        // abstract type, check base.
+                        var check = unionMeta.SubTypeSymbol.IsGenericType
+                            ? unionMeta.SubTypeSymbol.OriginalDefinition.GetAllBaseTypes().Any(x => x.EqualsUnconstructedGenericType(typeMeta.Symbol))
+                            : unionMeta.SubTypeSymbol.GetAllBaseTypes().Any(x => SymbolEqualityComparer.Default.Equals(x, typeMeta.Symbol));
+
+                        if (!check)
+                        {
+                            context.ReportDiagnostic(Diagnostic.Create(
+                                DiagnosticDescriptors.UnionMemberTypeNotDerivedBaseType,
+                                typeMeta.Syntax.Identifier.GetLocation(),
+                                typeMeta.TypeName,
+                                unionMeta.SubTypeSymbol.Name));
+                            error = true;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // verify members
+                var memberMetas = typeMeta.GetSerializeMembers();
+                foreach (var memberMeta in memberMetas)
+                {
+                    if (memberMeta is { IsProperty: true, IsSettable: false })
+                    {
+                        context.ReportDiagnostic(Diagnostic.Create(
+                            DiagnosticDescriptors.YamlMemberPropertyMustHaveSetter,
+                            memberMeta.GetLocation(typeMeta.Syntax),
+                            typeMeta.TypeName,
+                            memberMeta.Name));
+                        error = true;
+                    }
+                    if (memberMeta is { IsField: true, IsSettable: false })
+                    {
+                        context.ReportDiagnostic(Diagnostic.Create(
+                            DiagnosticDescriptors.YamlMemberFieldCannotBeReadonly,
+                            memberMeta.GetLocation(typeMeta.Syntax),
+                            typeMeta.TypeName,
+                            memberMeta.Name));
+                        error = true;
+                    }
+                }
+            }
+
+            if (error)
+            {
+                return false;
             }
 
             codeWriter.AppendLine("// <auto-generated />");
@@ -118,24 +213,31 @@ public class VYamlSourceGenerator : ISourceGenerator
                 codeWriter.BeginBlock();
             }
 
-            var fullType = typeMeta.FullTypeName
-                .Replace("global::", "")
-                .Replace("<", "_")
-                .Replace(">", "_");
-
-            var typeDecralationKeyword = (typeMeta.Symbol.IsRecord, typeMeta.Symbol.IsValueType) switch
+            var typeDeclarationKeyword = (typeMeta.Symbol.IsRecord, typeMeta.Symbol.IsValueType) switch
             {
                 (true, true) => "record struct",
                 (true, false) => "record",
                 (false, true) => "struct",
                 (false, false) => "class",
             };
+            if (typeMeta.IsUnion)
+            {
+                typeDeclarationKeyword = typeMeta.Symbol.IsRecord
+                    ? "record"
+                    : typeMeta.Symbol.TypeKind == TypeKind.Interface ? "interface" : "class";
+            }
 
-            using (codeWriter.BeginBlockScope($"partial {typeDecralationKeyword} {typeMeta.TypeName}"))
+            using (codeWriter.BeginBlockScope($"partial {typeDeclarationKeyword} {typeMeta.TypeName}"))
             {
                 // EmitCCtor(typeMeta, codeWriter, in context);
-                EmitRegisterMethod(typeMeta, codeWriter, in context);
-                EmitFormatter(typeMeta, memberMetas, codeWriter, in context);
+                if (!TryEmitRegisterMethod(typeMeta, codeWriter, in context))
+                {
+                    return false;
+                }
+                if (!TryEmitFormatter(typeMeta, codeWriter, in context))
+                {
+                    return false;
+                }
             }
 
             if (!ns.IsGlobalNamespace)
@@ -150,8 +252,7 @@ public class VYamlSourceGenerator : ISourceGenerator
             codeWriter.AppendLine("#pragma warning restore CS8602 // Possible null return");
             codeWriter.AppendLine("#pragma warning restore CS8604 // Possible null reference argument for parameter");
             codeWriter.AppendLine("#pragma warning restore CS8631 // The type cannot be used as type parameter in the generic type or method");
-
-            context.AddSource($"{fullType}.YamlFormatter.g.cs", codeWriter.ToString());
+            return true;
         }
         catch (Exception ex)
         {
@@ -159,6 +260,7 @@ public class VYamlSourceGenerator : ISourceGenerator
                 DiagnosticDescriptors.UnexpectedErrorDescriptor,
                 Location.None,
                 ex.ToString().Replace(Environment.NewLine, " ")));
+            return false;
         }
     }
 
@@ -168,16 +270,16 @@ public class VYamlSourceGenerator : ISourceGenerator
         codeWriter.AppendLine($"__RegisterVYamlFormatter();");
     }
 
-    static void EmitRegisterMethod(TypeMeta typeMeta, CodeWriter codeWriter, in GeneratorExecutionContext context)
+    static bool TryEmitRegisterMethod(TypeMeta typeMeta, CodeWriter codeWriter, in GeneratorExecutionContext context)
     {
         codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
         using var _ = codeWriter.BeginBlockScope("public static void __RegisterVYamlFormatter()");
         codeWriter.AppendLine($"global::VYaml.Serialization.GeneratedResolver.Register(new {typeMeta.TypeName}GeneratedFormatter());");
+        return true;
     }
 
-    static void EmitFormatter(
+    static bool TryEmitFormatter(
         TypeMeta typeMeta,
-        MemberMeta[] members,
         CodeWriter codeWriter,
         in GeneratorExecutionContext context)
     {
@@ -188,15 +290,42 @@ public class VYamlSourceGenerator : ISourceGenerator
         codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
         using var _ = codeWriter.BeginBlockScope($"public class {typeMeta.TypeName}GeneratedFormatter : IYamlFormatter<{returnType}>");
 
-        EmitDeserializeMethod(typeMeta, members, codeWriter, in context);
+        return typeMeta.IsUnion
+            ? TryEmitDeserializeMethodUnion(typeMeta, codeWriter, in context)
+            : TryEmitDeserializeMethod(typeMeta, codeWriter, in context);
     }
 
-    static void EmitDeserializeMethod(
-        TypeMeta typeMeta,
-        MemberMeta[] memberMetas,
-        CodeWriter codeWriter,
-        in GeneratorExecutionContext context)
+    static bool TryEmitDeserializeMethod(TypeMeta typeMeta, CodeWriter codeWriter, in GeneratorExecutionContext context)
     {
+        // verify members
+        var memberMetas = typeMeta.GetSerializeMembers();
+        var invalid = false;
+        foreach (var memberMeta in memberMetas)
+        {
+            if (memberMeta is { IsProperty: true, IsSettable: false })
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    DiagnosticDescriptors.YamlMemberPropertyMustHaveSetter,
+                    memberMeta.GetLocation(typeMeta.Syntax),
+                    typeMeta.TypeName,
+                    memberMeta.Name));
+                invalid = true;
+            }
+            if (memberMeta is { IsField: true, IsSettable: false })
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    DiagnosticDescriptors.YamlMemberFieldCannotBeReadonly,
+                    memberMeta.GetLocation(typeMeta.Syntax),
+                    typeMeta.TypeName,
+                    memberMeta.Name));
+                invalid = true;
+            }
+        }
+        if (invalid)
+        {
+            return false;
+        }
+
         foreach (var memberMeta in memberMetas)
         {
             codeWriter.Append($"static readonly byte[] {memberMeta.Name}KeyUtf8Bytes = ");
@@ -222,7 +351,7 @@ public class VYamlSourceGenerator : ISourceGenerator
         {
             codeWriter.AppendLine("parser.SkipCurrentNode();");
             codeWriter.AppendLine($"return new {typeMeta.TypeName}();");
-            return;
+            return true;
         }
 
         codeWriter.AppendLine("parser.ReadWithVerify(ParseEventType.MappingStart);");
@@ -288,5 +417,46 @@ public class VYamlSourceGenerator : ISourceGenerator
             }
         }
         codeWriter.AppendLine(";");
+        return true;
+    }
+
+    static bool TryEmitDeserializeMethodUnion(TypeMeta typeMeta, CodeWriter codeWriter, in GeneratorExecutionContext context)
+    {
+        var returnType = typeMeta.Symbol.IsValueType
+            ? typeMeta.FullTypeName
+            : $"{typeMeta.FullTypeName}?";
+
+        codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
+        using var methodScope = codeWriter.BeginBlockScope(
+            $"public {returnType} Deserialize(ref YamlParser parser, YamlDeserializationContext context)");
+
+        using (codeWriter.BeginBlockScope("if (parser.IsNullScalar())"))
+        {
+            codeWriter.AppendLine("parser.Read();");
+            codeWriter.AppendLine("return default;");
+        }
+
+        using (codeWriter.BeginBlockScope("if (!parser.TryGetCurrentTag(out var tag))"))
+        {
+            codeWriter.AppendLine("throw new YamlSerializerException(parser.CurrentMark, \"Cannot find any tag for union\");");
+        }
+
+        codeWriter.AppendLine();
+
+        var branch = "if";
+        foreach (var unionMeta in typeMeta.UnionMetas)
+        {
+            using (codeWriter.BeginBlockScope($"{branch} (tag.Equals(\"{unionMeta.SubTypeTag}\")) "))
+            {
+                var subTypeFullName = unionMeta.SubTypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                codeWriter.AppendLine($"return context.DeserializeWithAlias<{subTypeFullName}>(ref parser);");
+            }
+            branch = "else if";
+        }
+        using (codeWriter.BeginBlockScope("else"))
+        {
+            codeWriter.AppendLine("throw new YamlSerializerException(parser.CurrentMark, \"Cannot find any subtype tag for union\");");
+        }
+        return true;
     }
 }

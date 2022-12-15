@@ -13,6 +13,10 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <InternalsVisibleTo Include="VYaml.Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
         <ProjectReference Include="..\VYaml.Core\VYaml.Core.csproj" />
         <ProjectReference Include="..\VYaml.SourceGenerator.Roslyn3\VYaml.SourceGenerator.Roslyn3.csproj" />
     </ItemGroup>

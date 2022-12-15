@@ -45,4 +45,60 @@ static class DiagnosticDescriptors
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor AbstractMustUnion = new(
+        id: "VYAML006",
+        title: "abstract/interface type of `[YamlObject]` must annotate with Union",
+        messageFormat: "abstract/interface type of `[YamlObject]` '{0}' must annotate with Union",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor ConcreteTypeCantBeUnion = new(
+        id: "VYAML007",
+        title: "Concrete type can't be union",
+        messageFormat: "The object that has `[YamlObject]` '{0}' can be Union, only allow abstract or interface",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor UnionTagDuplicate = new(
+        id: "VYAML008",
+        title: "Union tag is duplicate",
+        messageFormat: "The object that has `[YamlObject]` '{0}' union tag value is duplicate",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor UnionMemberTypeNotImplementBaseType = new(
+        id: "VYAML009",
+        title: "Union member not implement union interface",
+        messageFormat: "The object '{0}' union member '{1}' not implment union interface",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor UnionMemberTypeNotDerivedBaseType = new(
+        id: "VYAML010",
+        title: "Union member not dervided union base type",
+        messageFormat: "The object '{0}' union member '{1}' not derived union type",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor UnionMemberNotAllowStruct = new(
+        id: "VYAML011",
+        title: "Union member can't be struct",
+        messageFormat: "The object '{0}' union member '{1}' can't be member, not allows struct",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor UnionMemberMustBeYamlObject = new(
+        id: "VYAML012",
+        title: "Union member must be YamlObject",
+        messageFormat: "The object '{0}' union member '{1}' must be [YamlObject]",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
 }

@@ -81,7 +81,7 @@ namespace VYaml.Parser
             return new YamlParser(tokenizer);
         }
 
-        public static YamlParser FromSequence(ReadOnlySequence<byte> sequence)
+        public static YamlParser FromSequence(in ReadOnlySequence<byte> sequence)
         {
             var tokenizer = new Utf8YamlTokenizer(sequence);
             return new YamlParser(tokenizer);
@@ -113,7 +113,7 @@ namespace VYaml.Parser
         readonly Dictionary<string, int> anchors;
         ExpandBuffer<ParseState> stateStack;
 
-        public YamlParser(Utf8YamlTokenizer tokenizer)
+        public YamlParser(in Utf8YamlTokenizer tokenizer)
         {
             this.tokenizer = tokenizer;
             currentState = ParseState.StreamStart;
