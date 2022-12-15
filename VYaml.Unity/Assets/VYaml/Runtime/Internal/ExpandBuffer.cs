@@ -44,6 +44,9 @@ namespace VYaml.Internal
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ref T Peek() => ref buffer[Length - 1];
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref T Pop()
         {
             if (Length == 0)
@@ -86,7 +89,7 @@ namespace VYaml.Internal
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        void SetCapacity(int newCapacity)
+        public void SetCapacity(int newCapacity)
         {
             if (buffer.Length >= newCapacity) return;
 

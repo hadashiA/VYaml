@@ -1,6 +1,6 @@
 namespace VYaml.Internal
 {
-    public enum LineBreakState
+    enum LineBreakState
     {
         None,
         Lf,

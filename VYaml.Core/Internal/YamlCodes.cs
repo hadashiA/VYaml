@@ -71,8 +71,8 @@ namespace VYaml.Internal
         public const byte Tag = (byte)'!';
         public const byte SingleQuote = (byte)'\'';
         public const byte DoubleQuote = (byte)'"';
-        public const byte BlockScalerHeader1 = (byte)'|';
-        public const byte BlockScalerHeader2 = (byte)'>';
+        public const byte LiteralScalerHeader = (byte)'|';
+        public const byte FoldedScalerHeader = (byte)'>';
         public const byte Comma = (byte)',';
         public const byte BlockEntryIndent = (byte)'-';
         public const byte ExplicitKeyIndent = (byte)'?';

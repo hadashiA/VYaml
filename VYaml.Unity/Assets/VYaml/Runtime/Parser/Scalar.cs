@@ -62,10 +62,10 @@ namespace VYaml.Parser
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ReadOnlySpan<byte> AsSpan() => buffer.AsSpan(0, Length);
+        public Span<byte> AsSpan() => buffer.AsSpan(0, Length);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ReadOnlySpan<byte> AsSpan(int start, int length) => buffer.AsSpan(start, length);
+        public Span<byte> AsSpan(int start, int length) => buffer.AsSpan(start, length);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(byte code)
@@ -383,6 +383,21 @@ namespace VYaml.Parser
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Grow(int sizeHint)
+        {
+            if (sizeHint <= buffer.Length)
+            {
+                return;
+            }
+            var newCapacity = buffer.Length * GrowFactor / 100;
+            while (newCapacity < sizeHint)
+            {
+                newCapacity = newCapacity * GrowFactor / 100;
+            }
+            SetCapacity(newCapacity);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static bool TryDetectHex(ReadOnlySpan<byte> span, out ReadOnlySpan<byte> slice)
         {
             if (span.Length > YamlCodes.HexPrefix.Length && span.StartsWith(YamlCodes.HexPrefix))
@@ -407,21 +422,6 @@ namespace VYaml.Parser
 
             slice = default;
             return false;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        void Grow(int sizeHint)
-        {
-            if (sizeHint <= buffer.Length)
-            {
-                return;
-            }
-            var newCapacity = buffer.Length * GrowFactor / 100;
-            while (newCapacity < sizeHint)
-            {
-                newCapacity = newCapacity * GrowFactor / 100;
-            }
-            SetCapacity(newCapacity);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
