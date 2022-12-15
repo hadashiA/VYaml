@@ -29,7 +29,6 @@ Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular y
 - Deserialize
     - [ ] Custom formatter
     - [ ] Restrict max depth
-    - [ ] Interface-typed and abstract class-typed objects
     - [ ] Specific constructor
 - [ ] Serialize
 
@@ -55,7 +54,7 @@ Require Unity 2021.3 or later.
 You can add following url to Unity Package Manager.
 
 ```
-https://github.com/hadashiA/VYaml.git?path=VYaml.Unity/Assets/VYaml#0.2.0
+https://github.com/hadashiA/VYaml.git?path=VYaml.Unity/Assets/VYaml#0.3.0
 ```
 
 ## Usage
