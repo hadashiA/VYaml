@@ -163,7 +163,7 @@ public partial class Sample
 }
 ```
 
-#### enum
+#### Enum
 
 Deserialize a string in `camelCase` format as an enum.
 
@@ -180,7 +180,8 @@ enum Foo
 YamlSerializer.Deserialize<Foo>(Utf8.GetBytes("item1")); // #=> Foo.Item1
 ```
 
-It respect `[EnumMember]`.
+It respect `[EnumMember]`, and `[DataMember]`.
+
 
 ``` csharp
 enum Foo
@@ -200,25 +201,40 @@ enum Foo
 YamlSerializer.Deserialize<Foo>(Utf8.GetBytes("item1-alias")); // #=> Foo.Item1
 ```
 
-Also we can use `[DataMember]` attributes.
+#### Polymorphism (Union)
+
+VYaml supports deserialize interface or abstract class objects for. In VYaml this feature is called Union. 
+Only interfaces and abstracts classes are allowed to be annotated with `[YamlObjectUnion]` attributes. Unique union tags are required.
 
 ``` csharp
-enum Foo
+[YamlObject]
+[YamlObjectUnion("!foo", typeof(FooClass))]
+[YamlObjectUnion("!bar", typeof(BarClass))]
+public partial interface IUnionSample
 {
-    [DataMember(Name = "item1-alias")]
-    Item1,
-    
-    [DataMember(Name = "item2-alias")]
-    Item2,
-    
-    [DAtaMember(Name = "item3-alias")]
-    Item3,
+}
+
+[YamlObject]
+public partial class FooClass : IUnionSample
+{
+    public int A { get; set; }
+}
+
+[YamlObject]
+public partial class BarClass : IUnionSample
+{
+    public string? B { get; set; }
 }
 ```
 
 ``` csharp
-YamlSerializer.Deserialize<Foo>(Utf8.GetBytes("item1-alias")); // #=> Foo.Item1
+// We can deserialize as interface type.
+var obj = YamlSerializer.Deserialize<IUnionSample>(UTF8.GetBytes("!foo { a: 100 }"));
 ```
+
+In the abobe example, The `!foo` and `!bar`  are called tag in the YAML specification.
+YAML can mark arbitrary data in this way, and VYaml Union takes advantage of this.
+
 
 ## Low-Level API
 
