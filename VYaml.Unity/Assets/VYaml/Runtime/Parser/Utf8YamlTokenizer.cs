@@ -26,7 +26,10 @@ namespace VYaml.Parser
         public TokenType CurrentTokenType
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get => currentToken.Type;
+            get;
+
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            private set;
         }
 
         public Marker CurrentMark
@@ -37,7 +40,6 @@ namespace VYaml.Parser
 
         SequenceReader<byte> reader;
         Marker mark;
-        Token currentToken;
 
         bool streamStartProduced;
         bool streamEndProduced;
@@ -49,17 +51,19 @@ namespace VYaml.Parser
         int tokensParsed;
         bool tokenAvailable;
 
-        InsertionQueue<Token> tokens;
+        TokenQueue tokens;
         ScalarPool scalarPool;
         ExpandBuffer<SimpleKeyState> simpleKeyCandidates;
         ExpandBuffer<int> indents;
         ExpandBuffer<byte> lineBreaksBuffer;
 
+        ITokenContent? currentTokenContent;
+
         public Utf8YamlTokenizer(in ReadOnlySequence<byte> sequence)
         {
             reader = new SequenceReader<byte>(sequence);
             mark = new Marker(0, 1, 0);
-            tokens = new InsertionQueue<Token>(16);
+            tokens = new TokenQueue(16);
             simpleKeyCandidates = new ExpandBuffer<SimpleKeyState>(16);
             indents = new ExpandBuffer<int>(16);
             lineBreaksBuffer = new ExpandBuffer<byte>(64);
@@ -74,7 +78,8 @@ namespace VYaml.Parser
             streamEndProduced = false;
             tokenAvailable = false;
 
-            currentToken = default;
+            CurrentTokenType = default;
+            currentTokenContent = null;
 
             reader.TryPeek(out currentCode);
         }
@@ -99,15 +104,16 @@ namespace VYaml.Parser
                 ConsumeMoreTokens();
             }
 
-            if (currentToken.Content is Scalar scalar)
+            if (currentTokenContent is Scalar scalar)
             {
                 ReturnToPool(scalar);
             }
-            currentToken = tokens.Dequeue();
+
+            (CurrentTokenType, currentTokenContent) = tokens.Dequeue();
             tokenAvailable = false;
             tokensParsed += 1;
 
-            if (currentToken.Type == TokenType.StreamEnd)
+            if (CurrentTokenType == TokenType.StreamEnd)
             {
                 streamEndProduced = true;
             }
@@ -123,16 +129,16 @@ namespace VYaml.Parser
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal T TakeCurrentTokenContent<T>() where T : ITokenContent
         {
-            var result = currentToken;
-            currentToken = default;
-            return (T)result.Content!;
+            var result = currentTokenContent;
+            currentTokenContent = null;
+            return (T)result!;
         }
 
         void ConsumeMoreTokens()
         {
             while (true)
             {
-                var needMore = tokens.Count <= 0;
+                var needMore = tokens.Length <= 0;
                 if (!needMore)
                 {
                     StaleSimpleKeyCandidates();
@@ -263,7 +269,7 @@ namespace VYaml.Parser
             indent = -1;
             streamStartProduced = true;
             simpleKeyAllowed = true;
-            tokens.Enqueue(new Token(TokenType.StreamStart));
+            tokens.Enqueue(TokenType.StreamStart);
             simpleKeyCandidates.Add(new SimpleKeyState());
         }
 
@@ -278,7 +284,7 @@ namespace VYaml.Parser
             UnrollIndent(-1);
             RemoveSimpleKeyCandidate();
             simpleKeyAllowed = false;
-            tokens.Enqueue(new Token(TokenType.StreamEnd));
+            tokens.Enqueue(TokenType.StreamEnd);
         }
 
         void ConsumeDirective()
@@ -310,7 +316,7 @@ namespace VYaml.Parser
                     }
 
                     // TODO: This should be error ?
-                    tokens.Enqueue(new Token(TokenType.TagDirective));
+                    tokens.Enqueue(TokenType.TagDirective);
                 }
             }
             finally
@@ -333,7 +339,7 @@ namespace VYaml.Parser
 
             if (!reader.End && !YamlCodes.IsLineBreak(currentCode))
             {
-                throw new YamlTokenizerException(CurrentMark,
+                throw new YamlTokenizerException(in mark,
                     "While scanning a directive, did not find expected comment or line break");
             }
 
@@ -354,13 +360,13 @@ namespace VYaml.Parser
 
             if (result.Length <= 0)
             {
-                throw new YamlTokenizerException(CurrentMark,
+                throw new YamlTokenizerException(in mark,
                     "While scanning a directive, could not find expected directive name");
             }
 
             if (!reader.End && !YamlCodes.IsBlank(currentCode))
             {
-                throw new YamlTokenizerException(CurrentMark,
+                throw new YamlTokenizerException(in mark,
                     "While scanning a directive, found unexpected non-alphabetical character");
             }
         }
@@ -376,13 +382,13 @@ namespace VYaml.Parser
 
             if (currentCode != '.')
             {
-                throw new YamlTokenizerException(CurrentMark,
+                throw new YamlTokenizerException(in mark,
                     "while scanning a YAML directive, did not find expected digit or '.' character");
             }
 
             Advance(1);
             var minor = ConsumeVersionDirectiveNumber();
-            tokens.Enqueue(new Token(TokenType.VersionDirective, new VersionDirective(major, minor)));
+            tokens.Enqueue(TokenType.VersionDirective, new VersionDirective(major, minor));
         }
 
         int ConsumeVersionDirectiveNumber()
@@ -393,7 +399,7 @@ namespace VYaml.Parser
             {
                 if (length + 1 > 9)
                 {
-                    throw new YamlTokenizerException(CurrentMark,
+                    throw new YamlTokenizerException(in mark,
                         "While scanning a YAML directive, found exteremely long version number");
                 }
 
@@ -404,7 +410,7 @@ namespace VYaml.Parser
 
             if (length == 0)
             {
-                throw new YamlTokenizerException(CurrentMark,
+                throw new YamlTokenizerException(in mark,
                     "While scanning a YAML directive, did not find expected version number");
             }
             return value;
@@ -434,11 +440,11 @@ namespace VYaml.Parser
 
                 if (YamlCodes.IsEmpty(currentCode) || reader.End)
                 {
-                    tokens.Enqueue(new Token(TokenType.TagDirective, new Tag(handle.ToString(), suffix.ToString())));
+                    tokens.Enqueue(TokenType.TagDirective, new Tag(handle.ToString(), suffix.ToString()));
                 }
                 else
                 {
-                    throw new YamlTokenizerException(CurrentMark,
+                    throw new YamlTokenizerException(in mark,
                         "While scanning TAG, did not find expected whitespace or line break");
                 }
             }
@@ -455,7 +461,7 @@ namespace VYaml.Parser
             RemoveSimpleKeyCandidate();
             simpleKeyAllowed = false;
             Advance(3);
-            tokens.Enqueue(new Token(tokenType));
+            tokens.Enqueue(tokenType);
         }
 
         void ConsumeFlowCollectionStart(TokenType tokenType)
@@ -467,7 +473,7 @@ namespace VYaml.Parser
             simpleKeyAllowed = true;
 
             Advance(1);
-            tokens.Enqueue(new Token(tokenType));
+            tokens.Enqueue(tokenType);
         }
 
         void ConsumeFlowCollectionEnd(TokenType tokenType)
@@ -478,7 +484,7 @@ namespace VYaml.Parser
             simpleKeyAllowed = false;
 
             Advance(1);
-            tokens.Enqueue(new Token(tokenType));
+            tokens.Enqueue(tokenType);
         }
 
         void ConsumeFlowEntryStart()
@@ -487,7 +493,7 @@ namespace VYaml.Parser
             simpleKeyAllowed = true;
 
             Advance(1);
-            tokens.Enqueue(new Token(TokenType.FlowEntryStart));
+            tokens.Enqueue(TokenType.FlowEntryStart);
         }
 
         void ConsumeBlockEntry()
@@ -501,11 +507,11 @@ namespace VYaml.Parser
             {
                 throw new YamlTokenizerException(in mark, "Block sequence entries are not allowed in this context");
             }
-            RollIndent(mark.Col, new Token(TokenType.BlockSequenceStart));
+            RollIndent(mark.Col, TokenType.BlockSequenceStart);
             RemoveSimpleKeyCandidate();
             simpleKeyAllowed = true;
             Advance(1);
-            tokens.Enqueue(new Token(TokenType.BlockEntryStart));
+            tokens.Enqueue(TokenType.BlockEntryStart);
         }
 
         void ConsumeComplexKeyStart()
@@ -517,13 +523,13 @@ namespace VYaml.Parser
                 {
                     throw new YamlTokenizerException(in mark, "Mapping keys are not allowed in this context");
                 }
-                RollIndent(mark.Col, new Token(TokenType.BlockMappingStart));
+                RollIndent(mark.Col, TokenType.BlockMappingStart);
             }
             RemoveSimpleKeyCandidate();
 
             simpleKeyAllowed = flowLevel == 0;
             Advance(1);
-            tokens.Enqueue(new Token(TokenType.KeyStart));
+            tokens.Enqueue(TokenType.KeyStart);
         }
 
         void ConsumeValueStart()
@@ -532,11 +538,10 @@ namespace VYaml.Parser
             if (simpleKey.Possible)
             {
                 // insert simple key
-                var token = new Token(TokenType.KeyStart);
-                tokens.Insert(simpleKey.TokenNumber - tokensParsed, token);
+                tokens.Insert(simpleKey.TokenNumber - tokensParsed, TokenType.KeyStart);
 
                 // Add the BLOCK-MAPPING-START token if needed
-                RollIndent(simpleKey.Start.Col, new Token(TokenType.BlockMappingStart), simpleKey.TokenNumber);
+                RollIndent(simpleKey.Start.Col, TokenType.BlockMappingStart, insertNumber: simpleKey.TokenNumber);
                 ref var lastKey = ref simpleKeyCandidates[^1];
                 lastKey.Possible = false;
                 simpleKeyAllowed = false;
@@ -550,12 +555,12 @@ namespace VYaml.Parser
                     {
                         throw new YamlTokenizerException(in mark, "Mapping values are not allowed in this context");
                     }
-                    RollIndent(mark.Col, new Token(TokenType.BlockMappingStart));
+                    RollIndent(mark.Col, TokenType.BlockMappingStart);
                 }
                 simpleKeyAllowed = flowLevel == 0;
             }
             Advance(1);
-            tokens.Enqueue(new Token(TokenType.ValueStart));
+            tokens.Enqueue(TokenType.ValueStart);
         }
 
         void ConsumeAnchor(bool alias)
@@ -593,9 +598,7 @@ namespace VYaml.Parser
                     "while scanning an anchor or alias, did not find expected alphabetic or numeric character");
             }
 
-            tokens.Enqueue(alias
-                ? new Token(TokenType.Alias, scalar)
-                : new Token(TokenType.Anchor, scalar));
+            tokens.Enqueue(alias ? TokenType.Alias : TokenType.Anchor, scalar);
         }
 
         void ConsumeTag()
@@ -652,7 +655,7 @@ namespace VYaml.Parser
                 if (YamlCodes.IsEmpty(currentCode) || reader.End)
                 {
                     // ex 7.2, an empty scalar can follow a secondary tag
-                    tokens.Enqueue(new Token(TokenType.Tag, new Tag(handle.ToString(), suffix.ToString())));
+                    tokens.Enqueue(TokenType.Tag, new Tag(handle.ToString(), suffix.ToString()));
                 }
                 else
                 {
@@ -918,7 +921,7 @@ namespace VYaml.Parser
             }
 
             var tokenType = literal ? TokenType.LiteralScalar : TokenType.FoldedScalar;
-            tokens.Enqueue(new Token(tokenType, scalar));
+            tokens.Enqueue(tokenType, scalar);
         }
 
         void ConsumeBlockScalarBreaks(ref int blockIndent, ref ExpandBuffer<byte> blockLineBreaks)
@@ -1210,10 +1213,9 @@ namespace VYaml.Parser
             // YAML allows the following value to be specified adjacent to the “:”.
             adjacentValueAllowedAt = mark.Position;
 
-            tokens.Enqueue(new Token(singleQuote
-                ? TokenType.SingleQuotedScaler
-                : TokenType.DoubleQuotedScaler,
-                scalar));
+            tokens.Enqueue(
+                singleQuote ? TokenType.SingleQuotedScaler : TokenType.DoubleQuotedScaler,
+                scalar);
         }
 
         void ConsumePlainScaler()
@@ -1354,7 +1356,7 @@ namespace VYaml.Parser
             }
 
             simpleKeyAllowed = isLeadingBlanks;
-            tokens.Enqueue(new Token(TokenType.PlainScalar, scalar));
+            tokens.Enqueue(TokenType.PlainScalar, scalar);
         }
 
         void SkipToNextToken()
@@ -1466,7 +1468,7 @@ namespace VYaml.Parser
                 Start = mark,
                 Possible = true,
                 Required = flowLevel > 0 && indent == mark.Col,
-                TokenNumber = tokensParsed + tokens.Count
+                TokenNumber = tokensParsed + tokens.Length
             };
         }
 
@@ -1480,7 +1482,7 @@ namespace VYaml.Parser
             last.Possible = false;
         }
 
-        void RollIndent(int colTo, in Token nextToken, int insertNumber = -1)
+        void RollIndent(int colTo, TokenType nextTokenType, ITokenContent? nextContent = null, int insertNumber = -1)
         {
             if (flowLevel > 0 || indent >= colTo)
             {
@@ -1491,11 +1493,15 @@ namespace VYaml.Parser
             indent = colTo;
             if (insertNumber >= 0)
             {
-                tokens.Insert(insertNumber - tokensParsed, nextToken);
+                tokens.Insert(insertNumber - tokensParsed, nextTokenType, nextContent);
+            }
+            else if (nextContent != null)
+            {
+                tokens.Enqueue(nextTokenType, nextContent);
             }
             else
             {
-                tokens.Enqueue(nextToken);
+                tokens.Enqueue(nextTokenType);
             }
         }
 
@@ -1507,7 +1513,7 @@ namespace VYaml.Parser
             }
             while (indent > col)
             {
-                tokens.Enqueue(new Token(TokenType.BlockEnd));
+                tokens.Enqueue(TokenType.BlockEnd);
                 indent = indents.Pop();
             }
         }

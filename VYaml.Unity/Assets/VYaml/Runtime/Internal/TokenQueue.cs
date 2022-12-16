@@ -71,6 +71,10 @@ namespace VYaml.Internal
 
             var type = array[headIndex];
             var content = contentArray[headIndex];
+            if (content != null)
+            {
+                contentArray[headIndex] = null;
+            }
             MoveNext(ref headIndex);
             Length--;
             return (type, content);
