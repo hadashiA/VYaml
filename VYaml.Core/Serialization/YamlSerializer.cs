@@ -43,7 +43,7 @@ namespace VYaml.Serialization
             return Deserialize<T>(ref parser, options);
         }
 
-        public static async ValueTask<T> Deserialize<T>(Stream stream, YamlSerializerOptions? options = null)
+        public static async ValueTask<T> DeserializeAsync<T>(Stream stream, YamlSerializerOptions? options = null)
         {
             var byteSequenceBuilder = await StreamHelper.ReadAsSequenceAsync(stream);
             try
