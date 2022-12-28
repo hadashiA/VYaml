@@ -1,4 +1,3 @@
-using System;
 using System.Buffers;
 using NUnit.Framework;
 using VYaml.Emitter;
@@ -44,6 +43,18 @@ namespace VYaml.Tests.Emitter
                 "- 200\n" +
                 "- 300\n"
                 ));
+        }
+
+        [Test]
+        public void BlockSequence_Empty()
+        {
+            using var emitter = CreateEmitter();
+            emitter.BeginBlockSequence();
+            emitter.EndBlockSequence();
+
+            Assert.That(StringResult(in emitter), Is.EqualTo(
+                "[]"
+            ));
         }
 
         [Test]
@@ -115,6 +126,17 @@ namespace VYaml.Tests.Emitter
         }
 
         [Test]
+        public void BlockSequence_InvalidStartInKey()
+        {
+            Assert.Throws<YamlEmitterException>(() =>
+            {
+                using var emitter = CreateEmitter();
+                emitter.BeginBlockMapping();
+                emitter.BeginBlockSequence();
+            });
+        }
+
+        [Test]
         public void BlockMapping()
         {
             var emitter = CreateEmitter();
@@ -129,6 +151,81 @@ namespace VYaml.Tests.Emitter
                 "1: 100\n" +
                 "2: 200\n"
                 ));
+        }
+
+        [Test]
+        public void BlockMapping_Nested1()
+        {
+            var emitter = CreateEmitter();
+            emitter.BeginBlockMapping();
+            emitter.WriteInt32(1);
+            emitter.WriteInt32(100);
+            emitter.WriteInt32(2);
+            emitter.BeginBlockMapping();
+            {
+                emitter.WriteInt32(3);
+                emitter.WriteInt32(300);
+                emitter.WriteInt32(4);
+                emitter.WriteInt32(400);
+            }
+            emitter.EndBlockMapping();
+            emitter.WriteInt32(5);
+            emitter.WriteInt32(500);
+            emitter.EndBlockMapping();
+
+            Assert.That(StringResult(in emitter), Is.EqualTo(
+                "1: 100\n" +
+                "2: \n" +
+                "  3: 300\n" +
+                "  4: 400\n" +
+                "5: 500\n"
+            ));
+        }
+
+        [Test]
+        public void BlockMapping_Nested2()
+        {
+            var emitter = CreateEmitter();
+            emitter.BeginBlockMapping();
+            emitter.WriteInt32(1);
+            emitter.WriteInt32(100);
+            emitter.WriteInt32(2);
+            emitter.BeginBlockMapping();
+            {
+                emitter.WriteInt32(3);
+                emitter.WriteInt32(300);
+                emitter.WriteInt32(4);
+                emitter.BeginBlockMapping();
+                {
+                    emitter.WriteInt32(5);
+                    emitter.WriteInt32(500);
+                }
+                emitter.EndBlockMapping();
+            }
+            emitter.EndBlockMapping();
+            emitter.WriteInt32(6);
+            emitter.WriteInt32(600);
+            emitter.EndBlockMapping();
+
+            Assert.That(StringResult(in emitter), Is.EqualTo(
+                "1: 100\n" +
+                "2: \n" +
+                "  3: 300\n" +
+                "  4: \n" +
+                "    5: 500\n" +
+                "6: 600\n"
+            ));
+        }
+
+        [Test]
+        public void BlockMapping_InvalidStartInKey()
+        {
+            Assert.Throws<YamlEmitterException>(() =>
+            {
+                using var emitter = CreateEmitter();
+                emitter.BeginBlockMapping();
+                emitter.BeginBlockMapping();
+            });
         }
 
         static Utf8YamlEmitter CreateEmitter()

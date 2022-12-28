@@ -29,7 +29,7 @@ namespace VYaml.Emitter
         static readonly byte[] BlockSequenceEntryHeader = { (byte)'-', (byte)' ' };
         static readonly byte[] MappingKeyFooter = { (byte)':', (byte)' ' };
 
-        EmitState CurrentState => stateStack.Peek();
+        EmitState NextState => stateStack.Peek();
 
         readonly IBufferWriter<byte> writer;
         readonly YamlEmitOptions options;
@@ -65,11 +65,9 @@ namespace VYaml.Emitter
 
         public void BeginBlockSequence()
         {
-            switch (CurrentState)
+            switch (NextState)
             {
-                case EmitState.BlockMappingKey:
-                    throw new YamlEmitterException("To start block-sequence in the mapping key is not supported.");
-                case EmitState.BlockSequenceEntry or EmitState.BlockMappingValue:
+                case EmitState.BlockSequenceEntry:
                 {
                     var length = BlockSequenceEntryHeaderEmpty.Length + currentIndentLevel * options.IndentWidth;
                     var offset = 0;
@@ -78,6 +76,17 @@ namespace VYaml.Emitter
                     BlockSequenceEntryHeaderEmpty.CopyTo(output[offset..]);
                     writer.Advance(length);
                     IncreaseIndent();
+                    break;
+                }
+                case EmitState.BlockMappingKey:
+                    throw new YamlEmitterException("To start block-sequence in the mapping key is not supported.");
+                case EmitState.BlockMappingValue:
+                {
+                    var output = writer.GetSpan(1);
+                    output[0] = YamlCodes.Lf;
+                    writer.Advance(1);
+                    // IncreaseIndent();
+                    ReplaceNextState(EmitState.BlockMappingKey);
                     break;
                 }
             }
@@ -92,10 +101,19 @@ namespace VYaml.Emitter
 
         public void BeginBlockMapping()
         {
-            switch (CurrentState)
+            switch (NextState)
             {
                 case EmitState.BlockMappingKey:
                     throw new YamlEmitterException("To start block-mapping in the mapping key is not supported.");
+                case EmitState.BlockMappingValue:
+                {
+                    IncreaseIndent();
+                    ReplaceNextState(EmitState.BlockMappingKey);
+                    var output = writer.GetSpan(1);
+                    output[0] = YamlCodes.Lf;
+                    writer.Advance(1);
+                    break;
+                }
                 case EmitState.BlockSequenceEntry or EmitState.BlockMappingValue:
                     IncreaseIndent();
                     break;
@@ -105,9 +123,9 @@ namespace VYaml.Emitter
 
         public void EndBlockMapping()
         {
-            if (CurrentState != EmitState.BlockMappingKey)
+            if (NextState != EmitState.BlockMappingKey)
             {
-                throw new YamlEmitterException($"Invalid block mapping end: {CurrentState}");
+                throw new YamlEmitterException($"Invalid block mapping end: {NextState}");
             }
             DecreaseIndent();
             PopState();
@@ -151,7 +169,6 @@ namespace VYaml.Emitter
             }
             offset += bytesWritten;
             EndScalar(output, ref offset);
-
             writer.Advance(offset);
         }
 
@@ -385,7 +402,7 @@ namespace VYaml.Emitter
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void BeginScalar(Span<byte> output, ref int offset)
         {
-            switch (CurrentState)
+            switch (NextState)
             {
                 case EmitState.BlockSequenceEntry:
                     WriteIndent(output, ref offset);
@@ -407,7 +424,7 @@ namespace VYaml.Emitter
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void EndScalar(Span<byte> output, ref int offset)
         {
-            switch (CurrentState)
+            switch (NextState)
             {
                 case EmitState.BlockSequenceEntry:
                     output[offset++] = YamlCodes.Lf;
@@ -415,11 +432,11 @@ namespace VYaml.Emitter
                 case EmitState.BlockMappingKey:
                     MappingKeyFooter.CopyTo(output[offset..]);
                     offset += MappingKeyFooter.Length;
-                    ReplaceCurrentState(EmitState.BlockMappingValue);
+                    ReplaceNextState(EmitState.BlockMappingValue);
                     break;
                 case EmitState.BlockMappingValue:
                     output[offset++] = YamlCodes.Lf;
-                    ReplaceCurrentState(EmitState.BlockMappingKey);
+                    ReplaceNextState(EmitState.BlockMappingKey);
                     break;
                 case EmitState.None:
                     break;
@@ -429,7 +446,7 @@ namespace VYaml.Emitter
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        void ReplaceCurrentState(EmitState newState)
+        void ReplaceNextState(EmitState newState)
         {
             stateStack[^1] = newState;
         }
