@@ -158,19 +158,21 @@ namespace VYaml.Tests.Emitter
         {
             var emitter = CreateEmitter();
             emitter.BeginBlockMapping();
-            emitter.WriteInt32(1);
-            emitter.WriteInt32(100);
-            emitter.WriteInt32(2);
-            emitter.BeginBlockMapping();
             {
-                emitter.WriteInt32(3);
-                emitter.WriteInt32(300);
-                emitter.WriteInt32(4);
-                emitter.WriteInt32(400);
+                emitter.WriteInt32(1);
+                emitter.WriteInt32(100);
+                emitter.WriteInt32(2);
+                emitter.BeginBlockMapping();
+                {
+                    emitter.WriteInt32(3);
+                    emitter.WriteInt32(300);
+                    emitter.WriteInt32(4);
+                    emitter.WriteInt32(400);
+                }
+                emitter.EndBlockMapping();
+                emitter.WriteInt32(5);
+                emitter.WriteInt32(500);
             }
-            emitter.EndBlockMapping();
-            emitter.WriteInt32(5);
-            emitter.WriteInt32(500);
             emitter.EndBlockMapping();
 
             Assert.That(StringResult(in emitter), Is.EqualTo(
@@ -187,24 +189,26 @@ namespace VYaml.Tests.Emitter
         {
             var emitter = CreateEmitter();
             emitter.BeginBlockMapping();
-            emitter.WriteInt32(1);
-            emitter.WriteInt32(100);
-            emitter.WriteInt32(2);
-            emitter.BeginBlockMapping();
             {
-                emitter.WriteInt32(3);
-                emitter.WriteInt32(300);
-                emitter.WriteInt32(4);
+                emitter.WriteInt32(1);
+                emitter.WriteInt32(100);
+                emitter.WriteInt32(2);
                 emitter.BeginBlockMapping();
                 {
-                    emitter.WriteInt32(5);
-                    emitter.WriteInt32(500);
+                    emitter.WriteInt32(3);
+                    emitter.WriteInt32(300);
+                    emitter.WriteInt32(4);
+                    emitter.BeginBlockMapping();
+                    {
+                        emitter.WriteInt32(5);
+                        emitter.WriteInt32(500);
+                    }
+                    emitter.EndBlockMapping();
                 }
                 emitter.EndBlockMapping();
+                emitter.WriteInt32(6);
+                emitter.WriteInt32(600);
             }
-            emitter.EndBlockMapping();
-            emitter.WriteInt32(6);
-            emitter.WriteInt32(600);
             emitter.EndBlockMapping();
 
             Assert.That(StringResult(in emitter), Is.EqualTo(
@@ -226,6 +230,42 @@ namespace VYaml.Tests.Emitter
                 emitter.BeginBlockMapping();
                 emitter.BeginBlockMapping();
             });
+        }
+
+        [Test]
+        public void FlowSequence()
+        {
+            using var emitter = CreateEmitter();
+            emitter.BeginFlowSequence();
+            emitter.WriteInt32(100);
+            emitter.WriteInt32(200);
+            emitter.WriteInt32(300);
+            emitter.EndFlowSequence();
+
+            Assert.That(StringResult(in emitter), Is.EqualTo(
+                "[100, 200, 300]"
+                ));
+        }
+
+        [Test]
+        public void FlowSequence_Nested1()
+        {
+            using var emitter = CreateEmitter();
+            emitter.BeginFlowSequence();
+            {
+                emitter.WriteInt32(100);
+                emitter.BeginFlowSequence();
+                {
+                    emitter.WriteInt32(200);
+                }
+                emitter.EndFlowSequence();
+                emitter.WriteInt32(300);
+            }
+            emitter.EndFlowSequence();
+
+            Assert.That(StringResult(in emitter), Is.EqualTo(
+                "[100, [200], 300]"
+            ));
         }
 
         static Utf8YamlEmitter CreateEmitter()

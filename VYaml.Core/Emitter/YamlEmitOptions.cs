@@ -10,6 +10,18 @@ namespace VYaml.Emitter
         Folded,
     }
 
+    public enum SequenceStyle
+    {
+        Block,
+        Flow,
+    }
+
+    public enum MappingStyle
+    {
+        Block,
+        Flow,
+    }
+
     public class YamlEmitOptions
     {
         public static readonly YamlEmitOptions Default = new();
