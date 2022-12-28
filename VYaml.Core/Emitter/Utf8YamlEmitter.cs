@@ -314,52 +314,22 @@ namespace VYaml.Emitter
             }
         }
 
-        public void WriteBlockEntryHeader()
-        {
-            var whiteSpaceLength = currentIndentLevel * options.IndentWidth;
-            if (whiteSpaceLength > WhiteSpaces.Length)
-            {
-                WhiteSpaces = Enumerable.Repeat(YamlCodes.Space, whiteSpaceLength * 2).ToArray();
-            }
-
-            var length = whiteSpaceLength + 2;
-            var target = writer.GetSpan(length);
-
-            WhiteSpaces.AsSpan(0, whiteSpaceLength).CopyTo(target);
-            target[whiteSpaceLength + 1] = YamlCodes.BlockEntryIndent;
-            target[whiteSpaceLength + 2] = YamlCodes.Space;
-            writer.Advance(length);
-        }
-
-        void IncreaseIndent()
-        {
-            currentIndentLevel++;
-        }
-
-        void DecreaseIndent()
-        {
-            if (currentIndentLevel > 0)
-                currentIndentLevel--;
-        }
-
         void WritePlainScalar(string value)
         {
             var stringMaxByteCount = StringEncoding.Utf8.GetMaxByteCount(value.Length);
-            var span = writer.GetSpan(GetScalarBufferLength(stringMaxByteCount));
+            var output = writer.GetSpan(GetScalarBufferLength(stringMaxByteCount));
             var offset = 0;
-            BeginScalar(span, ref offset);
-            var bytesWritten = StringEncoding.Utf8.GetBytes(value, span[offset..]);
+            BeginScalar(output, ref offset);
+            var bytesWritten = StringEncoding.Utf8.GetBytes(value, output[offset..]);
             writer.Advance(offset + bytesWritten);
         }
 
         void WriteLiteralScalar(string value, in EmitStringInfo analyzeInfo)
         {
             var stringMaxByteCount = StringEncoding.Utf8.GetMaxByteCount(value.Length);
-            scalarBuffer.Clear();
-            scalarBuffer.SetLength(stringMaxByteCount);
+            scalarBuffer.SetCapacity(stringMaxByteCount);
 
-            var buf = scalarBuffer.AsSpan();
-            var stringByteCount = StringEncoding.Utf8.GetBytes(value, buf);
+            var stringByteCount = StringEncoding.Utf8.GetBytes(value, scalarBuffer.AsSpan(stringMaxByteCount));
 
             var scalarSize = stringByteCount +
                              analyzeInfo.Lines * currentIndentLevel * options.IndentWidth +
@@ -379,10 +349,10 @@ namespace VYaml.Emitter
             try
             {
                 WriteIndent(output, ref offset);
-                foreach (var x in buf[..stringMaxByteCount])
+                foreach (var x in scalarBuffer.AsSpan(stringByteCount))
                 {
                     output[offset++] = x;
-                    if (x == YamlCodes.Lf)
+                    if (x == YamlCodes.Lf && offset < stringByteCount - 1)
                     {
                         WriteIndent(output, ref offset);
                     }
@@ -516,6 +486,19 @@ namespace VYaml.Emitter
         void PopState()
         {
             stateStack.Pop();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        void IncreaseIndent()
+        {
+            currentIndentLevel++;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        void DecreaseIndent()
+        {
+            if (currentIndentLevel > 0)
+                currentIndentLevel--;
         }
     }
 }

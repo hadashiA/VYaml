@@ -36,7 +36,7 @@ namespace VYaml.Emitter
         readonly IBufferWriter<byte> writer;
         readonly YamlEmitOptions options;
 
-        ExpandBuffer<byte> stringBuffer;
+        ExpandBuffer<byte> scalarBuffer;
         ExpandBuffer<EmitState> stateStack;
 
         int currentIndentLevel;
@@ -53,7 +53,7 @@ namespace VYaml.Emitter
             this.options = options ?? YamlEmitOptions.Default;
 
             currentIndentLevel = 0;
-            stringBuffer = new ExpandBuffer<byte>(1024);
+            scalarBuffer = new ExpandBuffer<byte>(1024);
             stateStack = new ExpandBuffer<EmitState>(16);
             stateStack.Add(EmitState.None);
             currentElementCount = 0;
@@ -63,7 +63,7 @@ namespace VYaml.Emitter
 
         public void Dispose()
         {
-            stringBuffer.Dispose();
+            scalarBuffer.Dispose();
             stateStack.Dispose();
         }
 
@@ -219,54 +219,66 @@ namespace VYaml.Emitter
 
         public void WriteInt64(long value)
         {
-            throw new NotImplementedException();
-            var span = writer.GetSpan(GetScalarBufferLength(20)); // -9223372036854775808
-            if (!Utf8Formatter.TryFormat(value, span, out var bytesWritten))
+            var offset = 0;
+            var output = writer.GetSpan(GetScalarBufferLength(20)); // -9223372036854775808
+
+            BeginScalar(output, ref offset);
+            if (!Utf8Formatter.TryFormat(value, output[offset..], out var bytesWritten))
             {
                 throw new YamlEmitterException($"Failed to emit : {value}");
             }
-            writer.Advance(bytesWritten);
+            offset += bytesWritten;
+            EndScalar(output, ref offset);
+
+            writer.Advance(offset);
         }
 
         public void WriteUInt64(ulong value)
         {
-            throw new NotImplementedException();
-            var span = writer.GetSpan(20); // 18446744073709551615
-            if (!Utf8Formatter.TryFormat(value, span, out var bytesWritten))
+            var offset = 0;
+            var output = writer.GetSpan(GetScalarBufferLength(20)); // 18446744073709551615
+
+            BeginScalar(output, ref offset);
+            if (!Utf8Formatter.TryFormat(value, output[offset..], out var bytesWritten))
             {
                 throw new YamlEmitterException($"Failed to emit : {value}");
             }
-            writer.Advance(bytesWritten);
+            offset += bytesWritten;
+            EndScalar(output, ref offset);
+
+            writer.Advance(offset);
         }
 
         public void WriteFloat(float value)
         {
-            throw new NotImplementedException();
-            var span = writer.GetSpan(16);
-            if (!Utf8Formatter.TryFormat(value, span, out var bytesWritten))
+            var offset = 0;
+            var output = writer.GetSpan(GetScalarBufferLength(64));
+
+            BeginScalar(output, ref offset);
+            if (!Utf8Formatter.TryFormat(value, output[offset..], out var bytesWritten))
             {
-                span = writer.GetSpan(128);
-                if (!Utf8Formatter.TryFormat(value, span, out bytesWritten))
-                {
-                    throw new YamlEmitterException($"Failed to emit : {value}");
-                }
+                throw new YamlEmitterException($"Failed to emit : {value}");
             }
-            writer.Advance(bytesWritten);
+            offset += bytesWritten;
+            EndScalar(output, ref offset);
+
+            writer.Advance(offset);
         }
 
         public void WriteDouble(double value)
         {
-            throw new NotImplementedException();
-            var span = writer.GetSpan(16);
-            if (!Utf8Formatter.TryFormat(value, span, out var bytesWritten))
+            var offset = 0;
+            var output = writer.GetSpan(GetScalarBufferLength(128));
+
+            BeginScalar(output, ref offset);
+            if (!Utf8Formatter.TryFormat(value, output[offset..], out var bytesWritten))
             {
-                span = writer.GetSpan(128);
-                if (!Utf8Formatter.TryFormat(value, span, out bytesWritten))
-                {
-                    throw new YamlEmitterException($"Failed to emit : {value}");
-                }
+                throw new YamlEmitterException($"Failed to emit : {value}");
             }
-            writer.Advance(bytesWritten);
+            offset += bytesWritten;
+            EndScalar(output, ref offset);
+
+            writer.Advance(offset);
         }
 
         public void WriteString(string value, ScalarStyle style = ScalarStyle.Any)
@@ -302,52 +314,22 @@ namespace VYaml.Emitter
             }
         }
 
-        public void WriteBlockEntryHeader()
-        {
-            var whiteSpaceLength = currentIndentLevel * options.IndentWidth;
-            if (whiteSpaceLength > WhiteSpaces.Length)
-            {
-                WhiteSpaces = Enumerable.Repeat(YamlCodes.Space, whiteSpaceLength * 2).ToArray();
-            }
-
-            var length = whiteSpaceLength + 2;
-            var target = writer.GetSpan(length);
-
-            WhiteSpaces.AsSpan(0, whiteSpaceLength).CopyTo(target);
-            target[whiteSpaceLength + 1] = YamlCodes.BlockEntryIndent;
-            target[whiteSpaceLength + 2] = YamlCodes.Space;
-            writer.Advance(length);
-        }
-
-        void IncreaseIndent()
-        {
-            currentIndentLevel++;
-        }
-
-        void DecreaseIndent()
-        {
-            if (currentIndentLevel > 0)
-                currentIndentLevel--;
-        }
-
         void WritePlainScalar(string value)
         {
             var stringMaxByteCount = StringEncoding.Utf8.GetMaxByteCount(value.Length);
-            var span = writer.GetSpan(GetScalarBufferLength(stringMaxByteCount));
+            var output = writer.GetSpan(GetScalarBufferLength(stringMaxByteCount));
             var offset = 0;
-            BeginScalar(span, ref offset);
-            var bytesWritten = StringEncoding.Utf8.GetBytes(value, span[offset..]);
+            BeginScalar(output, ref offset);
+            var bytesWritten = StringEncoding.Utf8.GetBytes(value, output[offset..]);
             writer.Advance(offset + bytesWritten);
         }
 
         void WriteLiteralScalar(string value, in EmitStringInfo analyzeInfo)
         {
             var stringMaxByteCount = StringEncoding.Utf8.GetMaxByteCount(value.Length);
-            stringBuffer.Clear();
-            stringBuffer.SetLength(stringMaxByteCount);
+            scalarBuffer.SetCapacity(stringMaxByteCount);
 
-            var buf = stringBuffer.AsSpan();
-            var stringByteCount = StringEncoding.Utf8.GetBytes(value, buf);
+            var stringByteCount = StringEncoding.Utf8.GetBytes(value, scalarBuffer.AsSpan(stringMaxByteCount));
 
             var scalarSize = stringByteCount +
                              analyzeInfo.Lines * currentIndentLevel * options.IndentWidth +
@@ -367,10 +349,10 @@ namespace VYaml.Emitter
             try
             {
                 WriteIndent(output, ref offset);
-                foreach (var x in buf[..stringMaxByteCount])
+                foreach (var x in scalarBuffer.AsSpan(stringByteCount))
                 {
                     output[offset++] = x;
-                    if (x == YamlCodes.Lf)
+                    if (x == YamlCodes.Lf && offset < stringByteCount - 1)
                     {
                         WriteIndent(output, ref offset);
                     }
@@ -504,6 +486,19 @@ namespace VYaml.Emitter
         void PopState()
         {
             stateStack.Pop();
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        void IncreaseIndent()
+        {
+            currentIndentLevel++;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        void DecreaseIndent()
+        {
+            if (currentIndentLevel > 0)
+                currentIndentLevel--;
         }
     }
 }

@@ -80,13 +80,15 @@ namespace VYaml.Internal
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetLength(int newLength)
+        public void SetCapacity(int newCapacity)
         {
-            if (Length < newLength)
-            {
-                SetCapacity(newLength);
-            }
-            Length = newLength;
+            if (buffer.Length >= newCapacity) return;
+
+            var newBuffer = ArrayPool<T>.Shared.Rent(newCapacity);
+            // var newBuffer = new T[newCapacity];
+            Array.Copy(buffer, 0, newBuffer, 0, Length);
+            ArrayPool<T>.Shared.Return(buffer);
+            buffer = newBuffer;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -98,18 +100,6 @@ namespace VYaml.Internal
                 newCapacity = buffer.Length + MinimumGrow;
             }
             SetCapacity(newCapacity);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        void SetCapacity(int newCapacity)
-        {
-            if (buffer.Length >= newCapacity) return;
-
-            var newBuffer = ArrayPool<T>.Shared.Rent(newCapacity);
-            // var newBuffer = new T[newCapacity];
-            Array.Copy(buffer, 0, newBuffer, 0, Length);
-            ArrayPool<T>.Shared.Return(buffer);
-            buffer = newBuffer;
         }
     }
 }
