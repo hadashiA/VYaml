@@ -1,7 +1,6 @@
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace VYaml.Internal
 {
@@ -36,6 +35,9 @@ namespace VYaml.Internal
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Span<T> AsSpan() => buffer.AsSpan(0, Length);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Span<T> AsSpan(int length) => buffer.AsSpan(0, length);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()
@@ -78,6 +80,16 @@ namespace VYaml.Internal
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void SetLength(int newLength)
+        {
+            if (Length < newLength)
+            {
+                SetCapacity(newLength);
+            }
+            Length = newLength;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void Grow()
         {
             var newCapacity = buffer.Length * GrowFactor / 100;
@@ -89,7 +101,7 @@ namespace VYaml.Internal
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetCapacity(int newCapacity)
+        void SetCapacity(int newCapacity)
         {
             if (buffer.Length >= newCapacity) return;
 

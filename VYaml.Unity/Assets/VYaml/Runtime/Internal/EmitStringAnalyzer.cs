@@ -56,7 +56,7 @@ namespace VYaml.Internal
             if (last == '\n')
             {
                 if (chars[^2] == '\n' ||
-                    (chars[^3] == '\r' && chars[^2] == '\n'))
+                    (chars[^2] == '\r' && chars[^3] == '\n'))
                 {
                     chompHint = (byte)'+';
                 }

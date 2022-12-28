@@ -29,6 +29,39 @@ namespace VYaml.Tests.Emitter
         }
 
         [Test]
+        public void WriteString_PlainScalar()
+        {
+            using var emitter = CreateEmitter();
+            emitter.WriteString("aiueo", ScalarStyle.Plain);
+            Assert.That(StringResult(in emitter), Is.EqualTo("aiueo"));
+        }
+
+        [Test]
+        public void WriteString_LiteralScalar()
+        {
+            using var emitter = CreateEmitter();
+
+            emitter.WriteString(
+                "Mark McGwire's\nyear was crippled\nby a knee injury.\n",
+                ScalarStyle.Literal);
+
+            Assert.That(StringResult(in emitter), Is.EqualTo(
+                "|\n" +
+                "  Mark McGwire's\n" +
+                "  year was crippled\n" +
+                "  by a knee injury.\n"
+                ));
+        }
+
+        [Test]
+        public void WriteString_AutoDetectPlainScalar()
+        {
+            using var emitter = CreateEmitter();
+            emitter.WriteString("aiueo kakikukeko");
+            Assert.That(StringResult(in emitter), Is.EqualTo("aiueo kakikukeko"));
+        }
+
+        [Test]
         public void BlockSequence()
         {
             using var emitter = CreateEmitter();
