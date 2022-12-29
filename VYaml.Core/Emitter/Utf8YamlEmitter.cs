@@ -30,6 +30,7 @@ namespace VYaml.Emitter
         static readonly byte[] BlockSequenceEntryHeader = { (byte)'-', (byte)' ' };
         static readonly byte[] MappingKeyFooter = { (byte)':', (byte)' ' };
         static readonly byte[] FlowSequenceEmpty = { (byte)'[', (byte)']' };
+        static readonly byte[] FlowSequenceSeparator = { (byte)',', (byte)' ' };
 
         EmitState NextState => stateStack.Peek();
 
@@ -145,9 +146,27 @@ namespace VYaml.Emitter
 
         public void BeginFlowSequence()
         {
-            var output = writer.GetSpan(1);
-            output[0] = YamlCodes.FlowSequenceStart;
-            writer.Advance(1);
+            switch (NextState)
+            {
+                case EmitState.BlockMappingValue:
+                    throw new YamlEmitterException("To start flow-mapping in the mapping key is not supported.");
+                case EmitState.FlowSequenceEntry:
+                {
+                    var length = FlowSequenceSeparator.Length + 1;
+                    var output = writer.GetSpan(length);
+                    FlowSequenceSeparator.CopyTo(output);
+                    output[FlowSequenceSeparator.Length] = YamlCodes.FlowSequenceStart;
+                    writer.Advance(length);
+                    break;
+                }
+                default:
+                {
+                    var output = writer.GetSpan(1);
+                    output[0] = YamlCodes.FlowSequenceStart;
+                    writer.Advance(1);
+                    break;
+                }
+            }
             PushState(EmitState.FlowSequenceEntry);
             currentElementCount = 0;
         }
