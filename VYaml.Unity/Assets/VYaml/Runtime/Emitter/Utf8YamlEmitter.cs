@@ -351,8 +351,9 @@ namespace VYaml.Emitter
                     break;
                 // case ScalarStyle.SingleQuoted:
                 //     break;
-                // case ScalarStyle.DoubleQuoted:
-                //     break;
+                case ScalarStyle.DoubleQuoted:
+                    WriteDoubleQuotedScalar(value, analyzeInfo);
+                    break;
                 case ScalarStyle.Literal:
                     WriteLiteralScalar(value, analyzeInfo);
                     break;
@@ -374,17 +375,19 @@ namespace VYaml.Emitter
             writer.Advance(offset);
         }
 
+        void WriteDoubleQuotedScalar(string value, in EmitStringInfo analyzeInfo)
+        {
+
+        }
+
         void WriteLiteralScalar(string value, in EmitStringInfo analyzeInfo)
         {
             var indentCharCount = (currentIndentLevel + 1) * options.IndentWidth;
-            var charCount = value.Length +
-                            analyzeInfo.Lines * indentCharCount +
-                            2 + // "|" + "\n"
-                            (analyzeInfo.ChompHint > 0 ? 1 : 0);
+            var scalarValueBuilder = EmitStringAnalyzer.ToLiteralScalar(value, analyzeInfo.ChompHint, indentCharCount);
 
-            stringBuffer.SetCapacity(charCount);
-            var scalarChars = stringBuffer.AsSpan(charCount);
-            EmitStringAnalyzer.ToLiteralScalar(value, scalarChars, analyzeInfo.ChompHint, indentCharCount);
+            stringBuffer.SetCapacity(scalarValueBuilder.Length);
+            var scalarChars = stringBuffer.AsSpan(scalarValueBuilder.Length);
+            scalarValueBuilder.CopyTo(0, scalarChars, scalarValueBuilder.Length);
 
             if (NextState is EmitState.BlockMappingValue or EmitState.BlockSequenceEntry)
             {

@@ -351,8 +351,9 @@ namespace VYaml.Emitter
                     break;
                 // case ScalarStyle.SingleQuoted:
                 //     break;
-                // case ScalarStyle.DoubleQuoted:
-                //     break;
+                case ScalarStyle.DoubleQuoted:
+                    WriteDoubleQuotedScalar(value);
+                    break;
                 case ScalarStyle.Literal:
                     WriteLiteralScalar(value, analyzeInfo);
                     break;
@@ -377,14 +378,9 @@ namespace VYaml.Emitter
         void WriteLiteralScalar(string value, in EmitStringInfo analyzeInfo)
         {
             var indentCharCount = (currentIndentLevel + 1) * options.IndentWidth;
-            var charCount = value.Length +
-                            analyzeInfo.Lines * indentCharCount +
-                            2 + // "|" + "\n"
-                            (analyzeInfo.ChompHint > 0 ? 1 : 0);
-
-            stringBuffer.SetCapacity(charCount);
-            var scalarChars = stringBuffer.AsSpan(charCount);
-            EmitStringAnalyzer.ToLiteralScalar(value, scalarChars, analyzeInfo.ChompHint, indentCharCount);
+            var scalarStringBuilt = EmitStringAnalyzer.BuildLiteralScalar(value, analyzeInfo.ChompHint, indentCharCount);
+            var scalarChars = stringBuffer.AsSpan(scalarStringBuilt.Length);
+            scalarStringBuilt.CopyTo(0, scalarChars, scalarStringBuilt.Length);
 
             if (NextState is EmitState.BlockMappingValue or EmitState.BlockSequenceEntry)
             {
@@ -400,9 +396,19 @@ namespace VYaml.Emitter
             writer.Advance(offset);
         }
 
-        void WriteFoldedScalar(string value, in EmitStringInfo analyzeInfo)
+        void WriteDoubleQuotedScalar(string value)
         {
+            var scalarStringBuilt = EmitStringAnalyzer.BuildDoubleQuotedScalar(value);
+            var scalarChars = stringBuffer.AsSpan(scalarStringBuilt.Length);
+            scalarStringBuilt.CopyTo(0, scalarChars, scalarStringBuilt.Length);
 
+            var maxByteCount = StringEncoding.Utf8.GetMaxByteCount(scalarChars.Length);
+            var offset = 0;
+            var output = writer.GetSpan(GetScalarBufferLength(maxByteCount));
+            BeginScalar(output, ref offset);
+            offset += StringEncoding.Utf8.GetBytes(scalarChars, output[offset..]);
+            EndScalar(output, ref offset);
+            writer.Advance(offset);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

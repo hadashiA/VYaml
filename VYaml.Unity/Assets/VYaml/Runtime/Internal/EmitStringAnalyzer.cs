@@ -109,9 +109,8 @@ namespace VYaml.Internal
             return new EmitStringInfo(lines, needsQuotes, isReservedWord, chompHint);
         }
 
-        internal static void ToLiteralScalar(
+        internal static StringBuilder ToLiteralScalar(
             ReadOnlySpan<char> originalValue,
-            Span<char> output,
             char chompHint,
             int indentCharCount)
         {
@@ -133,9 +132,14 @@ namespace VYaml.Internal
                     AppendWhiteSpace(stringBuilder, indentCharCount);
                 }
             }
+            return stringBuilder;
+        }
 
-            var length = stringBuilder.Length;
-            stringBuilder.CopyTo(0, output, length);
+        internal static void ToDoubleQuotedScalar(
+            ReadOnlySpan<char> originalValue,
+            Span<char> scalarValue)
+        {
+
         }
 
         static bool IsReservedWord(string value)
@@ -165,6 +169,22 @@ namespace VYaml.Internal
             }
             return false;
         }
+
+        // [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        // static bool IsPrintable(char ch) => ch is
+        //     '\x9' or
+        //     '\xA' or
+        //     '\xD' or
+        //     >= '\x20' and <= '\x7E' or
+        //     '\x85' or
+        //     >= '\xA0' and <= '\xD7FF' or
+        //     >= '\xE000' and <= '\xFFFD';
+        //
+        // [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        // static bool NeedsEspae(char ch)
+        // {
+        //     return IsPrintable(ch) || ch is '\n'
+        // }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static StringBuilder GetStringBuilder() =>
