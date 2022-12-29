@@ -68,114 +68,144 @@ namespace VYaml.Emitter
             stateStack.Dispose();
         }
 
-        public void BeginBlockSequence()
+        public void BeginSequence(SequenceStyle style = SequenceStyle.Block)
+        {
+            switch (style)
+            {
+                case SequenceStyle.Block:
+                {
+                    switch (NextState)
+                    {
+                        case EmitState.BlockSequenceEntry:
+                        {
+                            var length = BlockSequenceEntryHeaderEmpty.Length + currentIndentLevel * options.IndentWidth;
+                            var offset = 0;
+                            var output = writer.GetSpan(length);
+                            WriteIndent(output, ref offset);
+                            BlockSequenceEntryHeaderEmpty.CopyTo(output[offset..]);
+                            writer.Advance(length);
+                            IncreaseIndent();
+                            break;
+                        }
+                        case EmitState.BlockMappingKey:
+                            throw new YamlEmitterException("To start block-sequence in the mapping key is not supported.");
+                        case EmitState.BlockMappingValue:
+                        {
+                            var output = writer.GetSpan(1);
+                            output[0] = YamlCodes.Lf;
+                            writer.Advance(1);
+                            // IncreaseIndent();
+                            ReplaceNextState(EmitState.BlockMappingKey);
+                            break;
+                        }
+                    }
+                    PushState(EmitState.BlockSequenceEntry);
+                    break;
+                }
+                case SequenceStyle.Flow:
+                {
+                    switch (NextState)
+                    {
+                        case EmitState.BlockMappingValue:
+                            throw new YamlEmitterException("To start flow-mapping in the mapping key is not supported.");
+                        case EmitState.FlowSequenceEntry:
+                        {
+                            var length = FlowSequenceSeparator.Length + 1;
+                            var output = writer.GetSpan(length);
+                            FlowSequenceSeparator.CopyTo(output);
+                            output[FlowSequenceSeparator.Length] = YamlCodes.FlowSequenceStart;
+                            writer.Advance(length);
+                            break;
+                        }
+                        default:
+                        {
+                            var output = writer.GetSpan(1);
+                            output[0] = YamlCodes.FlowSequenceStart;
+                            writer.Advance(1);
+                            break;
+                        }
+                    }
+                    PushState(EmitState.FlowSequenceEntry);
+                    currentElementCount = 0;
+                    break;
+                }
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(style), style, null);
+            }
+        }
+
+        public void EndSequence()
         {
             switch (NextState)
             {
                 case EmitState.BlockSequenceEntry:
                 {
-                    var length = BlockSequenceEntryHeaderEmpty.Length + currentIndentLevel * options.IndentWidth;
-                    var offset = 0;
-                    var output = writer.GetSpan(length);
-                    WriteIndent(output, ref offset);
-                    BlockSequenceEntryHeaderEmpty.CopyTo(output[offset..]);
-                    writer.Advance(length);
-                    IncreaseIndent();
+                    PopState();
+                    DecreaseIndent();
+                    if (currentElementCount == 0)
+                    {
+                        var output = writer.GetSpan(FlowSequenceEmpty.Length);
+                        FlowSequenceEmpty.CopyTo(output);
+                        writer.Advance(FlowSequenceEmpty.Length);
+                    }
                     break;
                 }
-                case EmitState.BlockMappingKey:
-                    throw new YamlEmitterException("To start block-sequence in the mapping key is not supported.");
-                case EmitState.BlockMappingValue:
+
+                case EmitState.FlowSequenceEntry:
                 {
+                    PopState();
                     var output = writer.GetSpan(1);
-                    output[0] = YamlCodes.Lf;
-                    writer.Advance(1);
-                    // IncreaseIndent();
-                    ReplaceNextState(EmitState.BlockMappingKey);
-                    break;
-                }
-            }
-            PushState(EmitState.BlockSequenceEntry);
-        }
-
-        public void EndBlockSequence()
-        {
-            PopState();
-            DecreaseIndent();
-
-            if (currentElementCount == 0)
-            {
-                var output = writer.GetSpan(FlowSequenceEmpty.Length);
-                FlowSequenceEmpty.CopyTo(output);
-                writer.Advance(FlowSequenceEmpty.Length);
-            }
-        }
-
-        public void BeginBlockMapping()
-        {
-            switch (NextState)
-            {
-                case EmitState.BlockMappingKey:
-                    throw new YamlEmitterException("To start block-mapping in the mapping key is not supported.");
-                case EmitState.BlockMappingValue:
-                {
-                    IncreaseIndent();
-                    ReplaceNextState(EmitState.BlockMappingKey);
-                    var output = writer.GetSpan(1);
-                    output[0] = YamlCodes.Lf;
+                    output[0] = YamlCodes.FlowSequenceEnd;
                     writer.Advance(1);
                     break;
                 }
-                case EmitState.BlockSequenceEntry or EmitState.BlockMappingValue:
-                    IncreaseIndent();
-                    break;
+
+                default:
+                    throw new YamlEmitterException($"Current state is not sequence: {NextState}");
             }
-            PushState(EmitState.BlockMappingKey);
-            currentElementCount = 0;
         }
 
-        public void EndBlockMapping()
+        public void BeginMapping(MappingStyle style = MappingStyle.Block)
+        {
+            switch (style)
+            {
+                case MappingStyle.Block:
+                {
+                    switch (NextState)
+                    {
+                        case EmitState.BlockMappingKey:
+                            throw new YamlEmitterException("To start block-mapping in the mapping key is not supported.");
+                        case EmitState.BlockMappingValue:
+                        {
+                            IncreaseIndent();
+                            ReplaceNextState(EmitState.BlockMappingKey);
+                            var output = writer.GetSpan(1);
+                            output[0] = YamlCodes.Lf;
+                            writer.Advance(1);
+                            break;
+                        }
+                        case EmitState.BlockSequenceEntry or EmitState.BlockMappingValue:
+                            IncreaseIndent();
+                            break;
+                    }
+                    PushState(EmitState.BlockMappingKey);
+                    currentElementCount = 0;
+                    break;
+                }
+                case MappingStyle.Flow:
+                    throw new NotSupportedException();
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(style), style, null);
+            }
+        }
+
+        public void EndMapping()
         {
             if (NextState != EmitState.BlockMappingKey)
             {
                 throw new YamlEmitterException($"Invalid block mapping end: {NextState}");
             }
             DecreaseIndent();
-            PopState();
-        }
-
-        public void BeginFlowSequence()
-        {
-            switch (NextState)
-            {
-                case EmitState.BlockMappingValue:
-                    throw new YamlEmitterException("To start flow-mapping in the mapping key is not supported.");
-                case EmitState.FlowSequenceEntry:
-                {
-                    var length = FlowSequenceSeparator.Length + 1;
-                    var output = writer.GetSpan(length);
-                    FlowSequenceSeparator.CopyTo(output);
-                    output[FlowSequenceSeparator.Length] = YamlCodes.FlowSequenceStart;
-                    writer.Advance(length);
-                    break;
-                }
-                default:
-                {
-                    var output = writer.GetSpan(1);
-                    output[0] = YamlCodes.FlowSequenceStart;
-                    writer.Advance(1);
-                    break;
-                }
-            }
-            PushState(EmitState.FlowSequenceEntry);
-            currentElementCount = 0;
-        }
-
-        public void EndFlowSequence()
-        {
-            var output = writer.GetSpan(1);
-            output[0] = YamlCodes.FlowSequenceEnd;
-            writer.Advance(1);
             PopState();
         }
 
