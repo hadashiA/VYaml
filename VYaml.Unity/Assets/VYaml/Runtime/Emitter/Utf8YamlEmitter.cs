@@ -25,7 +25,13 @@ namespace VYaml.Emitter
 
     public ref struct Utf8YamlEmitter
     {
-        static byte[] WhiteSpaces;
+        static byte[] WhiteSpaces =
+        {
+            (byte)' ', (byte)' ', (byte)' ', (byte)' ', (byte)' ', (byte)' ', (byte)' ', (byte)' ',
+            (byte)' ', (byte)' ', (byte)' ', (byte)' ', (byte)' ', (byte)' ', (byte)' ', (byte)' ',
+            (byte)' ', (byte)' ', (byte)' ', (byte)' ', (byte)' ', (byte)' ', (byte)' ', (byte)' ',
+            (byte)' ', (byte)' ', (byte)' ', (byte)' ', (byte)' ', (byte)' ', (byte)' ', (byte)' ',
+        };
         static readonly byte[] BlockSequenceEntryHeaderEmpty = { (byte)'-', (byte)'\n' };
         static readonly byte[] BlockSequenceEntryHeader = { (byte)'-', (byte)' ' };
         static readonly byte[] MappingKeyFooter = { (byte)':', (byte)' ' };
@@ -37,16 +43,11 @@ namespace VYaml.Emitter
         readonly IBufferWriter<byte> writer;
         readonly YamlEmitOptions options;
 
-        ExpandBuffer<byte> scalarBuffer;
+        ExpandBuffer<char> stringBuffer;
         ExpandBuffer<EmitState> stateStack;
 
         int currentIndentLevel;
         int currentElementCount;
-
-        static Utf8YamlEmitter()
-        {
-            WhiteSpaces = Enumerable.Repeat(YamlCodes.Space, 64).ToArray();
-        }
 
         public Utf8YamlEmitter(IBufferWriter<byte> writer, YamlEmitOptions? options = null)
         {
@@ -54,7 +55,7 @@ namespace VYaml.Emitter
             this.options = options ?? YamlEmitOptions.Default;
 
             currentIndentLevel = 0;
-            scalarBuffer = new ExpandBuffer<byte>(1024);
+            stringBuffer = new ExpandBuffer<char>(1024);
             stateStack = new ExpandBuffer<EmitState>(16);
             stateStack.Add(EmitState.None);
             currentElementCount = 0;
@@ -64,7 +65,7 @@ namespace VYaml.Emitter
 
         public void Dispose()
         {
-            scalarBuffer.Dispose();
+            stringBuffer.Dispose();
             stateStack.Dispose();
         }
 
@@ -78,17 +79,13 @@ namespace VYaml.Emitter
                     {
                         case EmitState.BlockSequenceEntry:
                         {
-                            var length = BlockSequenceEntryHeaderEmpty.Length + currentIndentLevel * options.IndentWidth;
-                            var offset = 0;
-                            var output = writer.GetSpan(length);
-                            WriteIndent(output, ref offset);
-                            BlockSequenceEntryHeaderEmpty.CopyTo(output[offset..]);
-                            writer.Advance(length);
+                            WriteRaw(BlockSequenceEntryHeaderEmpty, true);
                             IncreaseIndent();
                             break;
                         }
                         case EmitState.BlockMappingKey:
                             throw new YamlEmitterException("To start block-sequence in the mapping key is not supported.");
+
                         case EmitState.BlockMappingValue:
                         {
                             var output = writer.GetSpan(1);
@@ -184,9 +181,12 @@ namespace VYaml.Emitter
                             writer.Advance(1);
                             break;
                         }
-                        case EmitState.BlockSequenceEntry or EmitState.BlockMappingValue:
+                        case EmitState.BlockSequenceEntry:
+                        {
+                            WriteRaw(BlockSequenceEntryHeaderEmpty, true);
                             IncreaseIndent();
                             break;
+                        }
                     }
                     PushState(EmitState.BlockMappingKey);
                     currentElementCount = 0;
@@ -369,54 +369,55 @@ namespace VYaml.Emitter
             var output = writer.GetSpan(GetScalarBufferLength(stringMaxByteCount));
             var offset = 0;
             BeginScalar(output, ref offset);
-            var bytesWritten = StringEncoding.Utf8.GetBytes(value, output[offset..]);
-            writer.Advance(offset + bytesWritten);
+            offset += StringEncoding.Utf8.GetBytes(value, output[offset..]);
+            EndScalar(output, ref offset);
+            writer.Advance(offset);
         }
 
         void WriteLiteralScalar(string value, in EmitStringInfo analyzeInfo)
         {
-            var stringMaxByteCount = StringEncoding.Utf8.GetMaxByteCount(value.Length);
-            scalarBuffer.SetCapacity(stringMaxByteCount);
+            var indentCharCount = (currentIndentLevel + 1) * options.IndentWidth;
+            var charCount = value.Length +
+                            analyzeInfo.Lines * indentCharCount +
+                            2 + // "|" + "\n"
+                            (analyzeInfo.ChompHint > 0 ? 1 : 0);
 
-            var stringByteCount = StringEncoding.Utf8.GetBytes(value, scalarBuffer.AsSpan(stringMaxByteCount));
+            stringBuffer.SetCapacity(charCount);
+            var scalarChars = stringBuffer.AsSpan(charCount);
+            EmitStringAnalyzer.ToLiteralScalar(value, scalarChars, analyzeInfo.ChompHint, indentCharCount);
 
-            var scalarSize = stringByteCount +
-                             analyzeInfo.Lines * currentIndentLevel * options.IndentWidth +
-                             3; // "|?" + "\n"
+            if (NextState is EmitState.BlockMappingValue or EmitState.BlockSequenceEntry)
+            {
+                scalarChars = scalarChars[..^1]; // Remove duplicate last line-break;
+            }
 
+            var maxByteCount = StringEncoding.Utf8.GetMaxByteCount(scalarChars.Length);
             var offset = 0;
-            var output = writer.GetSpan(GetScalarBufferLength(scalarSize));
-
-            output[offset++] = YamlCodes.LiteralScalerHeader;
-            if (analyzeInfo.ChompHint > 0)
-            {
-                output[offset++] = analyzeInfo.ChompHint;
-            }
-            output[offset++] = YamlCodes.Lf;
-
-            IncreaseIndent();
-            try
-            {
-                WriteIndent(output, ref offset);
-                foreach (var x in scalarBuffer.AsSpan(stringByteCount))
-                {
-                    output[offset++] = x;
-                    if (x == YamlCodes.Lf && offset < stringByteCount - 1)
-                    {
-                        WriteIndent(output, ref offset);
-                    }
-                }
-                writer.Advance(offset);
-            }
-            finally
-            {
-                DecreaseIndent();
-            }
+            var output = writer.GetSpan(GetScalarBufferLength(maxByteCount));
+            BeginScalar(output, ref offset);
+            offset += StringEncoding.Utf8.GetBytes(scalarChars, output[offset..]);
+            EndScalar(output, ref offset);
+            writer.Advance(offset);
         }
 
         void WriteFoldedScalar(string value, in EmitStringInfo analyzeInfo)
         {
 
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        void WriteRaw(ReadOnlySpan<byte> value, bool indent)
+        {
+            var length = value.Length + (indent ? currentIndentLevel * options.IndentWidth : 0);
+            var offset = 0;
+            var output = writer.GetSpan(length);
+            if (indent)
+            {
+                WriteIndent(output, ref offset);
+                output = output[offset..];
+            }
+            value.CopyTo(output);
+            writer.Advance(length);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

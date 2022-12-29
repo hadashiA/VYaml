@@ -1,4 +1,7 @@
 using System;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Text;
 using VYaml.Emitter;
 
 namespace VYaml.Internal
@@ -8,13 +11,13 @@ namespace VYaml.Internal
         public readonly int Lines;
         public readonly bool NeedsQuotes;
         public readonly bool IsReservedWord;
-        public readonly byte ChompHint;
+        public readonly char ChompHint;
 
         public EmitStringInfo(
             int lines,
             bool needsQuotes,
             bool isReservedWord,
-            byte chompHint)
+            char chompHint)
         {
             Lines = lines;
             NeedsQuotes = needsQuotes;
@@ -34,12 +37,23 @@ namespace VYaml.Internal
 
     static class EmitStringAnalyzer
     {
+        [ThreadStatic]
+        static StringBuilder? stringBuilderThreadStatic;
+
+        static char[] WhiteSpaces =
+        {
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+        };
+
         public static EmitStringInfo Analyze(string value)
         {
             var chars = value.AsSpan();
             if (chars.Length <= 0)
             {
-                return new EmitStringInfo(0, true, false, 0);
+                return new EmitStringInfo(0, true, false, '\0');
             }
 
             var isReservedWord = IsReservedWord(value);
@@ -52,21 +66,21 @@ namespace VYaml.Internal
                               last == YamlCodes.Space ||
                               first is '&' or '*' or '?' or '|' or '-' or '<' or '>' or '=' or '!' or '%' or '@' or '.';
 
-            byte chompHint = 0;
+            var chompHint = '\0';
             if (last == '\n')
             {
                 if (chars[^2] == '\n' ||
                     (chars[^2] == '\r' && chars[^3] == '\n'))
                 {
-                    chompHint = (byte)'+';
+                    chompHint = '+';
                 }
             }
             else
             {
-                chompHint = (byte)'-';
+                chompHint = '-';
             }
 
-            var lines = 0;
+            var lines = 1;
             foreach (var ch in chars)
             {
                 switch (ch)
@@ -87,11 +101,47 @@ namespace VYaml.Internal
                         break;
                 }
             }
+
+            if (last == '\n')
+            {
+                lines--;
+            }
             return new EmitStringInfo(lines, needsQuotes, isReservedWord, chompHint);
+        }
+
+        internal static void ToLiteralScalar(
+            ReadOnlySpan<char> originalValue,
+            Span<char> output,
+            char chompHint,
+            int indentCharCount)
+        {
+            var stringBuilder = (stringBuilderThreadStatic ??= new StringBuilder(1024)).Clear();
+            stringBuilder.Append('|');
+            if (chompHint > 0)
+            {
+                stringBuilder.Append(chompHint);
+            }
+            stringBuilder.Append('\n');
+            AppendWhiteSpace(stringBuilder, indentCharCount);
+
+            for (var i = 0; i < originalValue.Length; i++)
+            {
+                var ch = originalValue[i];
+                stringBuilder.Append(ch);
+                if (ch == '\n' && i < originalValue.Length - 1)
+                {
+                    AppendWhiteSpace(stringBuilder, indentCharCount);
+                }
+            }
+
+            var length = stringBuilder.Length;
+            stringBuilder.CopyTo(0, output, length);
         }
 
         static bool IsReservedWord(string value)
         {
+            var b = new StringBuilder();
+            b.Append('\n');
             switch (value.Length)
             {
                 case 1:
@@ -114,6 +164,20 @@ namespace VYaml.Internal
                     break;
             }
             return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static StringBuilder GetStringBuilder() =>
+            (stringBuilderThreadStatic ??= new StringBuilder(1024)).Clear();
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static void AppendWhiteSpace(StringBuilder stringBuilder, int length)
+        {
+            if (length > WhiteSpaces.Length)
+            {
+                WhiteSpaces = Enumerable.Repeat(' ', length * 2).ToArray();
+            }
+            stringBuilder.Append(WhiteSpaces.AsSpan(0, length));
         }
     }
 }

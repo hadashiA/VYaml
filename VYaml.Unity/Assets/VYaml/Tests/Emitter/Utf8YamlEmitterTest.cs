@@ -1,3 +1,4 @@
+using System;
 using System.Buffers;
 using NUnit.Framework;
 using VYaml.Emitter;
@@ -51,6 +52,69 @@ namespace VYaml.Tests.Emitter
                 "  year was crippled\n" +
                 "  by a knee injury.\n"
                 ));
+        }
+
+        [Test]
+        public void WriteString_LiteralScalarInSequence()
+        {
+            using var emitter = CreateEmitter();
+            emitter.BeginSequence();
+            emitter.WriteString(
+                "Mark McGwire's\nyear was crippled\nby a knee injury.\n",
+                ScalarStyle.Literal);
+            emitter.EndSequence();
+
+            Assert.That(StringResult(in emitter), Is.EqualTo(
+                "- |\n" +
+                "  Mark McGwire's\n" +
+                "  year was crippled\n" +
+                "  by a knee injury.\n"
+            ));
+        }
+
+        [Test]
+        public void WriteString_LiteralScalarInMapping()
+        {
+            using var emitter = CreateEmitter();
+            emitter.BeginMapping();
+            emitter.WriteString("aaa");
+            emitter.WriteString(
+                "Mark McGwire's\nyear was crippled\nby a knee injury.\n",
+                ScalarStyle.Literal);
+            emitter.EndMapping();
+
+            Assert.That(StringResult(in emitter), Is.EqualTo(
+                "aaa: |\n" +
+                "  Mark McGwire's\n" +
+                "  year was crippled\n" +
+                "  by a knee injury.\n"
+            ));
+        }
+
+        [Test]
+        public void WriteString_LiteralScalarNested()
+        {
+            using var emitter = CreateEmitter();
+            emitter.BeginSequence();
+            {
+                emitter.BeginMapping();
+                {
+                    emitter.WriteString("aaa");
+                    emitter.WriteString(
+                        "Mark McGwire's\nyear was crippled\nby a knee injury.\n",
+                        ScalarStyle.Literal);
+                }
+                emitter.EndMapping();
+            }
+            emitter.EndSequence();
+
+            Assert.That(StringResult(in emitter), Is.EqualTo(
+                "-\n" +
+                "  aaa: |\n" +
+                "    Mark McGwire's\n" +
+                "    year was crippled\n" +
+                "    by a knee injury.\n"
+            ));
         }
 
         [Test]
@@ -136,11 +200,12 @@ namespace VYaml.Tests.Emitter
                     emitter.BeginSequence();
                     {
                         emitter.WriteInt32(600);
+                        emitter.WriteInt32(700);
                     }
                     emitter.EndSequence();
                 }
                 emitter.EndSequence();
-                emitter.WriteInt32(700);
+                emitter.WriteInt32(800);
             }
             emitter.EndSequence();
 
@@ -154,7 +219,37 @@ namespace VYaml.Tests.Emitter
                 "  - 500\n" +
                 "  -\n" +
                 "    - 600\n" +
-                "- 700\n"
+                "    - 700\n" +
+                "- 800\n"
+            ));
+        }
+
+        [Test]
+        public void BlockSequence_InBlockMapping()
+        {
+            using var emitter = CreateEmitter();
+            emitter.BeginMapping();
+            {
+                emitter.WriteString("aaa");
+                emitter.BeginMapping();
+                {
+                    emitter.WriteString("bbb");
+                    emitter.BeginSequence();
+                    {
+                        emitter.WriteInt32(200);
+                        emitter.WriteInt32(300);
+                    }
+                    emitter.EndSequence();
+                }
+                emitter.EndMapping();
+            }
+            emitter.EndMapping();
+
+            Assert.That(StringResult(in emitter), Is.EqualTo(
+                "aaa: \n" +
+                "  bbb: \n" +
+                "  - 200\n" +
+                "  - 300\n"
             ));
         }
 
@@ -251,6 +346,32 @@ namespace VYaml.Tests.Emitter
                 "  4: \n" +
                 "    5: 500\n" +
                 "6: 600\n"
+            ));
+        }
+
+        [Test]
+        public void BlockMapping_InBlockSequence()
+        {
+            var emitter = CreateEmitter();
+            emitter.BeginSequence();
+            {
+                emitter.BeginMapping();
+                {
+                    emitter.WriteInt32(1);
+                    emitter.WriteInt32(100);
+                    emitter.WriteInt32(2);
+                    emitter.WriteInt32(200);
+                }
+                emitter.EndMapping();
+                emitter.WriteInt32(300);
+            }
+            emitter.EndSequence();
+
+            Assert.That(StringResult(in emitter), Is.EqualTo(
+                "-\n" +
+                "  1: 100\n" +
+                "  2: 200\n" +
+                "- 300\n"
             ));
         }
 
