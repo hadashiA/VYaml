@@ -127,15 +127,23 @@ namespace VYaml.Internal
             return stringBuilder;
         }
 
-        internal static StringBuilder BuildDoubleQuotedScalar(ReadOnlySpan<char> originalValue)
+        internal static StringBuilder BuildQuotedScalar(ReadOnlySpan<char> originalValue, bool doubleQuote = true)
         {
             var stringBuilder = GetStringBuilder();
-            stringBuilder.Append('"');
+
+            var quoteChar = doubleQuote ? '"' : '\'';
+            stringBuilder.Append(quoteChar);
 
             foreach (var ch in originalValue)
             {
                 switch (ch)
                 {
+                    case '"' when doubleQuote:
+                        stringBuilder.Append("\\\"");
+                        break;
+                    case '\'' when !doubleQuote:
+                        stringBuilder.Append("\\'");
+                        break;
                     case '\0':
                         stringBuilder.Append("\\0");
                         break;
@@ -180,9 +188,6 @@ namespace VYaml.Internal
                         break;
                     case '\xE':
                         stringBuilder.Append("\\r");
-                        break;
-                    case '\x22':
-                        stringBuilder.Append("\\\"");
                         break;
                     case '\x5C':
                         stringBuilder.Append("\\\\");
@@ -258,7 +263,7 @@ namespace VYaml.Internal
                         break;
                 }
             }
-            stringBuilder.Append('"');
+            stringBuilder.Append(quoteChar);
             return stringBuilder;
         }
 

@@ -380,16 +380,17 @@ namespace VYaml.Emitter
                     WritePlainScalar(value);
                     break;
 
+                case ScalarStyle.SingleQuoted:
+                    WriteQuotedScalar(value, doubleQuote: false);
+                    break;
+
                 case ScalarStyle.DoubleQuoted:
-                    WriteDoubleQuotedScalar(value);
+                    WriteQuotedScalar(value, doubleQuote: true);
                     break;
 
                 case ScalarStyle.Literal:
                     WriteLiteralScalar(value);
                     break;
-
-                case ScalarStyle.SingleQuoted:
-                    throw new NotSupportedException();
 
                 case ScalarStyle.Folded:
                     throw new NotSupportedException();
@@ -431,9 +432,9 @@ namespace VYaml.Emitter
             writer.Advance(offset);
         }
 
-        void WriteDoubleQuotedScalar(string value)
+        void WriteQuotedScalar(string value, bool doubleQuote = true)
         {
-            var scalarStringBuilt = EmitStringAnalyzer.BuildDoubleQuotedScalar(value);
+            var scalarStringBuilt = EmitStringAnalyzer.BuildQuotedScalar(value, doubleQuote);
             var scalarChars = stringBuffer.AsSpan(scalarStringBuilt.Length);
             scalarStringBuilt.CopyTo(0, scalarChars, scalarStringBuilt.Length);
 

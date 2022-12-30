@@ -107,6 +107,8 @@ namespace VYaml.Tests.Emitter
         [Test]
         [TestCase("aaa\nbbb", ExpectedResult = "\"aaa\\nbbb\"")]
         [TestCase("aaa\tbbb", ExpectedResult = "\"aaa\\tbbb\"")]
+        [TestCase("aaa\"bbb", ExpectedResult = "\"aaa\"bbb\"")]
+        [TestCase("aaa'bbb", ExpectedResult = "\"aaa'bbb\"")]
         [TestCase("\0", ExpectedResult = "\"\\0\"")]
         [TestCase("\x8", ExpectedResult = "\"\\b\"")]
         [TestCase("\xA0", ExpectedResult = "\"\\_\"")]
@@ -116,6 +118,22 @@ namespace VYaml.Tests.Emitter
         {
             using var emitter = CreateEmitter();
             emitter.WriteString(value, ScalarStyle.DoubleQuoted);
+            return ToString(in emitter);
+        }
+
+        [Test]
+        [TestCase("aaa\nbbb", ExpectedResult = "'aaa\\nbbb'")]
+        [TestCase("aaa\tbbb", ExpectedResult = "'aaa\\tbbb'")]
+        [TestCase("aaa'bbb", ExpectedResult = "'aaa\\'bbb'")]
+        [TestCase("\0", ExpectedResult = "'\\0'")]
+        [TestCase("\x8", ExpectedResult = "'\\b'")]
+        [TestCase("\xA0", ExpectedResult = "'\\_'")]
+        [TestCase("\x2028", ExpectedResult = "'\\L'")]
+        [TestCase("\x1F", ExpectedResult = "'\\u001f'")]
+        public string WriteString_SingleQuotedScalar(string value)
+        {
+            using var emitter = CreateEmitter();
+            emitter.WriteString(value, ScalarStyle.SingleQuoted);
             return ToString(in emitter);
         }
 
