@@ -102,14 +102,10 @@ d: ddd
 ```
 
 ```csharp
-using var stream = File.Open("/path/to/yaml");
+using var stream = File.OpenRead("/path/to/yaml");
 var sample = await YamlSerializer.DeserializeAsync<Sample>(stream);
 
 // Or 
-// var yamlUtf8Bytes = File.ReadAllBytes("path/to/yaml");
-// var sample = YamlSerializer.Deserialize<Sample>(yamlUtf8Bytes);
-//
-// Or
 // var yamlUtf8Bytes = System.Text.Encofing.UTF8.GetBytes("<yaml string....>");
 // var sample = YamlSerializer.Deserialize<Sample>(yamlUtf8Bytes);
 ```
