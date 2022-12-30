@@ -349,16 +349,16 @@ namespace VYaml.Emitter
                 case ScalarStyle.Plain:
                     WritePlainScalar(value);
                     break;
-                // case ScalarStyle.SingleQuoted:
-                //     break;
+                case ScalarStyle.SingleQuoted:
+                    throw new NotSupportedException();
                 case ScalarStyle.DoubleQuoted:
-                    WriteDoubleQuotedScalar(value, analyzeInfo);
+                    WriteDoubleQuotedScalar(value);
                     break;
                 case ScalarStyle.Literal:
                     WriteLiteralScalar(value, analyzeInfo);
                     break;
-                // case ScalarStyle.Folded:
-                //     break;
+                case ScalarStyle.Folded:
+                    throw new NotSupportedException();
                 default:
                     throw new ArgumentOutOfRangeException(nameof(style), style, null);
             }
@@ -375,19 +375,12 @@ namespace VYaml.Emitter
             writer.Advance(offset);
         }
 
-        void WriteDoubleQuotedScalar(string value, in EmitStringInfo analyzeInfo)
-        {
-
-        }
-
         void WriteLiteralScalar(string value, in EmitStringInfo analyzeInfo)
         {
             var indentCharCount = (currentIndentLevel + 1) * options.IndentWidth;
-            var scalarValueBuilder = EmitStringAnalyzer.ToLiteralScalar(value, analyzeInfo.ChompHint, indentCharCount);
-
-            stringBuffer.SetCapacity(scalarValueBuilder.Length);
-            var scalarChars = stringBuffer.AsSpan(scalarValueBuilder.Length);
-            scalarValueBuilder.CopyTo(0, scalarChars, scalarValueBuilder.Length);
+            var scalarStringBuilt = EmitStringAnalyzer.BuildLiteralScalar(value, analyzeInfo.ChompHint, indentCharCount);
+            var scalarChars = stringBuffer.AsSpan(scalarStringBuilt.Length);
+            scalarStringBuilt.CopyTo(0, scalarChars, scalarStringBuilt.Length);
 
             if (NextState is EmitState.BlockMappingValue or EmitState.BlockSequenceEntry)
             {
@@ -403,9 +396,19 @@ namespace VYaml.Emitter
             writer.Advance(offset);
         }
 
-        void WriteFoldedScalar(string value, in EmitStringInfo analyzeInfo)
+        void WriteDoubleQuotedScalar(string value)
         {
+            var scalarStringBuilt = EmitStringAnalyzer.BuildDoubleQuotedScalar(value);
+            var scalarChars = stringBuffer.AsSpan(scalarStringBuilt.Length);
+            scalarStringBuilt.CopyTo(0, scalarChars, scalarStringBuilt.Length);
 
+            var maxByteCount = StringEncoding.Utf8.GetMaxByteCount(scalarChars.Length);
+            var offset = 0;
+            var output = writer.GetSpan(GetScalarBufferLength(maxByteCount));
+            BeginScalar(output, ref offset);
+            offset += StringEncoding.Utf8.GetBytes(scalarChars, output[offset..]);
+            EndScalar(output, ref offset);
+            writer.Advance(offset);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

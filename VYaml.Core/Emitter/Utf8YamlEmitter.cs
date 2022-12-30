@@ -349,16 +349,16 @@ namespace VYaml.Emitter
                 case ScalarStyle.Plain:
                     WritePlainScalar(value);
                     break;
-                // case ScalarStyle.SingleQuoted:
-                //     break;
+                case ScalarStyle.SingleQuoted:
+                    throw new NotSupportedException();
                 case ScalarStyle.DoubleQuoted:
                     WriteDoubleQuotedScalar(value);
                     break;
                 case ScalarStyle.Literal:
                     WriteLiteralScalar(value, analyzeInfo);
                     break;
-                // case ScalarStyle.Folded:
-                //     break;
+                case ScalarStyle.Folded:
+                    throw new NotSupportedException();
                 default:
                     throw new ArgumentOutOfRangeException(nameof(style), style, null);
             }

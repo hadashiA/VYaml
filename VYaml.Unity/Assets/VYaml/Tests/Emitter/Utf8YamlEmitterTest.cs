@@ -1,4 +1,3 @@
-using System;
 using System.Buffers;
 using NUnit.Framework;
 using VYaml.Emitter;
@@ -10,6 +9,14 @@ namespace VYaml.Tests.Emitter
     public class Utf8YamlEmitterTest
     {
         [Test]
+        public void WriteNull()
+        {
+            using var emitter = CreateEmitter();
+            emitter.WriteNull();
+            Assert.That(StringResult(in emitter), Is.EqualTo("null"));
+        }
+
+        [Test]
         [TestCase(true, ExpectedResult = "true")]
         [TestCase(false, ExpectedResult = "false")]
         public string WriteBool(bool value)
@@ -20,12 +27,50 @@ namespace VYaml.Tests.Emitter
         }
 
         [Test]
+        [TestCase(0, ExpectedResult = "0")]
         [TestCase(123, ExpectedResult = "123")]
         [TestCase(-123, ExpectedResult = "-123")]
+        [TestCase(int.MaxValue, ExpectedResult = "2147483647")]
+        [TestCase(int.MinValue, ExpectedResult = "-2147483648")]
         public string WriteInt32(int value)
         {
             using var emitter = CreateEmitter();
             emitter.WriteInt32(value);
+            return StringResult(in emitter);
+        }
+
+        [Test]
+        [TestCase(0, ExpectedResult = "0")]
+        [TestCase(123, ExpectedResult = "123")]
+        [TestCase(-123, ExpectedResult = "-123")]
+        [TestCase(long.MaxValue, ExpectedResult = "9223372036854775807")]
+        [TestCase(long.MinValue, ExpectedResult = "-9223372036854775808")]
+        public string WriteInt64(long value)
+        {
+            using var emitter = CreateEmitter();
+            emitter.WriteInt64(value);
+            return StringResult(in emitter);
+        }
+
+        [Test]
+        [TestCase(0u, ExpectedResult = "0")]
+        [TestCase(123u, ExpectedResult = "123")]
+        [TestCase(uint.MaxValue, ExpectedResult = "4294967295")]
+        public string WriteUInt32(uint value)
+        {
+            using var emitter = CreateEmitter();
+            emitter.WriteUInt32(value);
+            return StringResult(in emitter);
+        }
+
+        [Test]
+        [TestCase(0u, ExpectedResult = "0")]
+        [TestCase(123u, ExpectedResult = "123")]
+        [TestCase(ulong.MaxValue, ExpectedResult = "18446744073709551615")]
+        public string WriteUInt64(ulong value)
+        {
+            using var emitter = CreateEmitter();
+            emitter.WriteUInt64(value);
             return StringResult(in emitter);
         }
 

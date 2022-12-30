@@ -37,7 +37,14 @@ namespace VYaml.Internal
         public Span<T> AsSpan() => buffer.AsSpan(0, Length);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Span<T> AsSpan(int length) => buffer.AsSpan(0, length);
+        public Span<T> AsSpan(int length)
+        {
+            if (length > buffer.Length)
+            {
+                SetCapacity(buffer.Length * 2);
+            }
+            return buffer.AsSpan(0, length);
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()
@@ -80,7 +87,7 @@ namespace VYaml.Internal
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetCapacity(int newCapacity)
+        void SetCapacity(int newCapacity)
         {
             if (buffer.Length >= newCapacity) return;
 

@@ -1,4 +1,5 @@
 using System;
+using System.Data;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -109,7 +110,7 @@ namespace VYaml.Internal
             return new EmitStringInfo(lines, needsQuotes, isReservedWord, chompHint);
         }
 
-        internal static StringBuilder ToLiteralScalar(
+        internal static StringBuilder BuildLiteralScalar(
             ReadOnlySpan<char> originalValue,
             char chompHint,
             int indentCharCount)
@@ -135,11 +136,90 @@ namespace VYaml.Internal
             return stringBuilder;
         }
 
-        internal static void ToDoubleQuotedScalar(
-            ReadOnlySpan<char> originalValue,
-            Span<char> scalarValue)
+        internal static StringBuilder BuildDoubleQuotedScalar(ReadOnlySpan<char> originalValue)
         {
+            var stringBuilder = GetStringBuilder();
+            stringBuilder.Append('"');
 
+            for (var i = 0; i < originalValue.Length; i++)
+            {
+                var ch = originalValue[i];
+                switch (ch)
+                {
+                    case '\0':
+                        stringBuilder.Append("\\0");
+                        break;
+                    case '\x7':
+                        stringBuilder.Append("\\a");
+                        break;
+                    case '\x8':
+                        stringBuilder.Append("\\b");
+                        break;
+                    case '\x9':
+                        stringBuilder.Append("\\t");
+                        break;
+                    case '\xA':
+                        stringBuilder.Append("\\n");
+                        break;
+                    case '\xB':
+                        stringBuilder.Append("\\v");
+                        break;
+                    case '\xC':
+                        stringBuilder.Append("\\f");
+                        break;
+                    case '\xD':
+                        stringBuilder.Append("\\r");
+                        break;
+                    case '\x1B':
+                        stringBuilder.Append("\\e");
+                        break;
+                    case '\x22':
+                        stringBuilder.Append("\\\"");
+                        break;
+                    case '\x5C':
+                        stringBuilder.Append("\\\\");
+                        break;
+                    case '\x85':
+                        stringBuilder.Append("\\N");
+                        break;
+                    case '\xA0':
+                        stringBuilder.Append("\\_");
+                        break;
+                    case '\x2028':
+                        stringBuilder.Append("\\L");
+                        break;
+                    case '\x2029':
+                        stringBuilder.Append("\\P");
+                        break;
+                    default:
+                        var code = (ushort)ch;
+                        if (code <= 0xFF)
+                        {
+                            stringBuilder.Append('x');
+                            stringBuilder.AppendFormat("{0:X02}", code);
+                        }
+                        else if (IsHighSurrogate(ch))
+                        {
+                            if (i < originalValue.Length - 1 && IsLowSurrogate(originalValue[i + 1]))
+                            {
+                                stringBuilder.Append('U');
+                                stringBuilder.AppendFormat("{0:X08}", char.ConvertToUtf32(ch, originalValue[++i]));
+                            }
+                            else
+                            {
+                                throw new SyntaxErrorException("While writing a quoted scalar, found an orphaned high surrogate.");
+                            }
+                        }
+                        else
+                        {
+                            stringBuilder.Append('u');
+                            stringBuilder.AppendFormat("{0:X04}", code);
+                        }
+                        break;
+                }
+            }
+            stringBuilder.Append('"');
+            return stringBuilder;
         }
 
         static bool IsReservedWord(string value)
@@ -170,21 +250,17 @@ namespace VYaml.Internal
             return false;
         }
 
-        // [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        // static bool IsPrintable(char ch) => ch is
-        //     '\x9' or
-        //     '\xA' or
-        //     '\xD' or
-        //     >= '\x20' and <= '\x7E' or
-        //     '\x85' or
-        //     >= '\xA0' and <= '\xD7FF' or
-        //     >= '\xE000' and <= '\xFFFD';
-        //
-        // [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        // static bool NeedsEspae(char ch)
-        // {
-        //     return IsPrintable(ch) || ch is '\n'
-        // }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static bool IsHighSurrogate(char c)
+        {
+            return 0xD800 <= c && c <= 0xDBFF;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static bool IsLowSurrogate(char c)
+        {
+            return 0xDC00 <= c && c <= 0xDFFF;
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static StringBuilder GetStringBuilder() =>
