@@ -18,8 +18,15 @@ Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular y
 ## Currentry supported fetures
 
 - Parser 
-    - [YAML 1.2 mostly supported](#httpsyamlorgspec122)
-- Deserialize
+  - [YAML 1.2 mostly supported](#httpsyamlorgspec122)
+- Deserialization
+  - YAML to user-defined types
+  - YAML to primitive collection via `dynamic` 
+  - Support anchor (`&`) and alias (`*`) in the YAML spec.
+  - Support multiple yaml documents.
+  - Customization
+    - Rename key
+    - Ignore member
 - Mainly focused on Unity
     - Only 2021.3 and higher (netstandard2.1 compatible)
 
@@ -27,7 +34,7 @@ Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular y
 
 - [ ] Support incremental source generator (Only Roslyn 4)
 - Deserialize
-    - [ ] Custom formatter
+    - [ ] User-defined custom formatter
     - [ ] Restrict max depth
     - [ ] Specific constructor
 - [ ] Serialize
@@ -147,6 +154,53 @@ yaml["c"] // #=> "hoge"
 yaml["d"] // #=> "ddd"
 ```
 
+#### Deserialize multiple documents
+
+
+YAML allows for multiple data in one file by separating them with `---`. This is called a "Document".
+If you want to load multiple documents, you can use `Yamlserializer.DeserializeMultipleDocuments<T>(...)`.
+
+For example:
+
+``` yaml
+---
+Time: 2001-11-23 15:01:42 -5
+User: ed
+Warning:
+  This is an error message
+  for the log file
+---
+Time: 2001-11-23 15:02:31 -5
+User: ed
+Warning:
+  A slightly different error
+  message.
+---
+Date: 2001-11-23 15:03:17 -5
+User: ed
+Fatal:
+  Unknown variable "bar"
+Stack:
+- file: TopClass.py
+  line: 23
+  code: |
+    x = MoreObject("345\n")
+- file: MoreClass.py
+  line: 58
+  code: |-
+    foo = bar
+```
+
+``` csharp
+var documents = YamlSerializer.DeserializeMultipleDocuments<dynamic>(yaml);
+```
+
+```csharp
+documents[0]["Warning"] // #=> "This is an error message for the log file"
+documents[1]["Warning"] // #=> "A slightly different error message."
+documents[2]["Fatal"]   // #=> "Unknown variable \"bar\""
+```
+
 #### Naming convention
 
 :exclamation: By default, VYaml maps C# property names in lower camel case (e.g. `propertyName`) format to yaml keys.
@@ -176,7 +230,7 @@ enum Foo
 ```
 
 ``` csharp
-YamlSerializer.Deserialize<Foo>(Utf8.GetBytes("item1")); // #=> Foo.Item1
+YamlSerializer.Deserialize<Foo>(Encoding.UTF8.GetBytes("item1")); // #=> Foo.Item1
 ```
 
 It respect `[EnumMember]`, and `[DataMember]`.

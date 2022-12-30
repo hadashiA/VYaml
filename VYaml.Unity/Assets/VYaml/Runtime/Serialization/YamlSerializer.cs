@@ -1,5 +1,6 @@
 using System;
 using System.Buffers;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using VYaml.Internal;
@@ -43,7 +44,7 @@ namespace VYaml.Serialization
             return Deserialize<T>(ref parser, options);
         }
 
-        public static async ValueTask<T> Deserialize<T>(Stream stream, YamlSerializerOptions? options = null)
+        public static async ValueTask<T> DeserializeAsync<T>(Stream stream, YamlSerializerOptions? options = null)
         {
             var byteSequenceBuilder = await StreamHelper.ReadAsSequenceAsync(stream);
             try
@@ -59,17 +60,73 @@ namespace VYaml.Serialization
 
         public static T Deserialize<T>(ref YamlParser parser, YamlSerializerOptions? options = null)
         {
-            options ??= DefaultOptions;
             try
             {
+                options ??= DefaultOptions;
                 var contextLocal = deserializationContext ??= new YamlDeserializationContext();
-                contextLocal.Reset();
                 contextLocal.Resolver = options.Resolver;
+                contextLocal.Reset();
 
                 parser.SkipAfter(ParseEventType.DocumentStart);
 
                 var formatter = options.Resolver.GetFormatterWithVerify<T>();
                 return contextLocal.DeserializeWithAlias(formatter, ref parser);
+            }
+            finally
+            {
+                parser.Dispose();
+            }
+        }
+
+        public static async ValueTask<IEnumerable<T>> DeserializeMultipleDocumentsAsync<T>(Stream stream, YamlSerializerOptions? options = null)
+        {
+            var byteSequenceBuilder = await StreamHelper.ReadAsSequenceAsync(stream);
+            try
+            {
+                var sequence = byteSequenceBuilder.Build();
+                return DeserializeMultipleDocuments<T>(in sequence, options);
+            }
+            finally
+            {
+                ReusableByteSequenceBuilderPool.Return(byteSequenceBuilder);
+            }
+        }
+
+        public static IEnumerable<T> DeserializeMultipleDocuments<T>(ReadOnlyMemory<byte> memory, YamlSerializerOptions? options = null)
+        {
+            var parser = YamlParser.FromSequence(new ReadOnlySequence<byte>(memory));
+            return DeserializeMultipleDocuments<T>(ref parser, options);
+        }
+
+        public static IEnumerable<T> DeserializeMultipleDocuments<T>(in ReadOnlySequence<byte> sequence, YamlSerializerOptions? options = null)
+        {
+            var parser = YamlParser.FromSequence(sequence);
+            return DeserializeMultipleDocuments<T>(ref parser, options);
+        }
+
+        public static IEnumerable<T> DeserializeMultipleDocuments<T>(ref YamlParser parser, YamlSerializerOptions? options = null)
+        {
+            try
+            {
+                options ??= DefaultOptions;
+                var contextLocal = deserializationContext ??= new YamlDeserializationContext();
+                contextLocal.Resolver = options.Resolver;
+                var formatter = options.Resolver.GetFormatterWithVerify<T>();
+                var documents = new List<T>();
+
+                while (true)
+                {
+                    parser.SkipAfter(ParseEventType.DocumentStart);
+                    if (parser.End)
+                    {
+                        break;
+                    }
+
+                    contextLocal.Reset();
+                    var document = contextLocal.DeserializeWithAlias(formatter, ref parser);
+                    documents.Add(document);
+                }
+                return documents;
             }
             finally
             {
