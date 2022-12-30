@@ -1,0 +1,33 @@
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "tag: git tag you want create. (sample 1.0.0)"
+        required: true
+      dry-run:
+        description: "dry-run: false = create release/nuget. true = never create release/nuget."
+        required: true
+        default: false
+        type: boolean
+jobs:
+  nuget-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.inputs.tag }}
+      - uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: |
+            6.0.x
+      - run: dotnet build -c Release
+      - run: dotnet test -c Release --no-build
+      - run: dotnet pack -c Release --no-build -o ./publish
+      - uses: actions/upload-artifact@v3
+        with:
+          name: nuget
+          path: ./publish
+      - name: Publish
+        if: github.event.inputs.dry-run == ''
+        run: nuget push ./publish/*.nupkg -Source 'https://api.nuget.org/v3/index.json' -ApiKey ${{secrets.NUGET_API_KEY}}

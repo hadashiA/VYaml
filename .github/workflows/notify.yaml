@@ -12,6 +12,6 @@ jobs:
         with:
           status: ${{ job.status }}
           fields: repo
-          text: "☆ from ${{ github.event.sender.login }}, Total: ${{ github.event.repository.stargazers_count }}"
+          text: "☆ from https://github.com/${{ github.event.sender.login }}, Total: ${{ github.event.repository.stargazers_count }}"
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
