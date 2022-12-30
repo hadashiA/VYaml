@@ -84,15 +84,16 @@ namespace VYaml.Emitter
                             break;
                         }
                         case EmitState.BlockMappingKey:
+                        {
                             throw new YamlEmitterException("To start block-sequence in the mapping key is not supported.");
-
+                        }
                         case EmitState.BlockMappingValue:
                         {
                             var output = writer.GetSpan(1);
                             output[0] = YamlCodes.Lf;
                             writer.Advance(1);
                             // IncreaseIndent();
-                            ReplaceNextState(EmitState.BlockMappingKey);
+                            ReplaceNextState(EmitState.BlockMappingKey); // Close mapping
                             break;
                         }
                     }
@@ -103,8 +104,24 @@ namespace VYaml.Emitter
                 {
                     switch (NextState)
                     {
-                        case EmitState.BlockMappingValue:
+                        case EmitState.BlockMappingKey:
+                        {
                             throw new YamlEmitterException("To start flow-mapping in the mapping key is not supported.");
+                        }
+                        case EmitState.BlockMappingValue:
+                        {
+                            ReplaceNextState(EmitState.BlockMappingKey); // Close mapping
+                            break;
+                        }
+                        case EmitState.BlockSequenceEntry:
+                        {
+                            var length = BlockSequenceEntryHeader.Length + 1;
+                            var output = writer.GetSpan(length);
+                            BlockSequenceEntryHeader.CopyTo(output);
+                            output[BlockSequenceEntryHeader.Length] = YamlCodes.FlowSequenceStart;
+                            writer.Advance(length);
+                            break;
+                        }
                         case EmitState.FlowSequenceEntry:
                         {
                             var length = FlowSequenceSeparator.Length + 1;
@@ -151,9 +168,26 @@ namespace VYaml.Emitter
                 case EmitState.FlowSequenceEntry:
                 {
                     PopState();
-                    var output = writer.GetSpan(1);
-                    output[0] = YamlCodes.FlowSequenceEnd;
-                    writer.Advance(1);
+
+                    var emptySequence = currentElementCount == 0;
+                    var needsLineBreak = NextState is EmitState.BlockMappingValue or EmitState.BlockSequenceEntry;
+
+                    var suffixLength = 1;
+                    if (emptySequence) suffixLength++;
+                    if (needsLineBreak) suffixLength++;
+
+                    var offset = 0;
+                    var output = writer.GetSpan(suffixLength);
+                    if (emptySequence)
+                    {
+                        output[offset++] = YamlCodes.FlowSequenceStart;
+                    }
+                    output[offset++] = YamlCodes.FlowSequenceEnd;
+                    if (needsLineBreak)
+                    {
+                        output[offset++] = YamlCodes.FlowSequenceEnd;
+                    }
+                    writer.Advance(offset);
                     break;
                 }
 
@@ -171,7 +205,9 @@ namespace VYaml.Emitter
                     switch (NextState)
                     {
                         case EmitState.BlockMappingKey:
+                        {
                             throw new YamlEmitterException("To start block-mapping in the mapping key is not supported.");
+                        }
                         case EmitState.BlockMappingValue:
                         {
                             IncreaseIndent();
@@ -183,7 +219,7 @@ namespace VYaml.Emitter
                         }
                         case EmitState.BlockSequenceEntry:
                         {
-                            WriteRaw(BlockSequenceEntryHeaderEmpty, true);
+                            WriteRaw(BlockSequenceEntryHeader, true);
                             IncreaseIndent();
                             break;
                         }
@@ -301,7 +337,7 @@ namespace VYaml.Emitter
         public void WriteFloat(float value)
         {
             var offset = 0;
-            var output = writer.GetSpan(GetScalarBufferLength(64));
+            var output = writer.GetSpan(GetScalarBufferLength(16));
 
             BeginScalar(output, ref offset);
             if (!Utf8Formatter.TryFormat(value, output[offset..], out var bytesWritten))
@@ -317,7 +353,7 @@ namespace VYaml.Emitter
         public void WriteDouble(double value)
         {
             var offset = 0;
-            var output = writer.GetSpan(GetScalarBufferLength(128));
+            var output = writer.GetSpan(GetScalarBufferLength(16));
 
             BeginScalar(output, ref offset);
             if (!Utf8Formatter.TryFormat(value, output[offset..], out var bytesWritten))
@@ -332,15 +368,9 @@ namespace VYaml.Emitter
 
         public void WriteString(string value, ScalarStyle style = ScalarStyle.Any)
         {
-            if (style == ScalarStyle.Plain)
-            {
-                WritePlainScalar(value);
-                return;
-            }
-
-            var analyzeInfo = EmitStringAnalyzer.Analyze(value);
             if (style == ScalarStyle.Any)
             {
+                var analyzeInfo = EmitStringAnalyzer.Analyze(value);
                 style = analyzeInfo.SuggestScalarStyle();
             }
 
@@ -349,16 +379,21 @@ namespace VYaml.Emitter
                 case ScalarStyle.Plain:
                     WritePlainScalar(value);
                     break;
-                case ScalarStyle.SingleQuoted:
-                    throw new NotSupportedException();
+
                 case ScalarStyle.DoubleQuoted:
                     WriteDoubleQuotedScalar(value);
                     break;
+
                 case ScalarStyle.Literal:
-                    WriteLiteralScalar(value, analyzeInfo);
+                    WriteLiteralScalar(value);
                     break;
+
+                case ScalarStyle.SingleQuoted:
+                    throw new NotSupportedException();
+
                 case ScalarStyle.Folded:
                     throw new NotSupportedException();
+
                 default:
                     throw new ArgumentOutOfRangeException(nameof(style), style, null);
             }
@@ -375,10 +410,10 @@ namespace VYaml.Emitter
             writer.Advance(offset);
         }
 
-        void WriteLiteralScalar(string value, in EmitStringInfo analyzeInfo)
+        void WriteLiteralScalar(string value)
         {
             var indentCharCount = (currentIndentLevel + 1) * options.IndentWidth;
-            var scalarStringBuilt = EmitStringAnalyzer.BuildLiteralScalar(value, analyzeInfo.ChompHint, indentCharCount);
+            var scalarStringBuilt = EmitStringAnalyzer.BuildLiteralScalar(value, indentCharCount);
             var scalarChars = stringBuffer.AsSpan(scalarStringBuilt.Length);
             scalarStringBuilt.CopyTo(0, scalarChars, scalarStringBuilt.Length);
 
@@ -427,14 +462,14 @@ namespace VYaml.Emitter
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        void WriteIndent(Span<byte> output, ref int offset)
+        void WriteIndent(Span<byte> output, ref int offset, int additionalLength = 0)
         {
             if (currentIndentLevel <= 0)
             {
                 return;
             }
 
-            var length = currentIndentLevel * options.IndentWidth;
+            var length = currentIndentLevel * options.IndentWidth + additionalLength;
             if (length > WhiteSpaces.Length)
             {
                 WhiteSpaces = Enumerable.Repeat(YamlCodes.Space, length * 2).ToArray();
@@ -474,15 +509,29 @@ namespace VYaml.Emitter
             switch (NextState)
             {
                 case EmitState.BlockSequenceEntry:
+                {
                     WriteIndent(output, ref offset);
                     BlockSequenceEntryHeader.CopyTo(output[offset..]);
                     offset += BlockSequenceEntryHeader.Length;
                     break;
+                }
                 case EmitState.BlockMappingKey:
-                    WriteIndent(output, ref offset);
+                {
+                    // First key in block-sequence is like so that: "- key: .."
+                    if (currentElementCount <= 0 && stateStack[^2] == EmitState.BlockSequenceEntry)
+                    {
+                        WriteIndent(output, ref offset,  -2); // Subtract "- "
+                    }
+                    else
+                    {
+                        WriteIndent(output, ref offset);
+                    }
                     break;
+                }
                 case EmitState.BlockMappingValue:
+                {
                     break;
+                }
                 case EmitState.FlowSequenceEntry:
                     if (currentElementCount > 0)
                     {

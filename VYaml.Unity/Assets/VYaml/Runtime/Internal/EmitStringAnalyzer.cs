@@ -12,18 +12,12 @@ namespace VYaml.Internal
         public readonly int Lines;
         public readonly bool NeedsQuotes;
         public readonly bool IsReservedWord;
-        public readonly char ChompHint;
 
-        public EmitStringInfo(
-            int lines,
-            bool needsQuotes,
-            bool isReservedWord,
-            char chompHint)
+        public EmitStringInfo(int lines, bool needsQuotes, bool isReservedWord)
         {
             Lines = lines;
             NeedsQuotes = needsQuotes;
             IsReservedWord = isReservedWord;
-            ChompHint = chompHint;
         }
 
         public ScalarStyle SuggestScalarStyle()
@@ -41,7 +35,7 @@ namespace VYaml.Internal
         [ThreadStatic]
         static StringBuilder? stringBuilderThreadStatic;
 
-        static char[] WhiteSpaces =
+        static char[] whiteSpaces =
         {
             ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
             ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
@@ -54,7 +48,7 @@ namespace VYaml.Internal
             var chars = value.AsSpan();
             if (chars.Length <= 0)
             {
-                return new EmitStringInfo(0, true, false, '\0');
+                return new EmitStringInfo(0, true, false);
             }
 
             var isReservedWord = IsReservedWord(value);
@@ -66,20 +60,6 @@ namespace VYaml.Internal
                               first == YamlCodes.Space ||
                               last == YamlCodes.Space ||
                               first is '&' or '*' or '?' or '|' or '-' or '<' or '>' or '=' or '!' or '%' or '@' or '.';
-
-            var chompHint = '\0';
-            if (last == '\n')
-            {
-                if (chars[^2] == '\n' ||
-                    (chars[^2] == '\r' && chars[^3] == '\n'))
-                {
-                    chompHint = '+';
-                }
-            }
-            else
-            {
-                chompHint = '-';
-            }
 
             var lines = 1;
             foreach (var ch in chars)
@@ -107,14 +87,25 @@ namespace VYaml.Internal
             {
                 lines--;
             }
-            return new EmitStringInfo(lines, needsQuotes, isReservedWord, chompHint);
+            return new EmitStringInfo(lines, needsQuotes, isReservedWord);
         }
 
-        internal static StringBuilder BuildLiteralScalar(
-            ReadOnlySpan<char> originalValue,
-            char chompHint,
-            int indentCharCount)
+        internal static StringBuilder BuildLiteralScalar(ReadOnlySpan<char> originalValue, int indentCharCount)
         {
+            var chompHint = '\0';
+            if (originalValue.Length > 0 && originalValue[^1] == '\n')
+            {
+                if (originalValue[^2] == '\n' ||
+                    (originalValue[^2] == '\r' && originalValue[^3] == '\n'))
+                {
+                    chompHint = '+';
+                }
+            }
+            else
+            {
+                chompHint = '-';
+            }
+
             var stringBuilder = (stringBuilderThreadStatic ??= new StringBuilder(1024)).Clear();
             stringBuilder.Append('|');
             if (chompHint > 0)
@@ -141,13 +132,30 @@ namespace VYaml.Internal
             var stringBuilder = GetStringBuilder();
             stringBuilder.Append('"');
 
-            for (var i = 0; i < originalValue.Length; i++)
+            foreach (var ch in originalValue)
             {
-                var ch = originalValue[i];
                 switch (ch)
                 {
                     case '\0':
                         stringBuilder.Append("\\0");
+                        break;
+                    case '\x1':
+                        stringBuilder.Append("\\1");
+                        break;
+                    case '\x2':
+                        stringBuilder.Append("\\2");
+                        break;
+                    case '\x3':
+                        stringBuilder.Append("\\3");
+                        break;
+                    case '\x4':
+                        stringBuilder.Append("\\4");
+                        break;
+                    case '\x5':
+                        stringBuilder.Append("\\5");
+                        break;
+                    case '\x6':
+                        stringBuilder.Append("\\6");
                         break;
                     case '\x7':
                         stringBuilder.Append("\\a");
@@ -170,8 +178,8 @@ namespace VYaml.Internal
                     case '\xD':
                         stringBuilder.Append("\\r");
                         break;
-                    case '\x1B':
-                        stringBuilder.Append("\\e");
+                    case '\xE':
+                        stringBuilder.Append("\\r");
                         break;
                     case '\x22':
                         stringBuilder.Append("\\\"");
@@ -191,30 +199,62 @@ namespace VYaml.Internal
                     case '\x2029':
                         stringBuilder.Append("\\P");
                         break;
+                    case '\xF':
+                        stringBuilder.Append("\\u000f");
+                        break;
+                    case '\x10':
+                        stringBuilder.Append("\\u0010");
+                        break;
+                    case '\x11':
+                        stringBuilder.Append("\\u0011");
+                        break;
+                    case '\x12':
+                        stringBuilder.Append("\\u0012");
+                        break;
+                    case '\x13':
+                        stringBuilder.Append("\\u0013");
+                        break;
+                    case '\x14':
+                        stringBuilder.Append("\\u0014");
+                        break;
+                    case '\x15':
+                        stringBuilder.Append("\\u0015");
+                        break;
+                    case '\x16':
+                        stringBuilder.Append("\\u0016");
+                        break;
+                    case '\x17':
+                        stringBuilder.Append("\\u0017");
+                        break;
+                    case '\x18':
+                        stringBuilder.Append("\\u0018");
+                        break;
+                    case '\x19':
+                        stringBuilder.Append("\\u0019");
+                        break;
+                    case '\x1A':
+                        stringBuilder.Append("\\u001a");
+                        break;
+                    case '\x1B':
+                        stringBuilder.Append("\\u001b");
+                        break;
+                    case '\x1C':
+                        stringBuilder.Append("\\u001c");
+                        break;
+                    case '\x1D':
+                        stringBuilder.Append("\\u001d");
+                        break;
+                    case '\x1E':
+                        stringBuilder.Append("\\u001e");
+                        break;
+                    case '\x1F':
+                        stringBuilder.Append("\\u001f");
+                        break;
+                    case '\x7F':
+                        stringBuilder.Append("\\u007F");
+                        break;
                     default:
-                        var code = (ushort)ch;
-                        if (code <= 0xFF)
-                        {
-                            stringBuilder.Append('x');
-                            stringBuilder.AppendFormat("{0:X02}", code);
-                        }
-                        else if (IsHighSurrogate(ch))
-                        {
-                            if (i < originalValue.Length - 1 && IsLowSurrogate(originalValue[i + 1]))
-                            {
-                                stringBuilder.Append('U');
-                                stringBuilder.AppendFormat("{0:X08}", char.ConvertToUtf32(ch, originalValue[++i]));
-                            }
-                            else
-                            {
-                                throw new SyntaxErrorException("While writing a quoted scalar, found an orphaned high surrogate.");
-                            }
-                        }
-                        else
-                        {
-                            stringBuilder.Append('u');
-                            stringBuilder.AppendFormat("{0:X04}", code);
-                        }
+                        stringBuilder.Append(ch);
                         break;
                 }
             }
@@ -269,11 +309,11 @@ namespace VYaml.Internal
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static void AppendWhiteSpace(StringBuilder stringBuilder, int length)
         {
-            if (length > WhiteSpaces.Length)
+            if (length > whiteSpaces.Length)
             {
-                WhiteSpaces = Enumerable.Repeat(' ', length * 2).ToArray();
+                whiteSpaces = Enumerable.Repeat(' ', length * 2).ToArray();
             }
-            stringBuilder.Append(WhiteSpaces.AsSpan(0, length));
+            stringBuilder.Append(whiteSpaces.AsSpan(0, length));
         }
     }
 }

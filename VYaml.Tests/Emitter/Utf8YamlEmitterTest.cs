@@ -13,7 +13,7 @@ namespace VYaml.Tests.Emitter
         {
             using var emitter = CreateEmitter();
             emitter.WriteNull();
-            Assert.That(StringResult(in emitter), Is.EqualTo("null"));
+            Assert.That(ToString(in emitter), Is.EqualTo("null"));
         }
 
         [Test]
@@ -23,7 +23,7 @@ namespace VYaml.Tests.Emitter
         {
             using var emitter = CreateEmitter();
             emitter.WriteBool(value);
-            return StringResult(in emitter);
+            return ToString(in emitter);
         }
 
         [Test]
@@ -36,7 +36,7 @@ namespace VYaml.Tests.Emitter
         {
             using var emitter = CreateEmitter();
             emitter.WriteInt32(value);
-            return StringResult(in emitter);
+            return ToString(in emitter);
         }
 
         [Test]
@@ -49,7 +49,7 @@ namespace VYaml.Tests.Emitter
         {
             using var emitter = CreateEmitter();
             emitter.WriteInt64(value);
-            return StringResult(in emitter);
+            return ToString(in emitter);
         }
 
         [Test]
@@ -60,7 +60,7 @@ namespace VYaml.Tests.Emitter
         {
             using var emitter = CreateEmitter();
             emitter.WriteUInt32(value);
-            return StringResult(in emitter);
+            return ToString(in emitter);
         }
 
         [Test]
@@ -71,22 +71,52 @@ namespace VYaml.Tests.Emitter
         {
             using var emitter = CreateEmitter();
             emitter.WriteUInt64(value);
-            return StringResult(in emitter);
+            return ToString(in emitter);
         }
 
-        // [Test]
-        // public string WriteFloat(float value)
-        // {
-        //     using var emitter = CreateEmitter();
-        //
-        // }
+        [Test]
+        [TestCase(0f, ExpectedResult = "0")]
+        [TestCase(123.4567f, ExpectedResult = "123.4567")]
+        [TestCase(-123.4567f, ExpectedResult = "-123.4567")]
+        public string WriteFloat(float value)
+        {
+            using var emitter = CreateEmitter();
+            emitter.WriteFloat(value);
+            return ToString(in emitter);
+        }
+
+        [Test]
+        [TestCase(0.0, ExpectedResult = "0")]
+        [TestCase(123.456789123, ExpectedResult = "123.456789123")]
+        [TestCase(-123.456789123, ExpectedResult = "-123.456789123")]
+        public string WriteDouble(double value)
+        {
+            using var emitter = CreateEmitter();
+            emitter.WriteDouble(value);
+            return ToString(in emitter);
+        }
 
         [Test]
         public void WriteString_PlainScalar()
         {
             using var emitter = CreateEmitter();
             emitter.WriteString("aiueo", ScalarStyle.Plain);
-            Assert.That(StringResult(in emitter), Is.EqualTo("aiueo"));
+            Assert.That(ToString(in emitter), Is.EqualTo("aiueo"));
+        }
+
+        [Test]
+        [TestCase("aaa\nbbb", ExpectedResult = "\"aaa\\nbbb\"")]
+        [TestCase("aaa\tbbb", ExpectedResult = "\"aaa\\tbbb\"")]
+        [TestCase("\0", ExpectedResult = "\"\\0\"")]
+        [TestCase("\x8", ExpectedResult = "\"\\b\"")]
+        [TestCase("\xA0", ExpectedResult = "\"\\_\"")]
+        [TestCase("\x2028", ExpectedResult = "\"\\L\"")]
+        [TestCase("\x1F", ExpectedResult = "\"\\u001f\"")]
+        public string WriteString_DoubleQuotedScalar(string value)
+        {
+            using var emitter = CreateEmitter();
+            emitter.WriteString(value, ScalarStyle.DoubleQuoted);
+            return ToString(in emitter);
         }
 
         [Test]
@@ -98,7 +128,7 @@ namespace VYaml.Tests.Emitter
                 "Mark McGwire's\nyear was crippled\nby a knee injury.\n",
                 ScalarStyle.Literal);
 
-            Assert.That(StringResult(in emitter), Is.EqualTo(
+            Assert.That(ToString(in emitter), Is.EqualTo(
                 "|\n" +
                 "  Mark McGwire's\n" +
                 "  year was crippled\n" +
@@ -116,7 +146,7 @@ namespace VYaml.Tests.Emitter
                 ScalarStyle.Literal);
             emitter.EndSequence();
 
-            Assert.That(StringResult(in emitter), Is.EqualTo(
+            Assert.That(ToString(in emitter), Is.EqualTo(
                 "- |\n" +
                 "  Mark McGwire's\n" +
                 "  year was crippled\n" +
@@ -135,7 +165,7 @@ namespace VYaml.Tests.Emitter
                 ScalarStyle.Literal);
             emitter.EndMapping();
 
-            Assert.That(StringResult(in emitter), Is.EqualTo(
+            Assert.That(ToString(in emitter), Is.EqualTo(
                 "aaa: |\n" +
                 "  Mark McGwire's\n" +
                 "  year was crippled\n" +
@@ -160,9 +190,8 @@ namespace VYaml.Tests.Emitter
             }
             emitter.EndSequence();
 
-            Assert.That(StringResult(in emitter), Is.EqualTo(
-                "-\n" +
-                "  aaa: |\n" +
+            Assert.That(ToString(in emitter), Is.EqualTo(
+                "- aaa: |\n" +
                 "    Mark McGwire's\n" +
                 "    year was crippled\n" +
                 "    by a knee injury.\n"
@@ -174,7 +203,37 @@ namespace VYaml.Tests.Emitter
         {
             using var emitter = CreateEmitter();
             emitter.WriteString("aiueo kakikukeko");
-            Assert.That(StringResult(in emitter), Is.EqualTo("aiueo kakikukeko"));
+            Assert.That(ToString(in emitter), Is.EqualTo("aiueo kakikukeko"));
+        }
+
+        [Test]
+        [TestCase("true", ExpectedResult = "\"true\"")]
+        [TestCase("false", ExpectedResult = "\"false\"")]
+        [TestCase("null", ExpectedResult = "\"null\"")]
+        [TestCase(" hoge", ExpectedResult = "\" hoge\"")]
+        [TestCase("hoge ", ExpectedResult = "\"hoge \"")]
+        [TestCase("&hoge", ExpectedResult = "\"&hoge\"")]
+        [TestCase("*hoge", ExpectedResult = "\"*hoge\"")]
+        [TestCase("| aaa", ExpectedResult = "\"| aaa\"")]
+        [TestCase("- aaa", ExpectedResult = "\"- aaa\"")]
+        [TestCase("aaa: bbb", ExpectedResult = "\"aaa: bbb\"")]
+        [TestCase("aaa\"bbb", ExpectedResult = "\"aaa\\\"bbb\"")]
+        [TestCase("aaa[bbb]", ExpectedResult = "\"aaa[bbb]\"")]
+        [TestCase("http://example.com#bbb", ExpectedResult = "\"http://example.com#bbb\"")]
+        public string WriteString_AutoDoubleQuoted(string value)
+        {
+            using var emitter = CreateEmitter();
+            emitter.WriteString(value);
+            return ToString(in emitter);
+        }
+
+        [Test]
+        [TestCase("aaa\nbbb\n", ExpectedResult = "|\n  aaa\n  bbb\n")]
+        public string WriteString_AutoMultiLines(string value)
+        {
+            using var emitter = CreateEmitter();
+            emitter.WriteString(value);
+            return ToString(in emitter);
         }
 
         [Test]
@@ -187,7 +246,7 @@ namespace VYaml.Tests.Emitter
             emitter.WriteInt32(300);
             emitter.EndSequence();
 
-            Assert.That(StringResult(in emitter), Is.EqualTo(
+            Assert.That(ToString(in emitter), Is.EqualTo(
                 "- 100\n" +
                 "- 200\n" +
                 "- 300\n"
@@ -201,7 +260,7 @@ namespace VYaml.Tests.Emitter
             emitter.BeginSequence();
             emitter.EndSequence();
 
-            Assert.That(StringResult(in emitter), Is.EqualTo(
+            Assert.That(ToString(in emitter), Is.EqualTo(
                 "[]"
             ));
         }
@@ -223,7 +282,7 @@ namespace VYaml.Tests.Emitter
             }
             emitter.EndSequence();
 
-            Assert.That(StringResult(in emitter), Is.EqualTo(
+            Assert.That(ToString(in emitter), Is.EqualTo(
                 "- 100\n" +
                 "-\n" +
                 "  - 200\n" +
@@ -261,7 +320,7 @@ namespace VYaml.Tests.Emitter
             }
             emitter.EndSequence();
 
-            Assert.That(StringResult(in emitter), Is.EqualTo(
+            Assert.That(ToString(in emitter), Is.EqualTo(
                 "- 100\n" +
                 "-\n" +
                 "  - 200\n" +
@@ -297,7 +356,7 @@ namespace VYaml.Tests.Emitter
             }
             emitter.EndMapping();
 
-            Assert.That(StringResult(in emitter), Is.EqualTo(
+            Assert.That(ToString(in emitter), Is.EqualTo(
                 "aaa: \n" +
                 "  bbb: \n" +
                 "  - 200\n" +
@@ -327,7 +386,7 @@ namespace VYaml.Tests.Emitter
             emitter.WriteInt32(200);
             emitter.EndMapping();
 
-            Assert.That(StringResult(in emitter), Is.EqualTo(
+            Assert.That(ToString(in emitter), Is.EqualTo(
                 "1: 100\n" +
                 "2: 200\n"
                 ));
@@ -355,7 +414,7 @@ namespace VYaml.Tests.Emitter
             }
             emitter.EndMapping();
 
-            Assert.That(StringResult(in emitter), Is.EqualTo(
+            Assert.That(ToString(in emitter), Is.EqualTo(
                 "1: 100\n" +
                 "2: \n" +
                 "  3: 300\n" +
@@ -391,7 +450,7 @@ namespace VYaml.Tests.Emitter
             }
             emitter.EndMapping();
 
-            Assert.That(StringResult(in emitter), Is.EqualTo(
+            Assert.That(ToString(in emitter), Is.EqualTo(
                 "1: 100\n" +
                 "2: \n" +
                 "  3: 300\n" +
@@ -419,9 +478,8 @@ namespace VYaml.Tests.Emitter
             }
             emitter.EndSequence();
 
-            Assert.That(StringResult(in emitter), Is.EqualTo(
-                "-\n" +
-                "  1: 100\n" +
+            Assert.That(ToString(in emitter), Is.EqualTo(
+                "- 1: 100\n" +
                 "  2: 200\n" +
                 "- 300\n"
             ));
@@ -448,7 +506,7 @@ namespace VYaml.Tests.Emitter
             emitter.WriteInt32(300);
             emitter.EndSequence();
 
-            Assert.That(StringResult(in emitter), Is.EqualTo(
+            Assert.That(ToString(in emitter), Is.EqualTo(
                 "[100, 200, 300]"
                 ));
         }
@@ -469,8 +527,50 @@ namespace VYaml.Tests.Emitter
             }
             emitter.EndSequence();
 
-            Assert.That(StringResult(in emitter), Is.EqualTo(
+            Assert.That(ToString(in emitter), Is.EqualTo(
                 "[100, [200], 300]"
+            ));
+        }
+
+        [Test]
+        public void ComplexStructure()
+        {
+            using var emitter = CreateEmitter();
+            emitter.BeginSequence();
+            {
+                emitter.BeginSequence(SequenceStyle.Flow);
+                {
+                    emitter.WriteInt32(100);
+                    emitter.WriteString("&hoge");
+                    emitter.WriteString("bra");
+                }
+                emitter.EndSequence();
+
+                emitter.BeginMapping();
+                {
+                    emitter.WriteString("key1");
+                    emitter.WriteString("item1");
+
+                    emitter.WriteString("key2");
+                    emitter.BeginSequence(SequenceStyle.Flow);
+                    {
+                    }
+                    emitter.EndSequence();
+
+                    // emitter.WriteString("key3");
+                    // emitter.BeginSequence(SequenceStyle.Flow);
+                    // {
+                    // }
+                    // emitter.EndMapping();
+                }
+                emitter.EndMapping();
+            }
+            emitter.EndSequence();
+
+            Assert.That(ToString(in emitter), Is.EqualTo(
+                "- [100, \"&hoge\", bra]\n" +
+                "- key1: item1\n" +
+                "  key2: []\n"
             ));
         }
 
@@ -480,7 +580,7 @@ namespace VYaml.Tests.Emitter
             return new Utf8YamlEmitter(bufferWriter);
         }
 
-        static string StringResult(in Utf8YamlEmitter emitter)
+        static string ToString(in Utf8YamlEmitter emitter)
         {
             var writer = (ArrayBufferWriter<byte>)emitter.GetWriter();
             return StringEncoding.Utf8.GetString(writer.WrittenSpan);
