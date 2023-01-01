@@ -12,3 +12,4 @@ VYaml.Unity/Logs/*
 VYaml.Unity/*.csproj
 VYaml.Unity/*.sln
 VYaml.Unity/VYaml.*.unitypackage
+VYaml.Unity/UserSettings
