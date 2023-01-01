@@ -124,6 +124,11 @@ namespace VYaml.Internal
                     AppendWhiteSpace(stringBuilder, indentCharCount);
                 }
             }
+
+            if (chompHint == '-')
+            {
+                stringBuilder.Append('\n');
+            }
             return stringBuilder;
         }
 

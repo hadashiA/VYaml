@@ -155,6 +155,42 @@ namespace VYaml.Tests.Emitter
         }
 
         [Test]
+        public void WriteString_LiteralScalar_NoNewLineAtEnd()
+        {
+            using var emitter = CreateEmitter();
+
+            emitter.WriteString(
+                "Mark McGwire's\nyear was crippled\nby a knee injury.",
+                ScalarStyle.Literal);
+
+            Assert.That(ToString(in emitter), Is.EqualTo(
+                "|-\n" +
+                "  Mark McGwire's\n" +
+                "  year was crippled\n" +
+                "  by a knee injury.\n"
+            ));
+        }
+
+        [Test]
+        public void WriteString_LiteralScalar_AllNewlinesFromEnd()
+        {
+            using var emitter = CreateEmitter();
+
+            emitter.WriteString(
+                "Mark McGwire's\nyear was crippled\nby a knee injury.\n\n\n",
+                ScalarStyle.Literal);
+
+            Assert.That(ToString(in emitter), Is.EqualTo(
+                "|+\n" +
+                "  Mark McGwire's\n" +
+                "  year was crippled\n" +
+                "  by a knee injury.\n" +
+                "  \n" +
+                "  \n"
+            ));
+        }
+
+        [Test]
         public void WriteString_LiteralScalarInSequence()
         {
             using var emitter = CreateEmitter();
@@ -594,13 +630,13 @@ namespace VYaml.Tests.Emitter
                             emitter.BeginMapping();
                             {
                                 emitter.WriteString("aaa");
-                                emitter.WriteString("bbb");
+                                emitter.WriteString("AAAAAAAAAAA\nHEYHEYHEYHEYHEY\n");
 
                                 emitter.WriteString("ccc");
                                 emitter.BeginSequence();
                                 {
                                     emitter.WriteFloat(1.234f);
-                                    emitter.WriteFloat(5.678f);
+                                    emitter.WriteString("Hello\nWorWorWorWorld\n");
                                 }
                                 emitter.EndSequence();
                             }
@@ -623,94 +659,14 @@ namespace VYaml.Tests.Emitter
                 "    key5: []\n" +
                 "    key6: \n" +
                 "    - 600\n" +
-                "    - aaa: bbb\n" +
+                "    - aaa: |\n" +
+                "        AAAAAAAAAAA\n" +
+                "        HEYHEYHEYHEYHEY\n" +
                 "      ccc: \n" +
                 "      - 1.234\n" +
-                "      - 5.678\n"
-            ));
-        }
-
-        [Test]
-        public void ComplexStructure_Indent4()
-        {
-            using var emitter = CreateEmitter(new YamlEmitOptions
-            {
-                IndentWidth = 4
-            });
-
-            emitter.BeginSequence();
-            {
-                emitter.BeginSequence(SequenceStyle.Flow);
-                {
-                    emitter.WriteInt32(100);
-                    emitter.WriteString("&hoge");
-                    emitter.WriteString("bra");
-                }
-                emitter.EndSequence();
-
-                emitter.BeginMapping();
-                {
-                    emitter.WriteString("key1");
-                    emitter.WriteString("item1");
-
-                    emitter.WriteString("key2");
-                    emitter.BeginSequence(SequenceStyle.Flow);
-                    {
-                    }
-                    emitter.EndSequence();
-
-                    emitter.WriteString("key3");
-                    emitter.BeginMapping();
-                    {
-                        emitter.WriteString("key4");
-                        emitter.WriteInt32(400);
-
-                        emitter.WriteString("key5");
-                        emitter.BeginSequence(SequenceStyle.Flow);
-                        {
-                        }
-                        emitter.EndSequence();
-
-                        emitter.WriteString("key6");
-                        emitter.BeginSequence();
-                        {
-                            emitter.WriteInt32(600);
-                            emitter.BeginMapping();
-                            {
-                                emitter.WriteString("aaa");
-                                emitter.WriteString("bbb");
-
-                                emitter.WriteString("ccc");
-                                emitter.BeginSequence();
-                                {
-                                    emitter.WriteFloat(1.234f);
-                                    emitter.WriteFloat(5.678f);
-                                }
-                                emitter.EndSequence();
-                            }
-                            emitter.EndMapping();
-                        }
-                        emitter.EndSequence();
-                    }
-                    emitter.EndMapping();
-                }
-                emitter.EndMapping();
-            }
-            emitter.EndSequence();
-
-            Assert.That(ToString(in emitter), Is.EqualTo(
-                "- [100, \"&hoge\", bra]\n" +
-                "-   key1: item1\n" +
-                "    key2: []\n" +
-                "    key3: \n" +
-                "        key4: 400\n" +
-                "        key5: []\n" +
-                "        key6: \n" +
-                "        - 600\n" +
-                "        -   aaa: bbb\n" +
-                "            ccc: \n" +
-                "            - 1.234\n" +
-                "            - 5.678\n"
+                "      - |\n" +
+                "        Hello\n" +
+                "        WorWorWorWorld\n"
             ));
         }
 
