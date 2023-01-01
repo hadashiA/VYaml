@@ -107,7 +107,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         [TestCase("aaa\nbbb", ExpectedResult = "\"aaa\\nbbb\"")]
         [TestCase("aaa\tbbb", ExpectedResult = "\"aaa\\tbbb\"")]
-        [TestCase("aaa\"bbb", ExpectedResult = "\"aaa\"bbb\"")]
+        [TestCase("aaa\"bbb", ExpectedResult = "\"aaa\\\"bbb\"")]
         [TestCase("aaa'bbb", ExpectedResult = "\"aaa'bbb\"")]
         [TestCase("\0", ExpectedResult = "\"\\0\"")]
         [TestCase("\x8", ExpectedResult = "\"\\b\"")]
@@ -575,11 +575,40 @@ namespace VYaml.Tests.Emitter
                     }
                     emitter.EndSequence();
 
-                    // emitter.WriteString("key3");
-                    // emitter.BeginSequence(SequenceStyle.Flow);
-                    // {
-                    // }
-                    // emitter.EndMapping();
+                    emitter.WriteString("key3");
+                    emitter.BeginMapping();
+                    {
+                        emitter.WriteString("key4");
+                        emitter.WriteInt32(400);
+
+                        emitter.WriteString("key5");
+                        emitter.BeginSequence(SequenceStyle.Flow);
+                        {
+                        }
+                        emitter.EndSequence();
+
+                        emitter.WriteString("key6");
+                        emitter.BeginSequence();
+                        {
+                            emitter.WriteInt32(600);
+                            emitter.BeginMapping();
+                            {
+                                emitter.WriteString("aaa");
+                                emitter.WriteString("bbb");
+
+                                emitter.WriteString("ccc");
+                                emitter.BeginSequence();
+                                {
+                                    emitter.WriteFloat(1.234f);
+                                    emitter.WriteFloat(5.678f);
+                                }
+                                emitter.EndSequence();
+                            }
+                            emitter.EndMapping();
+                        }
+                        emitter.EndSequence();
+                    }
+                    emitter.EndMapping();
                 }
                 emitter.EndMapping();
             }
@@ -588,14 +617,107 @@ namespace VYaml.Tests.Emitter
             Assert.That(ToString(in emitter), Is.EqualTo(
                 "- [100, \"&hoge\", bra]\n" +
                 "- key1: item1\n" +
-                "  key2: []\n"
+                "  key2: []\n" +
+                "  key3: \n" +
+                "    key4: 400\n" +
+                "    key5: []\n" +
+                "    key6: \n" +
+                "    - 600\n" +
+                "    - aaa: bbb\n" +
+                "      ccc: \n" +
+                "      - 1.234\n" +
+                "      - 5.678\n"
             ));
         }
 
-        static Utf8YamlEmitter CreateEmitter()
+        [Test]
+        public void ComplexStructure_Indent4()
+        {
+            using var emitter = CreateEmitter(new YamlEmitOptions
+            {
+                IndentWidth = 4
+            });
+
+            emitter.BeginSequence();
+            {
+                emitter.BeginSequence(SequenceStyle.Flow);
+                {
+                    emitter.WriteInt32(100);
+                    emitter.WriteString("&hoge");
+                    emitter.WriteString("bra");
+                }
+                emitter.EndSequence();
+
+                emitter.BeginMapping();
+                {
+                    emitter.WriteString("key1");
+                    emitter.WriteString("item1");
+
+                    emitter.WriteString("key2");
+                    emitter.BeginSequence(SequenceStyle.Flow);
+                    {
+                    }
+                    emitter.EndSequence();
+
+                    emitter.WriteString("key3");
+                    emitter.BeginMapping();
+                    {
+                        emitter.WriteString("key4");
+                        emitter.WriteInt32(400);
+
+                        emitter.WriteString("key5");
+                        emitter.BeginSequence(SequenceStyle.Flow);
+                        {
+                        }
+                        emitter.EndSequence();
+
+                        emitter.WriteString("key6");
+                        emitter.BeginSequence();
+                        {
+                            emitter.WriteInt32(600);
+                            emitter.BeginMapping();
+                            {
+                                emitter.WriteString("aaa");
+                                emitter.WriteString("bbb");
+
+                                emitter.WriteString("ccc");
+                                emitter.BeginSequence();
+                                {
+                                    emitter.WriteFloat(1.234f);
+                                    emitter.WriteFloat(5.678f);
+                                }
+                                emitter.EndSequence();
+                            }
+                            emitter.EndMapping();
+                        }
+                        emitter.EndSequence();
+                    }
+                    emitter.EndMapping();
+                }
+                emitter.EndMapping();
+            }
+            emitter.EndSequence();
+
+            Assert.That(ToString(in emitter), Is.EqualTo(
+                "- [100, \"&hoge\", bra]\n" +
+                "-   key1: item1\n" +
+                "    key2: []\n" +
+                "    key3: \n" +
+                "        key4: 400\n" +
+                "        key5: []\n" +
+                "        key6: \n" +
+                "        - 600\n" +
+                "        -   aaa: bbb\n" +
+                "            ccc: \n" +
+                "            - 1.234\n" +
+                "            - 5.678\n"
+            ));
+        }
+
+        static Utf8YamlEmitter CreateEmitter(YamlEmitOptions? options = null)
         {
             var bufferWriter = new ArrayBufferWriter<byte>(256);
-            return new Utf8YamlEmitter(bufferWriter);
+            return new Utf8YamlEmitter(bufferWriter, options);
         }
 
         static string ToString(in Utf8YamlEmitter emitter)
