@@ -4,7 +4,7 @@
 VYaml is a pure C# YAML 1.2 implementation, which is extra fast, low memory footprint with focued on .NET and Unity.
 
 - The parser is heavily influenced by [yaml-rust](https://github.com/chyh1990/yaml-rust), and libyaml, yaml-cpp.
-- Serialization interface/implementation heavily influenced by [Utf8Json](https://github.com/neuecc/Utf8Json), [MessagePack-CSharp](https://github.com/neuecc/MessagePack-CSharp), [MemoryPack](https://github.com/Cysharp/MemoryPack).
+- Serialization interface/implementation is heavily influenced by [Utf8Json](https://github.com/neuecc/Utf8Json), [MessagePack-CSharp](https://github.com/neuecc/MessagePack-CSharp), [MemoryPack](https://github.com/Cysharp/MemoryPack).
 
 The reason VYaml is fast is it handles utf8 byte sequences directly with newface api set of C# (`System.Buffers.*`, etc).
 In parsing, scalar values are pooled and no allocation occurs until `Scalar.ToString()`. This works with very low memory footprint and low performance overhead, in environments such as Unity.
@@ -17,8 +17,12 @@ Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular y
 
 ## Currentry supported fetures
 
-- Parser 
+- YAML Parser (Reader)
   - [YAML 1.2 mostly supported](#httpsyamlorgspec122)
+- YAML Emitter (Writer)
+  - Write primitive types.
+  - Write plain scalar, double-quoted scalar, literal scalar.
+  - Write block style sequence, flow style sequence, and block mapping.
 - Deserialization
   - YAML to user-defined types
   - YAML to primitive collection via `dynamic` 
@@ -400,7 +404,129 @@ The above test covers various patterns for the order of `ParsingEvent`.
 
 TODO:
 
+### Emitter
 
+`YamlEmitter` struct provides to write YAML formatted string.
+
+Basic usage:
+
+``` csharp
+var buffer = new ArrayBufferWriter();
+using var emitter = new YamlEmitter(buffer); // It needs buffer implemented `IBufferWriter<byte>`
+
+emitter.BeginMapping();
+{
+    emitter.WriteString("key1");
+    emitter.WriteString("value-1");
+    
+    emitter.WriteString("key2");
+    emitter.WriteInt32(222);
+    
+    emitter.WriteString("key3");
+    emitter.WriteFloat(3.333f);
+}
+emitter.EndMapping();
+```
+
+``` csharp
+// If you want to expand a string in memory, you can do this.
+System.Text.Encoding.UTF8.GetString(buffer.WrittenSpan); 
+```
+
+``` yaml
+# Result:
+key1: value-1
+key2: 222
+key3: 3.333
+```
+
+
+#### Emit string in various formats
+
+By default, WriteString() automatically determines the format of a scalar. 
+
+
+Multi-line strings are automatically format as a literal scalar:
+
+``` csharp
+emitter.WriteString("Hello,\nWorld!\n");
+```
+
+``` yaml
+|
+  Hello,
+  World!
+```
+
+Special characters contained strings are automatically quoted.
+
+``` csharp
+emitter.WriteString("&aaaaa ");
+```
+
+``` yaml
+"&aaaaa "
+```
+
+Or you can specify the style explicitly:
+
+``` csharp
+emitter.WriteString("aaaaaaa", ScalarStyle.Literal);
+```
+
+``` yaml
+|-
+  aaaaaaaa
+```
+
+#### Emit sequences and other structures
+
+e.g:
+
+``` csharp
+emitter.BeginSequence();
+{
+    emitter.BeginSequence(SequenceStyle.Flow);
+    {
+        emitter.WriteInt32(100);
+        emitter.WriteString("&hoge");
+        emitter.WriteString("bra");
+    }
+    emitter.EndSequence();
+    
+    emitter.BeginMapping();
+    {
+        emitter.WriteString("key1");
+        emitter.WriteString("item1");
+        
+        emitter.WriteString("key2");
+        emitter.BeginSequence();
+        {
+            emitter.WriteString("nested-item1")
+            emitter.WriteString("nested-item2")
+            emitter.BeginMapping();
+            {
+                emitter.WriteString("nested-key1")
+                emitter.WriteInt32(100)
+            }
+            emitter.EndMapping();
+        }
+        emitter.EndSequence();
+    }
+    emitter.EndMapping();
+}
+emitter.EndMapping();
+```
+
+``` yaml
+- [100, "&hoge", bra]
+- key1: item1
+  key2:
+  - nested-item1
+  - nested-item2
+  - nested-key1: 100
+```
+    
 ## YAML 1.2 spec support status
 
 ### Implicit primitive type conversion of scalar
