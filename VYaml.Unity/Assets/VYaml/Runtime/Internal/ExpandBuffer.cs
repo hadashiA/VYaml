@@ -1,7 +1,6 @@
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 namespace VYaml.Internal
 {
@@ -38,10 +37,23 @@ namespace VYaml.Internal
         public Span<T> AsSpan() => buffer.AsSpan(0, Length);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Span<T> AsSpan(int length)
+        {
+            if (length > buffer.Length)
+            {
+                SetCapacity(buffer.Length * 2);
+            }
+            return buffer.AsSpan(0, length);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Clear()
         {
             Length = 0;
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ref T Peek() => ref buffer[Length - 1];
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref T Pop()
@@ -75,17 +87,6 @@ namespace VYaml.Internal
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        void Grow()
-        {
-            var newCapacity = buffer.Length * GrowFactor / 100;
-            if (newCapacity < buffer.Length + MinimumGrow)
-            {
-                newCapacity = buffer.Length + MinimumGrow;
-            }
-            SetCapacity(newCapacity);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void SetCapacity(int newCapacity)
         {
             if (buffer.Length >= newCapacity) return;
@@ -95,6 +96,17 @@ namespace VYaml.Internal
             Array.Copy(buffer, 0, newBuffer, 0, Length);
             ArrayPool<T>.Shared.Return(buffer);
             buffer = newBuffer;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        void Grow()
+        {
+            var newCapacity = buffer.Length * GrowFactor / 100;
+            if (newCapacity < buffer.Length + MinimumGrow)
+            {
+                newCapacity = buffer.Length + MinimumGrow;
+            }
+            SetCapacity(newCapacity);
         }
     }
 }

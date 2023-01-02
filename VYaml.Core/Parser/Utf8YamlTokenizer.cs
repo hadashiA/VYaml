@@ -228,10 +228,10 @@ namespace VYaml.Parser
                 case YamlCodes.Tag:
                     ConsumeTag();
                     break;
-                case YamlCodes.BlockScalerHeader1 when flowLevel == 0:
+                case YamlCodes.LiteralScalerHeader when flowLevel == 0:
                     ConsumeBlockScaler(true);
                     break;
-                case YamlCodes.BlockScalerHeader2 when flowLevel == 0:
+                case YamlCodes.FoldedScalerHeader when flowLevel == 0:
                     ConsumeBlockScaler(false);
                     break;
                 case YamlCodes.SingleQuote:

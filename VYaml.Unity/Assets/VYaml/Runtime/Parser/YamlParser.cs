@@ -34,16 +34,6 @@ namespace VYaml.Parser
         MappingEnd,
     }
 
-    public enum ScalarStyle
-    {
-        Any,
-        Plain,
-        SingleQuoted,
-        DoubleQuoted,
-        Literal,
-        Foled,
-    }
-
     enum ParseState
     {
         StreamStart,
@@ -120,7 +110,7 @@ namespace VYaml.Parser
             CurrentEventType = default;
             lastAnchorId = -1;
             anchors = new Dictionary<string, int>();
-            stateStack = new ExpandBuffer<ParseState>(24);
+            stateStack = new ExpandBuffer<ParseState>(16);
 
             currentScalar = null;
             currentTag = null;
