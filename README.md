@@ -26,6 +26,7 @@ Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular y
 - Deserialization
   - YAML to user-defined types
   - YAML to primitive collection via `dynamic` 
+  - Support interface-typed and abstract class-typed objects.
   - Support anchor (`&`) and alias (`*`) in the YAML spec.
   - Support multiple yaml documents.
   - Customization
