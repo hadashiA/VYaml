@@ -288,6 +288,12 @@ var obj = YamlSerializer.Deserialize<IUnionSample>(UTF8.GetBytes("!foo { a: 100 
 In the abobe example, The `!foo` and `!bar`  are called tag in the YAML specification.
 YAML can mark arbitrary data in this way, and VYaml Union takes advantage of this.
 
+## Customize serialization behaviour
+
+- `IYamlFormatter<T>` interface customize the serialization behaviour of a your particular type.
+- `IYamlFormatterResolver` interface can customize how it searches for `IYamlFormatter<T>` at runtime.
+
+TODO:
 
 ## Low-Level API
 
@@ -397,24 +403,18 @@ while (parser.Read())
 See [test code](https://github.com/hadashiA/VYaml/blob/master/VYaml.Tests/Parser/SpecTest.cs) for more information.
 The above test covers various patterns for the order of `ParsingEvent`.
 
-## Customize serialization behaviour
-
-- `IYamlFormatter<T>` interface customize the serialization behaviour of a your particular type.
-- `IYamlFormatterResolver` interface can customize how it searches for `IYamlFormatter<T>` at runtime.
-
-TODO:
 
 ### Emitter
 
-`YamlEmitter` struct provides to write YAML formatted string.
+`Utf8YamlEmitter` struct provides to write YAML formatted string.
 
 Basic usage:
 
 ``` csharp
 var buffer = new ArrayBufferWriter();
-using var emitter = new YamlEmitter(buffer); // It needs buffer implemented `IBufferWriter<byte>`
+using var emitter = new Utf8YamlEmitter(buffer); // It needs buffer implemented `IBufferWriter<byte>`
 
-emitter.BeginMapping();
+emitter.BeginMapping(); // Mapping is a collection like Dictionary in YAML
 {
     emitter.WriteString("key1");
     emitter.WriteString("value-1");
@@ -434,12 +434,10 @@ System.Text.Encoding.UTF8.GetString(buffer.WrittenSpan);
 ```
 
 ``` yaml
-# Result:
 key1: value-1
 key2: 222
 key3: 3.333
 ```
-
 
 #### Emit string in various formats
 
