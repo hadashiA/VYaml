@@ -1,3 +1,4 @@
+using System;
 using NUnit.Framework;
 using VYaml.Tests.TypeDeclarations;
 
@@ -10,6 +11,93 @@ namespace VYaml.Tests.Serialization
         public void Serialize_NoMember()
         {
             Assert.That(Serialize(new SimpleTypeZero()), Is.EqualTo("{}"));
+        }
+
+        [Test]
+        public void Serialize_PrimitiveMembers()
+        {
+            var result1 = Serialize(new SimpleTypeOne
+            {
+                One = 100
+            });
+            Assert.That(result1, Is.EqualTo("one: 100\n"));
+
+            var result2 = Serialize(new SimpleTypeTwo
+            {
+                One = 100,
+                Two = 200
+            });
+            Assert.That(result2, Is.EqualTo("one: 100\n" +
+                                            "two: 200\n"));
+        }
+
+        [Test]
+        public void Serialize_Struct()
+        {
+            var result1 = Serialize(new SimpleUnmanagedStruct { MyProperty = 100 });
+            Assert.That(result1, Is.EqualTo("myProperty: 100\n"));
+
+            var result2 = Serialize(new SimpleStruct() { MyProperty = "あいうえお" });
+            Assert.That(result2, Is.EqualTo("myProperty: あいうえお\n"));
+        }
+
+        [Test]
+        public void Serialize_ArrayMember()
+        {
+            var result1 = Serialize(new WithArray
+            {
+                One = new SimpleTypeOne[]
+                {
+                    new() { One = 111 },
+                    new() { One = 222 },
+                }
+            });
+            Assert.That(result1, Is.EqualTo("one: \n" +
+                                           "- one: 111\n" +
+                                           "- one: 222\n"));
+
+            var result2 = Serialize(new WithArray());
+            Assert.That(result2, Is.EqualTo("one: null"));
+        }
+
+
+        [Test]
+        public void Serialize_InterfaceUnion()
+        {
+            var result1 = Serialize<IUnion>(new InterfaceImpl1
+            {
+                A = 100,
+                B = "foo"
+            });
+
+            var result2 = Serialize<IUnion>(new InterfaceImpl2
+            {
+                A = 200,
+                C = "bar"
+            });
+
+            Assert.That(result2, Is.EqualTo("!impl2\n" +
+                                            "a: 200\n" +
+                                            "b: bar\n"));
+
+            Assert.That(result1, Is.EqualTo("!impl1\n" +
+                                            "a: 100\n" +
+                                            "b: foo\n"));
+        }
+
+        [Test]
+        public void Serialize_AbstractUnion()
+        {
+            var result1 = Serialize<AbstractUnion>(new AbstractImpl1(100, "foo"));
+            var result2 = Serialize<AbstractUnion>(new AbstractImpl2(200, "bar"));
+
+            Assert.That(result1, Is.EqualTo("!impl1\n" +
+                                            "a: 100\n" +
+                                            "b: foo\n"));
+
+            Assert.That(result2, Is.EqualTo("!impl2\n" +
+                                            "a: 200\n" +
+                                            "c: bar"));
         }
 
         [Test]
@@ -45,6 +133,48 @@ namespace VYaml.Tests.Serialization
         {
             var result1 = Deserialize<WithArray>("{ one: [{ one: 1 }, { one: 2 }] }");
             Assert.That(result1.One!.Length, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void Deserialize_TupleMember()
+        {
+            var result = Deserialize<WithTuple>(
+                "one:   [111]\n" +
+                "two:   [222, 333]\n" +
+                "three: [444, 555, 666]\n" +
+                "four:  [777, 888, 999, 111]\n" +
+                "five:  [222, 333, 444, 555, 666]\n" +
+                "six:   [777, 888, 999, 111, 222, 333]\n" +
+                "seven: [444, 555, 666, 777, 888, 999, 111]");
+
+            Assert.That(result.One, Is.EqualTo(new Tuple<int>(111)));
+            Assert.That(result.Two, Is.EqualTo(new Tuple<int, int>(222, 333)));
+            Assert.That(result.Three, Is.EqualTo(new Tuple<int, int, int>(444, 555, 666)));
+            Assert.That(result.Four, Is.EqualTo(new Tuple<int, int, int, int>(777, 888, 999,111)));
+            Assert.That(result.Five, Is.EqualTo(new Tuple<int, int, int, int, int>(222, 333, 444, 555, 666)));
+            Assert.That(result.Six, Is.EqualTo(new Tuple<int, int, int, int, int, int>(777, 888, 999, 111, 222, 333)));
+            Assert.That(result.Seven, Is.EqualTo(new Tuple<int, int, int, int, int, int, int>(444, 555, 666, 777, 888, 999, 111)));
+        }
+
+        [Test]
+        public void Deserialize_ValueTupleMember()
+        {
+            var result = Deserialize<WithValueTuple>(
+                "one:   [111]\n" +
+                "two:   [222, 333]\n" +
+                "three: [444, 555, 666]\n" +
+                "four:  [777, 888, 999, 111]\n" +
+                "five:  [222, 333, 444, 555, 666]\n" +
+                "six:   [777, 888, 999, 111, 222, 333]\n" +
+                "seven: [444, 555, 666, 777, 888, 999, 111]");
+
+            Assert.That(result.One, Is.EqualTo(new ValueTuple<int>(111)));
+            Assert.That(result.Two, Is.EqualTo(new ValueTuple<int, int>(222, 333)));
+            Assert.That(result.Three, Is.EqualTo(new ValueTuple<int, int, int>(444, 555, 666)));
+            Assert.That(result.Four, Is.EqualTo(new ValueTuple<int, int, int, int>(777, 888, 999,111)));
+            Assert.That(result.Five, Is.EqualTo(new ValueTuple<int, int, int, int, int>(222, 333, 444, 555, 666)));
+            Assert.That(result.Six, Is.EqualTo(new ValueTuple<int, int, int, int, int, int>(777, 888, 999, 111, 222, 333)));
+            Assert.That(result.Seven, Is.EqualTo(new ValueTuple<int, int, int, int, int, int, int>(444, 555, 666, 777, 888, 999, 111)));
         }
 
         [Test]

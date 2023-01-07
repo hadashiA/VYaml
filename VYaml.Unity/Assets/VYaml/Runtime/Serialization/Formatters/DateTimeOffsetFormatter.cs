@@ -12,7 +12,7 @@ namespace VYaml.Serialization
 
         public void Serialize(ref Utf8YamlEmitter emitter, DateTimeOffset value, YamlSerializationContext context)
         {
-            var buf = context.GetBuffer(29);
+            var buf = context.GetBuffer64();
             if (Utf8Formatter.TryFormat(value, buf, out var bytesWritten, new StandardFormat('O')))
             {
                 emitter.WriteScalar(buf[..bytesWritten]);
@@ -32,6 +32,7 @@ namespace VYaml.Serialization
                 parser.Read();
                 return value;
             }
+
             throw new YamlSerializerException($"Cannot detect a scalar value of DateTimeOffset : {parser.CurrentEventType} {parser.GetScalarAsString()}");
         }
     }

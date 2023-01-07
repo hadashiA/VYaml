@@ -50,10 +50,7 @@ namespace VYaml.Serialization
             ArrayPool<byte>.Shared.Return(primitiveValueBuffer);
         }
 
-        public Span<byte> GetBuffer(int length)
-        {
-            return primitiveValueBuffer.AsSpan(0, length);
-        }
+        public byte[] GetBuffer64() => primitiveValueBuffer;
 
         // readonly Stack<SequenceStyle> sequenceStyleStack = new();
         // readonly Stack<ScalarStyle> sequenceStyleStack = new();

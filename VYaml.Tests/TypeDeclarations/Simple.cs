@@ -46,6 +46,10 @@ namespace VYaml.Tests.TypeDeclarations
         public Tuple<int> One { get; set; }
         public Tuple<int, int> Two { get; set; }
         public Tuple<int, int, int> Three { get; set; }
+        public Tuple<int, int, int, int> Four { get; set; }
+        public Tuple<int, int, int, int, int> Five { get; set; }
+        public Tuple<int, int, int, int, int, int> Six { get; set; }
+        public Tuple<int, int, int, int, int, int, int> Seven { get; set; }
     }
 
     [YamlObject]
@@ -54,6 +58,10 @@ namespace VYaml.Tests.TypeDeclarations
         public ValueTuple<int> One { get; set; }
         public ValueTuple<int, int> Two { get; set; }
         public ValueTuple<int, int, int> Three { get; set; }
+        public ValueTuple<int, int, int, int> Four { get; set; }
+        public ValueTuple<int, int, int, int, int> Five { get; set; }
+        public ValueTuple<int, int, int, int, int, int> Six { get; set; }
+        public ValueTuple<int, int, int, int, int, int, int> Seven { get; set; }
     }
 
     public enum SimpleEnum
@@ -122,6 +130,16 @@ namespace VYaml.Tests.TypeDeclarations
     {
         public override int A { get; protected set; }
         public string B { get; private set; }
+
+        public AbstractImpl1()
+        {
+        }
+
+        public AbstractImpl1(int a, string b)
+        {
+            A = a;
+            B = b;
+        }
     }
 
     [YamlObject]
@@ -129,6 +147,16 @@ namespace VYaml.Tests.TypeDeclarations
     {
         public override int A { get; protected set; }
         public string C { get; private set; }
+
+        public AbstractImpl2()
+        {
+        }
+
+        public AbstractImpl2(int a, string c)
+        {
+            A = a;
+            C = c;
+        }
     }
 }
 

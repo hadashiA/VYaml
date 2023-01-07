@@ -10,7 +10,7 @@ namespace VYaml.Serialization
 
         public void Serialize(ref Utf8YamlEmitter emitter, decimal value, YamlSerializationContext context)
         {
-            var buf = context.GetBuffer(32);
+            var buf = context.GetBuffer64();
             if (Utf8Formatter.TryFormat(value, buf, out var bytesWritten))
             {
                 emitter.WriteScalar(buf[..bytesWritten]);

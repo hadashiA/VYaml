@@ -37,6 +37,5 @@ namespace VYaml.Tests.Serialization
             Assert.That(result1.Three.Item2, Is.EqualTo(2));
             Assert.That(result1.Three.Item3, Is.EqualTo(3));
         }
-
     }
 }
