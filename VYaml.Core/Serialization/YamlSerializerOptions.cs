@@ -1,3 +1,5 @@
+using VYaml.Emitter;
+
 namespace VYaml.Serialization
 {
     public class YamlSerializerOptions
@@ -8,6 +10,7 @@ namespace VYaml.Serialization
         };
 
         public IYamlFormatterResolver Resolver { get; set; } = null!;
-        public bool SupportAliasForDeserialization { get; set; } = true;
+        public YamlEmitOptions EmitOptions { get; set; } = new();
+        public bool EnableAliasForDeserialization { get; set; } = true;
     }
 }

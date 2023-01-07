@@ -63,8 +63,7 @@ namespace VYaml.Serialization
             try
             {
                 options ??= DefaultOptions;
-                var contextLocal = deserializationContext ??= new YamlDeserializationContext();
-                contextLocal.Resolver = options.Resolver;
+                var contextLocal = deserializationContext ??= new YamlDeserializationContext(options);
                 contextLocal.Reset();
 
                 parser.SkipAfter(ParseEventType.DocumentStart);
@@ -109,8 +108,7 @@ namespace VYaml.Serialization
             try
             {
                 options ??= DefaultOptions;
-                var contextLocal = deserializationContext ??= new YamlDeserializationContext();
-                contextLocal.Resolver = options.Resolver;
+                var contextLocal = deserializationContext ??= new YamlDeserializationContext(options);
                 var formatter = options.Resolver.GetFormatterWithVerify<T>();
                 var documents = new List<T>();
 

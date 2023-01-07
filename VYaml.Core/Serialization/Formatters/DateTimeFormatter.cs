@@ -1,5 +1,7 @@
 using System;
+using System.Buffers;
 using System.Buffers.Text;
+using VYaml.Emitter;
 using VYaml.Parser;
 
 namespace VYaml.Serialization
@@ -7,6 +9,21 @@ namespace VYaml.Serialization
     public class DateTimeFormatter : IYamlFormatter<DateTime>
     {
         public static readonly DateTimeFormatter Instance = new();
+
+        public void Serialize(ref Utf8YamlEmitter emitter, DateTime value, YamlSerializationContext context)
+        {
+            // 2017-06-12T12:30:45.768+00:00
+            // Span<byte> buf = stackalloc byte[29];
+            var buf = context.GetBuffer(29);
+            if (Utf8Formatter.TryFormat(value, buf, out var bytesWritten, new StandardFormat('O')))
+            {
+                emitter.WriteScalar(buf[..bytesWritten]);
+            }
+            else
+            {
+                throw new YamlSerializerException($"Cannot format {value}");
+            }
+        }
 
         public DateTime Deserialize(ref YamlParser parser, YamlDeserializationContext context)
         {
@@ -24,6 +41,26 @@ namespace VYaml.Serialization
     public class NullableDateTimeFormatter : IYamlFormatter<DateTime?>
     {
         public static readonly NullableDateTimeFormatter Instance = new();
+
+        public void Serialize(ref Utf8YamlEmitter emitter, DateTime? value, YamlSerializationContext context)
+        {
+            if (value.HasValue)
+            {
+                var buf = context.GetBuffer(29);
+                if (Utf8Formatter.TryFormat(value.Value, buf, out var bytesWritten, new StandardFormat('O')))
+                {
+                    emitter.WriteScalar(buf[..bytesWritten]);
+                }
+                else
+                {
+                    throw new YamlSerializerException($"Cannot format {value}");
+                }
+            }
+            else
+            {
+                emitter.WriteNull();
+            }
+        }
 
         public DateTime? Deserialize(ref YamlParser parser, YamlDeserializationContext context)
         {

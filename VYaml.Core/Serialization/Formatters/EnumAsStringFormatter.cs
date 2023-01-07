@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
+using VYaml.Emitter;
 using VYaml.Internal;
 using VYaml.Parser;
 
@@ -46,6 +47,18 @@ namespace VYaml.Serialization
             {
                 NameValueMapping[name] = (T)value;
                 ValueNameMapping[(T)value] = name;
+            }
+        }
+
+        public void Serialize(ref Utf8YamlEmitter emitter, T value, YamlSerializationContext context)
+        {
+            if (ValueNameMapping.TryGetValue(value, out var name))
+            {
+                emitter.WriteString(name, ScalarStyle.Plain);
+            }
+            else
+            {
+                throw new YamlSerializerException($"Cannot detect a value of enum: {typeof(T)}, {value}");
             }
         }
 

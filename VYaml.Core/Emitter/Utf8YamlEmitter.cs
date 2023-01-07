@@ -356,7 +356,7 @@ namespace VYaml.Emitter
         public void WriteFloat(float value)
         {
             var offset = 0;
-            var output = writer.GetSpan(GetScalarBufferLength(16));
+            var output = writer.GetSpan(GetScalarBufferLength(12));
 
             BeginScalar(output, ref offset);
             if (!Utf8Formatter.TryFormat(value, output[offset..], out var bytesWritten))
@@ -372,7 +372,7 @@ namespace VYaml.Emitter
         public void WriteDouble(double value)
         {
             var offset = 0;
-            var output = writer.GetSpan(GetScalarBufferLength(16));
+            var output = writer.GetSpan(GetScalarBufferLength(17));
 
             BeginScalar(output, ref offset);
             if (!Utf8Formatter.TryFormat(value, output[offset..], out var bytesWritten))
