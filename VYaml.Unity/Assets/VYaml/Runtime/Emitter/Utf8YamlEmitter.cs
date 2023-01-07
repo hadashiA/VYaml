@@ -34,9 +34,10 @@ namespace VYaml.Emitter
         };
         static readonly byte[] BlockSequenceEntryHeaderEmpty = { (byte)'-', (byte)'\n' };
         static readonly byte[] BlockSequenceEntryHeader = { (byte)'-', (byte)' ' };
-        static readonly byte[] MappingKeyFooter = { (byte)':', (byte)' ' };
         static readonly byte[] FlowSequenceEmpty = { (byte)'[', (byte)']' };
         static readonly byte[] FlowSequenceSeparator = { (byte)',', (byte)' ' };
+        static readonly byte[] MappingKeyFooter = { (byte)':', (byte)' ' };
+        static readonly byte[] FlowMappingEmpty = { (byte)'{', (byte)'}' };
 
         EmitState NextState => stateStack.Peek();
 
@@ -255,6 +256,13 @@ namespace VYaml.Emitter
                 throw new YamlEmitterException($"Invalid block mapping end: {NextState}");
             }
 
+            if (currentElementCount == 0)
+            {
+                var output = writer.GetSpan(FlowMappingEmpty.Length);
+                FlowMappingEmpty.CopyTo(output);
+                writer.Advance(FlowMappingEmpty.Length);
+            }
+
             DecreaseIndent();
             PopState();
 
@@ -356,7 +364,7 @@ namespace VYaml.Emitter
         public void WriteFloat(float value)
         {
             var offset = 0;
-            var output = writer.GetSpan(GetScalarBufferLength(16));
+            var output = writer.GetSpan(GetScalarBufferLength(12));
 
             BeginScalar(output, ref offset);
             if (!Utf8Formatter.TryFormat(value, output[offset..], out var bytesWritten))
@@ -372,7 +380,7 @@ namespace VYaml.Emitter
         public void WriteDouble(double value)
         {
             var offset = 0;
-            var output = writer.GetSpan(GetScalarBufferLength(16));
+            var output = writer.GetSpan(GetScalarBufferLength(17));
 
             BeginScalar(output, ref offset);
             if (!Utf8Formatter.TryFormat(value, output[offset..], out var bytesWritten))

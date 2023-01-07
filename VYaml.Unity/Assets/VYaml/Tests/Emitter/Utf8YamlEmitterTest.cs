@@ -432,7 +432,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void BlockMapping()
         {
-            var emitter = CreateEmitter();
+            using var emitter = CreateEmitter();
             emitter.BeginMapping();
             emitter.WriteInt32(1);
             emitter.WriteInt32(100);
@@ -444,6 +444,16 @@ namespace VYaml.Tests.Emitter
                 "1: 100\n" +
                 "2: 200\n"
                 ));
+        }
+
+        [Test]
+        public void BlockMapping_Empty()
+        {
+            using var emitter = CreateEmitter();
+            emitter.BeginMapping();
+            emitter.EndMapping();
+
+            Assert.That(ToString(in emitter), Is.EqualTo("{}"));
         }
 
         [Test]

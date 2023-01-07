@@ -7,6 +7,12 @@ namespace VYaml.Tests.Serialization
     public class GeneratedFormatterTest : FormatterTestBase
     {
         [Test]
+        public void Serialize_NoMember()
+        {
+            Assert.That(Serialize(new SimpleTypeZero()), Is.EqualTo("{}"));
+        }
+
+        [Test]
         public void Deserialize_NoMember()
         {
             var result = Deserialize<SimpleTypeZero>("{}");

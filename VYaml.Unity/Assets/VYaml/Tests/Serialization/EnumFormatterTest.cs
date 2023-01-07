@@ -7,6 +7,24 @@ namespace VYaml.Tests.Serialization
     public class EnumFormatterTest : FormatterTestBase
     {
         [Test]
+        public void Serialize_AsString()
+        {
+            Assert.That(Serialize(SimpleEnum.C), Is.EqualTo("c"));
+        }
+
+        [Test]
+        public void Serialize_WithEnumMember()
+        {
+            Assert.That(Serialize(EnumMemberLabeledEnum.C), Is.EqualTo("c-alias"));
+        }
+
+        [Test]
+        public void Serialize_WithDataMember()
+        {
+            Assert.That(Serialize(DataMemberLabeledEnum.C), Is.EqualTo("c-alias"));
+        }
+
+        [Test]
         public void Deserialize_AsString()
         {
             var result = Deserialize<SimpleEnum>("c");

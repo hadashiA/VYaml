@@ -320,13 +320,13 @@ public class VYamlSourceGenerator : ISourceGenerator
             }
         }
 
-        codeWriter.AppendLine("emitter.BeginMapping()");
+        codeWriter.AppendLine("emitter.BeginMapping();");
         foreach (var memberMeta in memberMetas)
         {
             codeWriter.AppendLine($"emitter.WriteString(\"{memberMeta.KeyName}\", ScalarStyle.Plain);");
-            codeWriter.AppendLine($"context.Serialize(ref emitter, {memberMeta.Name});");
+            codeWriter.AppendLine($"context.Serialize(ref emitter, value.{memberMeta.Name});");
         }
-        codeWriter.AppendLine("emitter.EndMapping()");
+        codeWriter.AppendLine("emitter.EndMapping();");
 
         return true;
     }
@@ -339,7 +339,7 @@ public class VYamlSourceGenerator : ISourceGenerator
 
         codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
         using var methodScope = codeWriter.BeginBlockScope(
-            $"public void Serialize(ref YamlParser parser, {returnType} value, YamlDeserializationContext context)");
+            $"public void Serialize(ref Utf8YamlEmitter emitter, {returnType} value, YamlSerializationContext context)");
 
         if (!typeMeta.Symbol.IsValueType)
         {
@@ -355,7 +355,7 @@ public class VYamlSourceGenerator : ISourceGenerator
             // TODO:
         }
 
-        codeWriter.AppendLine("throw new System.NotImplementedException()");
+        codeWriter.AppendLine("throw new System.NotImplementedException();");
         return true;
     }
 

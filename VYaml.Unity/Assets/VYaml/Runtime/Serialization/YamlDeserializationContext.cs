@@ -5,9 +5,14 @@ namespace VYaml.Serialization
 {
     public class YamlDeserializationContext
     {
-        public IYamlFormatterResolver Resolver { get; set; } = StandardResolver.Instance;
+        public IYamlFormatterResolver Resolver { get; }
 
         readonly Dictionary<Anchor, object?> aliases = new();
+
+        public YamlDeserializationContext(YamlSerializerOptions options)
+        {
+            Resolver = options.Resolver;
+        }
 
         public void Reset()
         {

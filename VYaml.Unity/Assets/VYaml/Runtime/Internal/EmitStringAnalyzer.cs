@@ -1,5 +1,4 @@
 using System;
-using System.Data;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -298,18 +297,6 @@ namespace VYaml.Internal
                     break;
             }
             return false;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static bool IsHighSurrogate(char c)
-        {
-            return 0xD800 <= c && c <= 0xDBFF;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static bool IsLowSurrogate(char c)
-        {
-            return 0xDC00 <= c && c <= 0xDFFF;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

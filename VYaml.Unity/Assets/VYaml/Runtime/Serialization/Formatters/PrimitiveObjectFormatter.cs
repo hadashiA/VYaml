@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using VYaml.Emitter;
 using VYaml.Parser;
 
 namespace VYaml.Serialization
@@ -7,6 +8,44 @@ namespace VYaml.Serialization
     public class PrimitiveObjectFormatter : IYamlFormatter<object?>
     {
         public static readonly PrimitiveObjectFormatter Instance = new();
+
+        static readonly Dictionary<Type, int> TypeToJumpCode = new()
+        {
+            { typeof(Boolean), 0 },
+            { typeof(Char), 1 },
+            { typeof(SByte), 2 },
+            { typeof(Byte), 3 },
+            { typeof(Int16), 4 },
+            { typeof(UInt16), 5 },
+            { typeof(Int32), 6 },
+            { typeof(UInt32), 7 },
+            { typeof(Int64), 8 },
+            { typeof(UInt64), 9 },
+            { typeof(Single), 10 },
+            { typeof(Double), 11 },
+            { typeof(DateTime), 12 },
+            { typeof(string), 13 },
+            { typeof(byte[]), 14 },
+        };
+
+        public void Serialize(ref Utf8YamlEmitter emitter, object? value, YamlSerializationContext context)
+        {
+            if (value is null)
+            {
+                emitter.WriteNull();
+                return;
+            }
+
+            switch (value)
+            {
+                case int x:
+                    emitter.WriteInt32(x);
+                    break;
+                case uint x:
+                    emitter.WriteUInt32(x);
+                    break;
+            }
+        }
 
         public object? Deserialize(ref YamlParser parser, YamlDeserializationContext context)
         {
