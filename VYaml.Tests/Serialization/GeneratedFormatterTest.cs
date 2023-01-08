@@ -204,5 +204,20 @@ namespace VYaml.Tests.Serialization
             Assert.That(result2.A, Is.EqualTo(100));
             Assert.That(((AbstractImpl2)result2).C, Is.EqualTo("bar"));
         }
+
+        [Test]
+        public void Deseiralize_AnotherNamespace()
+        {
+            var result = Deserialize<VYaml.Tests.TypeDeclarations.More.StandardTypeTwo>("{ one: a, two: b }");
+            Assert.That(result.One, Is.EqualTo("a"));
+            Assert.That(result.Two, Is.EqualTo("b"));
+        }
+
+        [Test]
+        public void Deseiralize_GlobalNamespace()
+        {
+            var result = Deserialize<GlobalNamespaceType>("{ myProperty: 111 }");
+            Assert.That(result.MyProperty, Is.EqualTo(111));
+        }
     }
 }

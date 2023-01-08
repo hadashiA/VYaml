@@ -227,6 +227,7 @@ namespace VYaml.Emitter
                         {
                             IncreaseIndent();
                             ReplaceNextState(EmitState.BlockMappingKey);
+
                             var output = writer.GetSpan(1);
                             output[0] = YamlCodes.Lf;
                             writer.Advance(1);
