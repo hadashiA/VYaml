@@ -291,11 +291,59 @@ public class VYamlSourceGenerator : ISourceGenerator
         codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
         using var _ = codeWriter.BeginBlockScope($"public class {typeMeta.TypeName}GeneratedFormatter : IYamlFormatter<{returnType}>");
 
+        // Union
         if (typeMeta.IsUnion)
         {
+            for (var i = 0; i < typeMeta.UnionMetas.Count; i++)
+            {
+                var unionMeta = typeMeta.UnionMetas[i];
+                codeWriter.Append($"static readonly byte[] UnionTag{i}Utf8Bytes = ");
+                codeWriter.AppendByteArrayString(System.Text.Encoding.UTF8.GetBytes(unionMeta.SubTypeTag));
+                codeWriter.AppendLine($"; // {unionMeta.SubTypeTag}", false);
+                codeWriter.AppendLine();
+            }
+
             return TryEmitSerializeMethodUnion(typeMeta, codeWriter, in context) &&
                    TryEmitDeserializeMethodUnion(typeMeta, codeWriter, in context);
         }
+
+        // Default
+        var memberMetas = typeMeta.GetSerializeMembers();
+        var invalid = false;
+        foreach (var memberMeta in memberMetas)
+        {
+            if (memberMeta is { IsProperty: true, IsSettable: false })
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    DiagnosticDescriptors.YamlMemberPropertyMustHaveSetter,
+                    memberMeta.GetLocation(typeMeta.Syntax),
+                    typeMeta.TypeName,
+                    memberMeta.Name));
+                invalid = true;
+            }
+            if (memberMeta is { IsField: true, IsSettable: false })
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    DiagnosticDescriptors.YamlMemberFieldCannotBeReadonly,
+                    memberMeta.GetLocation(typeMeta.Syntax),
+                    typeMeta.TypeName,
+                    memberMeta.Name));
+                invalid = true;
+            }
+        }
+        if (invalid)
+        {
+            return false;
+        }
+
+        foreach (var memberMeta in memberMetas)
+        {
+            codeWriter.Append($"static readonly byte[] {memberMeta.Name}KeyUtf8Bytes = ");
+            codeWriter.AppendByteArrayString(memberMeta.KeyNameUtf8Bytes);
+            codeWriter.AppendLine($"; // {memberMeta.KeyName}", false);
+            codeWriter.AppendLine();
+        }
+
         return TryEmitSerializeMethod(typeMeta, codeWriter, in context) &&
                TryEmitDeserializeMethod(typeMeta, codeWriter, in context);
     }
@@ -350,53 +398,23 @@ public class VYamlSourceGenerator : ISourceGenerator
             }
         }
 
-        foreach (var unionMeta in typeMeta.UnionMetas)
+        using (codeWriter.BeginBlockScope("switch (value)"))
         {
-            // TODO:
+            for (var i = 0; i < typeMeta.UnionMetas.Count; i++)
+            {
+                var unionMeta = typeMeta.UnionMetas[i];
+                codeWriter.AppendLine($"case {unionMeta.FullTypeName} x:");
+                codeWriter.AppendLine($"    emitter.Tag(UnionTag{i}Utf8Bytes);");
+                codeWriter.AppendLine($"    context.Serialize(ref emitter, x);");
+                codeWriter.AppendLine( "    break;");
+            }
         }
-
-        codeWriter.AppendLine("throw new System.NotImplementedException();");
         return true;
     }
 
     static bool TryEmitDeserializeMethod(TypeMeta typeMeta, CodeWriter codeWriter, in GeneratorExecutionContext context)
     {
-        // verify members
         var memberMetas = typeMeta.GetSerializeMembers();
-        var invalid = false;
-        foreach (var memberMeta in memberMetas)
-        {
-            if (memberMeta is { IsProperty: true, IsSettable: false })
-            {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    DiagnosticDescriptors.YamlMemberPropertyMustHaveSetter,
-                    memberMeta.GetLocation(typeMeta.Syntax),
-                    typeMeta.TypeName,
-                    memberMeta.Name));
-                invalid = true;
-            }
-            if (memberMeta is { IsField: true, IsSettable: false })
-            {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    DiagnosticDescriptors.YamlMemberFieldCannotBeReadonly,
-                    memberMeta.GetLocation(typeMeta.Syntax),
-                    typeMeta.TypeName,
-                    memberMeta.Name));
-                invalid = true;
-            }
-        }
-        if (invalid)
-        {
-            return false;
-        }
-
-        foreach (var memberMeta in memberMetas)
-        {
-            codeWriter.Append($"static readonly byte[] {memberMeta.Name}KeyUtf8Bytes = ");
-            codeWriter.AppendByteArrayString(memberMeta.KeyNameUtf8Bytes);
-            codeWriter.AppendLine($"; // {memberMeta.KeyName}", false);
-            codeWriter.AppendLine();
-        }
 
         var returnType = typeMeta.Symbol.IsValueType
             ? typeMeta.FullTypeName
@@ -512,8 +530,7 @@ public class VYamlSourceGenerator : ISourceGenerator
         {
             using (codeWriter.BeginBlockScope($"{branch} (tag.Equals(\"{unionMeta.SubTypeTag}\")) "))
             {
-                var subTypeFullName = unionMeta.SubTypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                codeWriter.AppendLine($"return context.DeserializeWithAlias<{subTypeFullName}>(ref parser);");
+                codeWriter.AppendLine($"return context.DeserializeWithAlias<{unionMeta.FullTypeName}>(ref parser);");
             }
             branch = "else if";
         }

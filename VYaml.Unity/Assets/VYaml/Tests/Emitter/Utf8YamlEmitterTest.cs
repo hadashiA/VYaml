@@ -459,7 +459,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void BlockMapping_Nested1()
         {
-            var emitter = CreateEmitter();
+            using var emitter = CreateEmitter();
             emitter.BeginMapping();
             {
                 emitter.WriteInt32(1);
@@ -490,7 +490,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void BlockMapping_Nested2()
         {
-            var emitter = CreateEmitter();
+            using var emitter = CreateEmitter();
             emitter.BeginMapping();
             {
                 emitter.WriteInt32(1);
@@ -527,7 +527,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void BlockMapping_InBlockSequence()
         {
-            var emitter = CreateEmitter();
+            using var emitter = CreateEmitter();
             emitter.BeginSequence();
             {
                 emitter.BeginMapping();
@@ -558,6 +558,75 @@ namespace VYaml.Tests.Emitter
                 emitter.BeginMapping();
                 emitter.BeginMapping();
             });
+        }
+
+        [Test]
+        public void BlockMapping_WithTag()
+        {
+            using var emitter = CreateEmitter();
+            emitter.Tag(StringEncoding.Utf8.GetBytes("!impl1"));
+            emitter.BeginMapping();
+            {
+                emitter.WriteString("key1");
+                emitter.WriteString("value1");
+            }
+            emitter.EndMapping();
+
+            Assert.That(ToString(in emitter), Is.EqualTo(
+                "!impl1\n" +
+                "key1: value1\n"
+                ));
+        }
+
+        [Test]
+        public void BlockMapping_WithTagInSequence()
+        {
+            using var emitter = CreateEmitter();
+
+            emitter.BeginSequence();
+            {
+                emitter.Tag(StringEncoding.Utf8.GetBytes("!impl1"));
+                emitter.BeginMapping();
+                {
+                    emitter.WriteString("key1");
+                    emitter.WriteString("value1");
+                }
+                emitter.EndMapping();
+            }
+            emitter.EndSequence();
+
+            Assert.That(ToString(in emitter), Is.EqualTo(
+                "- !impl1\n" +
+                "  key1: value1\n"
+            ));
+        }
+
+        [Test]
+        public void BlockMapping_WithTagNested()
+        {
+            using var emitter = CreateEmitter();
+
+            emitter.BeginMapping();
+            {
+                emitter.WriteString("key1");
+                emitter.Tag(StringEncoding.Utf8.GetBytes("!impl1"));
+                emitter.BeginMapping();
+                {
+                    emitter.WriteString("key2");
+                    emitter.WriteString("value2");
+
+                    emitter.WriteString("key3");
+                    emitter.WriteString("value3");
+                }
+                emitter.EndMapping();
+            }
+            emitter.EndMapping();
+
+            Assert.That(ToString(in emitter), Is.EqualTo(
+                "key1: !impl1\n" +
+                "  key2: value2\n" +
+                "  key3: value3\n"
+            ));
         }
 
         [Test]

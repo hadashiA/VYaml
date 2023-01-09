@@ -8,6 +8,14 @@ class UnionMeta
 {
     public string SubTypeTag { get; set; }
     public INamedTypeSymbol SubTypeSymbol { get; set; }
+    public string FullTypeName { get; }
+
+    public UnionMeta(string subTypeTag, INamedTypeSymbol subTypeSymbol)
+    {
+        SubTypeTag = subTypeTag;
+        SubTypeSymbol = subTypeSymbol;
+        FullTypeName = subTypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+    }
 }
 
 class TypeMeta
@@ -43,11 +51,9 @@ class TypeMeta
         UnionMetas = symbol.GetAttributes()
             .Where(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, references.YamlObjectUnionAttribute))
             .Where(x => x.ConstructorArguments.Length == 2)
-            .Select(x => new UnionMeta
-            {
-                SubTypeTag = (string)x.ConstructorArguments[0].Value!,
-                SubTypeSymbol = (INamedTypeSymbol)x.ConstructorArguments[1].Value!
-            })
+            .Select(x => new UnionMeta(
+                (string)x.ConstructorArguments[0].Value!,
+                (INamedTypeSymbol)x.ConstructorArguments[1].Value!))
             .ToArray();
     }
 

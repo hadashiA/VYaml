@@ -158,6 +158,31 @@ namespace VYaml.Tests.TypeDeclarations
             C = c;
         }
     }
+
+    [YamlObject]
+    public partial class WithUnionMember
+    {
+        public int A { get; set; }
+        public IUnion Union { get; set; }
+    }
+
+    [YamlObject]
+    public partial class WithArrayUnionMember
+    {
+        public int A { get; set; }
+        public IUnion[] Unions { get; set; }
+    }
+
+    [YamlObject]
+    public partial class WithIgnoreMember
+    {
+        public int A { get; set; }
+
+        [YamlIgnore]
+        public int B { get; set; }
+
+        public int C { get; set; }
+    }
 }
 
 // another namespace, same type name

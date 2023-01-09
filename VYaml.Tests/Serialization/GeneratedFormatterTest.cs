@@ -57,9 +57,23 @@ namespace VYaml.Tests.Serialization
                                            "- one: 222\n"));
 
             var result2 = Serialize(new WithArray());
-            Assert.That(result2, Is.EqualTo("one: null"));
+            Assert.That(result2, Is.EqualTo("one: null\n"));
         }
 
+        [Test]
+        public void Serialize_IgnoreMember()
+        {
+            var result = Serialize(new WithIgnoreMember
+            {
+                A = 100,
+                B = 200,
+                C = 300
+            });
+            Assert.That(result, Is.EqualTo(
+                "a: 100\n" +
+                "c: 300\n"
+                ));
+        }
 
         [Test]
         public void Serialize_InterfaceUnion()
@@ -76,13 +90,13 @@ namespace VYaml.Tests.Serialization
                 C = "bar"
             });
 
-            Assert.That(result2, Is.EqualTo("!impl2\n" +
-                                            "a: 200\n" +
-                                            "b: bar\n"));
-
             Assert.That(result1, Is.EqualTo("!impl1\n" +
                                             "a: 100\n" +
                                             "b: foo\n"));
+
+            Assert.That(result2, Is.EqualTo("!impl2\n" +
+                                            "a: 200\n" +
+                                            "c: bar\n"));
         }
 
         [Test]
@@ -97,7 +111,56 @@ namespace VYaml.Tests.Serialization
 
             Assert.That(result2, Is.EqualTo("!impl2\n" +
                                             "a: 200\n" +
-                                            "c: bar"));
+                                            "c: bar\n"));
+        }
+
+        [Test]
+        public void Serialize_NestedUnion()
+        {
+            var result = Serialize(new WithUnionMember
+            {
+                A = 100,
+                Union = new InterfaceImpl1
+                {
+                    A = 200,
+                    B = "foo"
+                }
+            });
+            Assert.That(result, Is.EqualTo("a: 100\n" +
+                                           "union: !impl1\n" +
+                                           "  a: 200\n" +
+                                           "  b: foo\n"));
+        }
+
+        [Test]
+        public void Serialize_NestedArrayUnion()
+        {
+            var result = Serialize(new WithArrayUnionMember
+            {
+                A = 100,
+                Unions = new IUnion[]
+                {
+                    new InterfaceImpl1
+                    {
+                        A = 200,
+                        B = "foo"
+                    },
+                    new InterfaceImpl2
+                    {
+                        A = 300,
+                        C = "bar"
+                    },
+                }
+            });
+            Assert.That(result, Is.EqualTo("a: 100\n" +
+                                           "unions: \n" +
+                                           "- !impl1\n" +
+                                           "  a: 200\n" +
+                                           "  b: foo\n" +
+                                           "- !impl2\n" +
+                                           "  a: 300\n" +
+                                           "  c: bar\n"));
+
         }
 
         [Test]
