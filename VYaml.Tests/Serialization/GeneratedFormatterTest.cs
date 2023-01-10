@@ -269,6 +269,20 @@ namespace VYaml.Tests.Serialization
         }
 
         [Test]
+        public void SerializeDeserialize_Union()
+        {
+            var yaml = Serialize<IUnion>(new InterfaceImpl1
+            {
+                A = 100,
+                B = "foo"
+            });
+            var result = Deserialize<IUnion>(yaml);
+
+            Assert.That(result, Is.InstanceOf<InterfaceImpl1>());
+            Assert.That(result.A, Is.EqualTo(100));
+        }
+
+        [Test]
         public void Deseiralize_AnotherNamespace()
         {
             var result = Deserialize<VYaml.Tests.TypeDeclarations.More.StandardTypeTwo>("{ one: a, two: b }");
