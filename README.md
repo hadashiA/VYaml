@@ -26,6 +26,7 @@ Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular y
 - Deserialize / Serialize
   - Convert between YAML and C# user-defined types.
   - Convert between YAML and primitive collection via `dynamic` .
+  - Support interface-typed and abstract class-typed objects.
   - Support anchor (`&`) and alias (`*`) in the YAML spec.
   - Support multiple yaml documents to C# collection.
   - Customization
@@ -323,6 +324,12 @@ Result:
 a: 100
 ```
 
+## Customize serialization behaviour
+
+- `IYamlFormatter<T>` interface customize the serialization behaviour of a your particular type.
+- `IYamlFormatterResolver` interface can customize how it searches for `IYamlFormatter<T>` at runtime.
+
+TODO:
 
 ## Low-Level API
 
@@ -432,24 +439,18 @@ while (parser.Read())
 See [test code](https://github.com/hadashiA/VYaml/blob/master/VYaml.Tests/Parser/SpecTest.cs) for more information.
 The above test covers various patterns for the order of `ParsingEvent`.
 
-## Customize serialization behaviour
-
-- `IYamlFormatter<T>` interface customize the serialization behaviour of a your particular type.
-- `IYamlFormatterResolver` interface can customize how it searches for `IYamlFormatter<T>` at runtime.
-
-TODO:
 
 ### Emitter
 
-`YamlEmitter` struct provides to write YAML formatted string.
+`Utf8YamlEmitter` struct provides to write YAML formatted string.
 
 Basic usage:
 
 ``` csharp
 var buffer = new ArrayBufferWriter();
-using var emitter = new YamlEmitter(buffer); // It needs buffer implemented `IBufferWriter<byte>`
+using var emitter = new Utf8YamlEmitter(buffer); // It needs buffer implemented `IBufferWriter<byte>`
 
-emitter.BeginMapping();
+emitter.BeginMapping(); // Mapping is a collection like Dictionary in YAML
 {
     emitter.WriteString("key1");
     emitter.WriteString("value-1");
@@ -469,12 +470,10 @@ System.Text.Encoding.UTF8.GetString(buffer.WrittenSpan);
 ```
 
 ``` yaml
-# Result:
 key1: value-1
 key2: 222
 key3: 3.333
 ```
-
 
 #### Emit string in various formats
 
