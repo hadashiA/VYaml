@@ -45,6 +45,7 @@ namespace VYaml.Serialization
             { typeof(sbyte), SByteFormatter.Instance },
             { typeof(DateTime), DateTimeFormatter.Instance },
             { typeof(char), CharFormatter.Instance },
+            { typeof(byte[]), ByteArrayFormatter.Instance },
 
             // Nullable Primitive
             { typeof(Int16?), NullableInt16Formatter.Instance },
@@ -236,4 +237,3 @@ namespace VYaml.Serialization
         }
     }
 }
-

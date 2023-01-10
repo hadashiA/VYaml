@@ -1,6 +1,8 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using VYaml.Emitter;
+using VYaml.Internal;
 using VYaml.Parser;
 
 namespace VYaml.Serialization
@@ -36,15 +38,90 @@ namespace VYaml.Serialization
                 return;
             }
 
-            switch (value)
+            var type = value.GetType();
+            if (TypeToJumpCode.TryGetValue(type, out var code))
             {
-                case int x:
-                    emitter.WriteInt32(x);
-                    break;
-                case uint x:
-                    emitter.WriteUInt32(x);
-                    break;
+                switch (code)
+                {
+                    case 0:
+                        emitter.WriteBool((bool)value);
+                        return;
+                    case 1:
+                        emitter.WriteInt32((char)value);
+                        return;
+                    case 2:
+                        emitter.WriteInt32((sbyte)value);
+                        return;
+                    case 3:
+                        emitter.WriteUInt32((byte)value);
+                        return;
+                    case 4:
+                        emitter.WriteInt32((short)value);
+                        return;
+                    case 5:
+                        emitter.WriteUInt32((ushort)value);
+                        return;
+                    case 6:
+                        emitter.WriteInt32((int)value);
+                        return;
+                    case 7:
+                        emitter.WriteUInt32((uint)value);
+                        return;
+                    case 8:
+                        emitter.WriteInt64((long)value);
+                        return;
+                    case 9:
+                        emitter.WriteUInt64((ulong)value);
+                        return;
+                    case 10:
+                        emitter.WriteFloat((float)value);
+                        return;
+                    case 11:
+                        emitter.WriteDouble((double)value);
+                        return;
+                    case 12:
+                        DateTimeFormatter.Instance.Serialize(ref emitter, (DateTime)value, context);
+                        return;
+                    case 13:
+                        emitter.WriteString((string)value);
+                        return;
+                    case 14:
+                        ByteArrayFormatter.Instance.Serialize(ref emitter, (byte[])value, context);
+                        return;
+                }
             }
+
+            if (type.IsEnum)
+            {
+                emitter.WriteString(KeyNameHelper.ToCamelCase(value.ToString()), ScalarStyle.Plain); // TODO:
+                return;
+            }
+
+            // check dictionary first
+            if (value is IDictionary dict)
+            {
+                emitter.BeginMapping();
+                foreach (DictionaryEntry item in dict)
+                {
+                    Serialize(ref emitter, item.Key, context);
+                    Serialize(ref emitter, item.Value, context);
+                }
+                emitter.EndMapping();
+                return;
+            }
+
+            if (value is ICollection collection)
+            {
+                emitter.BeginSequence();
+                foreach (var item in collection)
+                {
+                    Serialize(ref emitter, item, context);
+                }
+                emitter.EndSequence();
+                return;
+            }
+
+            throw new YamlSerializerException($"Not supported primitive object resolver. type: {type}");
         }
 
         public object? Deserialize(ref YamlParser parser, YamlDeserializationContext context)

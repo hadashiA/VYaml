@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using NUnit.Framework;
 using VYaml.Internal;
 using VYaml.Serialization;
@@ -5,8 +7,84 @@ using VYaml.Serialization;
 namespace VYaml.Tests.Serialization
 {
     [TestFixture]
-    public class PrimitiveObjectFormatterTest
+    public class PrimitiveObjectFormatterTest : FormatterTestBase
     {
+        [Test]
+        public void Serialize_dynamic()
+        {
+            var data = new Dictionary<string, object>
+            {
+                { "invoice", 34843 },
+                { "date", new DateTime(2001, 1, 23) },
+                { "bill-to", new Dictionary<string, object>
+                    {
+                        { "given", "Chris" },
+                        { "family", "Dumars" },
+                        { "address", new Dictionary<string, object>
+                            {
+                                { "lines", "458 Walkman Dr.\nSuite #292\n" },
+                                { "city", "Royal Oak" },
+                                { "state", "MI" },
+                                { "postal", "48046" },
+                            }
+                        }
+                    }
+                },
+                { "product", new object[]
+                    {
+                        new Dictionary<string, object>
+                        {
+                            { "sku", "BL394D" },
+                            { "quantity", 4 },
+                            { "description", "Basketball" },
+                            { "price", 450.00 },
+                        },
+                        new Dictionary<string, object>
+                        {
+                            { "sku", "BL4438H" },
+                            { "quantity", 1 },
+                            { "description", "Super Hoop" },
+                            { "price", 2392.00 },
+                        }
+                    }
+                },
+                { "tax", 251.42 },
+                { "total", 4443.52 },
+                { "comments", "Late afternoon is best.\nBackup contact is Nancy\nBillsmer @ 338-4338." }
+            };
+
+            var result = Serialize<dynamic>(data);
+            Assert.That(result, Is.EqualTo(
+@"invoice: 34843
+date: 2001-01-23T00:00:00.0000000
+bill-to: 
+  given: Chris
+  family: Dumars
+  address: 
+    lines: |
+      458 Walkman Dr.
+      Suite #292
+    city: Royal Oak
+    state: MI
+    postal: 48046
+product: 
+- sku: BL394D
+  quantity: 4
+  description: Basketball
+  price: 450
+- sku: BL4438H
+  quantity: 1
+  description: Super Hoop
+  price: 2392
+tax: 251.42
+total: 4443.52
+comments: |-
+  Late afternoon is best.
+  Backup contact is Nancy
+  Billsmer @ 338-4338.
+"));
+        }
+
         [Test]
         public void Deserialize_dynamic()
         {
