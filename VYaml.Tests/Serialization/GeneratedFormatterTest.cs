@@ -76,6 +76,24 @@ namespace VYaml.Tests.Serialization
         }
 
         [Test]
+        public void Serialize_RenamedMember()
+        {
+            {
+                var result = Serialize(new WithRenamedMember
+                {
+                    A = 100,
+                    B = 200,
+                    C = 300
+                });
+                Assert.That(result, Is.EqualTo(
+                    "a: 100\n" +
+                    "b-alias: 200\n" +
+                    "c: 300\n"
+                ));
+            }
+        }
+
+        [Test]
         public void Serialize_InterfaceUnion()
         {
             var result1 = Serialize<IUnion>(new InterfaceImpl1
