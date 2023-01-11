@@ -183,6 +183,17 @@ namespace VYaml.Tests.TypeDeclarations
 
         public int C { get; set; }
     }
+
+    [YamlObject]
+    public partial class WithRenamedMember
+    {
+        public int A { get; set; }
+
+        [YamlMember("b-alias")]
+        public int B { get; set; }
+
+        public int C { get; set; }
+    }
 }
 
 // another namespace, same type name
