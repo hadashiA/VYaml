@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using VYaml.Emitter;
 using VYaml.Internal;
 using VYaml.Parser;
 
@@ -24,6 +25,9 @@ namespace VYaml.Serialization
         [ThreadStatic]
         static YamlDeserializationContext? deserializationContext;
 
+        [ThreadStatic]
+        static YamlSerializationContext? serializationContext;
+
         public static YamlSerializerOptions DefaultOptions
         {
             get => defaultOptions ??= YamlSerializerOptions.Standard;
@@ -31,6 +35,54 @@ namespace VYaml.Serialization
         }
 
         static YamlSerializerOptions? defaultOptions;
+
+        public static ReadOnlyMemory<byte> Serialize<T>(T value, YamlSerializerOptions? options = null)
+        {
+            options ??= DefaultOptions;
+            var contextLocal = serializationContext ??= new YamlSerializationContext(options);
+            var writer = contextLocal.GetArrayBufferWriter();
+            var emitter = new Utf8YamlEmitter(writer);
+            try
+            {
+                contextLocal.Reset();
+                var formatter = contextLocal.Resolver.GetFormatterWithVerify<T>();
+                formatter.Serialize(ref emitter, value, contextLocal);
+                return writer.WrittenMemory;
+            }
+            finally
+            {
+                emitter.Dispose();
+            }
+        }
+
+        public static void Serialize<T>(IBufferWriter<byte> writer, T value, YamlSerializerOptions? options = null)
+        {
+            var emitter = new Utf8YamlEmitter(writer);
+            Serialize(ref emitter, value, options);
+        }
+
+        public static void Serialize<T>(ref Utf8YamlEmitter emitter, T value, YamlSerializerOptions? options = null)
+        {
+            try
+            {
+                options ??= DefaultOptions;
+                var contextLocal = serializationContext ??= new YamlSerializationContext(options);
+                contextLocal.Reset();
+
+                var formatter = contextLocal.Resolver.GetFormatterWithVerify<T>();
+                formatter.Serialize(ref emitter, value, contextLocal);
+            }
+            finally
+            {
+                emitter.Dispose();
+            }
+        }
+
+        public static string SerializeToString<T>(T value, YamlSerializerOptions? options = null)
+        {
+            var utf8Bytes = Serialize(value, options);
+            return StringEncoding.Utf8.GetString(utf8Bytes.Span);
+        }
 
         public static T Deserialize<T>(ReadOnlyMemory<byte> memory, YamlSerializerOptions? options = null)
         {
@@ -63,8 +115,7 @@ namespace VYaml.Serialization
             try
             {
                 options ??= DefaultOptions;
-                var contextLocal = deserializationContext ??= new YamlDeserializationContext();
-                contextLocal.Resolver = options.Resolver;
+                var contextLocal = deserializationContext ??= new YamlDeserializationContext(options);
                 contextLocal.Reset();
 
                 parser.SkipAfter(ParseEventType.DocumentStart);
@@ -109,8 +160,7 @@ namespace VYaml.Serialization
             try
             {
                 options ??= DefaultOptions;
-                var contextLocal = deserializationContext ??= new YamlDeserializationContext();
-                contextLocal.Resolver = options.Resolver;
+                var contextLocal = deserializationContext ??= new YamlDeserializationContext(options);
                 var formatter = options.Resolver.GetFormatterWithVerify<T>();
                 var documents = new List<T>();
 

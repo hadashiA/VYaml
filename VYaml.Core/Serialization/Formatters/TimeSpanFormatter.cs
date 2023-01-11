@@ -1,5 +1,6 @@
 using System;
 using System.Buffers.Text;
+using VYaml.Emitter;
 using VYaml.Parser;
 
 namespace VYaml.Serialization
@@ -7,6 +8,19 @@ namespace VYaml.Serialization
     public class TimeSpanFormatter : IYamlFormatter<TimeSpan>
     {
         public static readonly TimeSpanFormatter Instance = new();
+
+        public void Serialize(ref Utf8YamlEmitter emitter, TimeSpan value, YamlSerializationContext context)
+        {
+            var buf = context.GetBuffer64();
+            if (Utf8Formatter.TryFormat(value, buf, out var bytesWritten))
+            {
+                emitter.WriteScalar(buf[..bytesWritten]);
+            }
+            else
+            {
+                throw new YamlSerializerException($"Cannot serialize a value: {value}");
+            }
+        }
 
         public TimeSpan Deserialize(ref YamlParser parser, YamlDeserializationContext context)
         {

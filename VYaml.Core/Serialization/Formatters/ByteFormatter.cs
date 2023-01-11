@@ -1,3 +1,4 @@
+using VYaml.Emitter;
 using VYaml.Parser;
 
 namespace VYaml.Serialization
@@ -5,6 +6,11 @@ namespace VYaml.Serialization
     public class ByteFormatter : IYamlFormatter<byte>
     {
         public static readonly ByteFormatter Instance = new();
+
+        public void Serialize(ref Utf8YamlEmitter emitter, byte value, YamlSerializationContext context)
+        {
+            emitter.WriteInt32(value);
+        }
 
         public byte Deserialize(ref YamlParser parser, YamlDeserializationContext context)
         {
@@ -17,6 +23,18 @@ namespace VYaml.Serialization
     public class NullableByteFormatter : IYamlFormatter<byte?>
     {
         public static readonly NullableByteFormatter Instance = new();
+
+        public void Serialize(ref Utf8YamlEmitter emitter, byte? value, YamlSerializationContext context)
+        {
+            if (value.HasValue)
+            {
+                emitter.WriteInt32(value.Value);
+            }
+            else
+            {
+                emitter.WriteNull();
+            }
+        }
 
         public byte? Deserialize(ref YamlParser parser, YamlDeserializationContext context)
         {

@@ -50,6 +50,22 @@ namespace VYaml.Tests.Parser
             Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.MappingEnd));
         }
 
+        [Test]
+        public void Tag_BlockMapping()
+        {
+            CreateParser(new []
+            {
+                "!tag1",
+                "a: 100",
+                "b: 200",
+            }, out var parser);
+
+            parser.SkipAfter(ParseEventType.DocumentStart);
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.MappingStart));
+            Assert.That(parser.TryGetCurrentTag(out var tag), Is.True);
+            Assert.That(tag.ToString(), Is.EqualTo("!tag1"));
+        }
+
         static void CreateParser(IEnumerable<string> lines, out YamlParser tokenizer)
         {
             var yaml = string.Join('\n', lines);

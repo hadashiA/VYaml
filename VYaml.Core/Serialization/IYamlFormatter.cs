@@ -1,3 +1,4 @@
+using VYaml.Emitter;
 using VYaml.Parser;
 
 namespace VYaml.Serialization
@@ -6,8 +7,9 @@ namespace VYaml.Serialization
     {
     }
 
-    public interface IYamlFormatter<out T> : IYamlFormatter
+    public interface IYamlFormatter<T> : IYamlFormatter
     {
+        void Serialize(ref Utf8YamlEmitter emitter, T value, YamlSerializationContext context);
         T Deserialize(ref YamlParser parser, YamlDeserializationContext context);
     }
 }

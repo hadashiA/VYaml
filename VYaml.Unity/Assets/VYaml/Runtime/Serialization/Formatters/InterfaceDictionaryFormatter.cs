@@ -1,10 +1,33 @@
 using System.Collections.Generic;
+using VYaml.Emitter;
 using VYaml.Parser;
 
 namespace VYaml.Serialization
 {
     public class InterfaceDictionaryFormatter<TKey, TValue> : IYamlFormatter<IDictionary<TKey, TValue>?>
     {
+        public void Serialize(ref Utf8YamlEmitter emitter, IDictionary<TKey, TValue>? value, YamlSerializationContext context)
+        {
+            if (value is null)
+            {
+                emitter.WriteNull();
+                return;
+            }
+
+            emitter.BeginMapping();
+            if (value.Count > 0)
+            {
+                var keyFormatter = context.Resolver.GetFormatterWithVerify<TKey>();
+                var valueFormatter = context.Resolver.GetFormatterWithVerify<TValue>();
+                foreach (var x in value)
+                {
+                    keyFormatter.Serialize(ref emitter, x.Key, context);
+                    valueFormatter.Serialize(ref emitter, x.Value, context);
+                }
+            }
+            emitter.EndMapping();
+        }
+
         public IDictionary<TKey, TValue>? Deserialize(ref YamlParser parser, YamlDeserializationContext context)
         {
             if (parser.IsNullScalar())

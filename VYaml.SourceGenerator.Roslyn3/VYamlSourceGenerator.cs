@@ -203,6 +203,7 @@ public class VYamlSourceGenerator : ISourceGenerator
             codeWriter.AppendLine("using System;");
             codeWriter.AppendLine("using VYaml.Annotations;");
             codeWriter.AppendLine("using VYaml.Parser;");
+            codeWriter.AppendLine("using VYaml.Emitter;");
             codeWriter.AppendLine("using VYaml.Serialization;");
             codeWriter.AppendLine();
 
@@ -290,14 +291,23 @@ public class VYamlSourceGenerator : ISourceGenerator
         codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
         using var _ = codeWriter.BeginBlockScope($"public class {typeMeta.TypeName}GeneratedFormatter : IYamlFormatter<{returnType}>");
 
-        return typeMeta.IsUnion
-            ? TryEmitDeserializeMethodUnion(typeMeta, codeWriter, in context)
-            : TryEmitDeserializeMethod(typeMeta, codeWriter, in context);
-    }
+        // Union
+        if (typeMeta.IsUnion)
+        {
+            for (var i = 0; i < typeMeta.UnionMetas.Count; i++)
+            {
+                var unionMeta = typeMeta.UnionMetas[i];
+                codeWriter.Append($"static readonly byte[] UnionTag{i}Utf8Bytes = ");
+                codeWriter.AppendByteArrayString(System.Text.Encoding.UTF8.GetBytes(unionMeta.SubTypeTag));
+                codeWriter.AppendLine($"; // {unionMeta.SubTypeTag}", false);
+                codeWriter.AppendLine();
+            }
 
-    static bool TryEmitDeserializeMethod(TypeMeta typeMeta, CodeWriter codeWriter, in GeneratorExecutionContext context)
-    {
-        // verify members
+            return TryEmitSerializeMethodUnion(typeMeta, codeWriter, in context) &&
+                   TryEmitDeserializeMethodUnion(typeMeta, codeWriter, in context);
+        }
+
+        // Default
         var memberMetas = typeMeta.GetSerializeMembers();
         var invalid = false;
         foreach (var memberMeta in memberMetas)
@@ -333,6 +343,78 @@ public class VYamlSourceGenerator : ISourceGenerator
             codeWriter.AppendLine($"; // {memberMeta.KeyName}", false);
             codeWriter.AppendLine();
         }
+
+        return TryEmitSerializeMethod(typeMeta, codeWriter, in context) &&
+               TryEmitDeserializeMethod(typeMeta, codeWriter, in context);
+    }
+
+    static bool TryEmitSerializeMethod(TypeMeta typeMeta, CodeWriter codeWriter, in GeneratorExecutionContext context)
+    {
+        var memberMetas = typeMeta.GetSerializeMembers();
+        var returnType = typeMeta.Symbol.IsValueType
+            ? typeMeta.FullTypeName
+            : $"{typeMeta.FullTypeName}?";
+
+        codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
+        using var methodScope = codeWriter.BeginBlockScope(
+            $"public void Serialize(ref Utf8YamlEmitter emitter, {returnType} value, YamlSerializationContext context)");
+
+        if (!typeMeta.Symbol.IsValueType)
+        {
+            using (codeWriter.BeginBlockScope("if (value is null)"))
+            {
+                codeWriter.AppendLine("emitter.WriteNull();");
+                codeWriter.AppendLine("return;");
+            }
+        }
+
+        codeWriter.AppendLine("emitter.BeginMapping();");
+        foreach (var memberMeta in memberMetas)
+        {
+            codeWriter.AppendLine($"emitter.WriteString(\"{memberMeta.KeyName}\", ScalarStyle.Plain);");
+            codeWriter.AppendLine($"context.Serialize(ref emitter, value.{memberMeta.Name});");
+        }
+        codeWriter.AppendLine("emitter.EndMapping();");
+
+        return true;
+    }
+
+    static bool TryEmitSerializeMethodUnion(TypeMeta typeMeta, CodeWriter codeWriter, in GeneratorExecutionContext context)
+    {
+        var returnType = typeMeta.Symbol.IsValueType
+            ? typeMeta.FullTypeName
+            : $"{typeMeta.FullTypeName}?";
+
+        codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
+        using var methodScope = codeWriter.BeginBlockScope(
+            $"public void Serialize(ref Utf8YamlEmitter emitter, {returnType} value, YamlSerializationContext context)");
+
+        if (!typeMeta.Symbol.IsValueType)
+        {
+            using (codeWriter.BeginBlockScope("if (value is null)"))
+            {
+                codeWriter.AppendLine("emitter.WriteNull();");
+                codeWriter.AppendLine("return;");
+            }
+        }
+
+        using (codeWriter.BeginBlockScope("switch (value)"))
+        {
+            for (var i = 0; i < typeMeta.UnionMetas.Count; i++)
+            {
+                var unionMeta = typeMeta.UnionMetas[i];
+                codeWriter.AppendLine($"case {unionMeta.FullTypeName} x:");
+                codeWriter.AppendLine($"    emitter.Tag(UnionTag{i}Utf8Bytes);");
+                codeWriter.AppendLine($"    context.Serialize(ref emitter, x);");
+                codeWriter.AppendLine( "    break;");
+            }
+        }
+        return true;
+    }
+
+    static bool TryEmitDeserializeMethod(TypeMeta typeMeta, CodeWriter codeWriter, in GeneratorExecutionContext context)
+    {
+        var memberMetas = typeMeta.GetSerializeMembers();
 
         var returnType = typeMeta.Symbol.IsValueType
             ? typeMeta.FullTypeName
@@ -448,8 +530,7 @@ public class VYamlSourceGenerator : ISourceGenerator
         {
             using (codeWriter.BeginBlockScope($"{branch} (tag.Equals(\"{unionMeta.SubTypeTag}\")) "))
             {
-                var subTypeFullName = unionMeta.SubTypeSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-                codeWriter.AppendLine($"return context.DeserializeWithAlias<{subTypeFullName}>(ref parser);");
+                codeWriter.AppendLine($"return context.DeserializeWithAlias<{unionMeta.FullTypeName}>(ref parser);");
             }
             branch = "else if";
         }

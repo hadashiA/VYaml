@@ -23,12 +23,12 @@ Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular y
   - Write primitive types.
   - Write plain scalar, double-quoted scalar, literal scalar.
   - Write block style sequence, flow style sequence, and block mapping.
-- Deserialization
-  - YAML to user-defined types
-  - YAML to primitive collection via `dynamic` 
+- Deserialize / Serialize
+  - Convert between YAML and C# user-defined types.
+  - Convert between YAML and primitive collection via `dynamic` .
   - Support interface-typed and abstract class-typed objects.
   - Support anchor (`&`) and alias (`*`) in the YAML spec.
-  - Support multiple yaml documents.
+  - Support multiple yaml documents to C# collection.
   - Customization
     - Rename key
     - Ignore member
@@ -38,11 +38,9 @@ Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular y
 ## Most recent roadmap
 
 - [ ] Support incremental source generator (Only Roslyn 4)
-- Deserialize
-    - [ ] User-defined custom formatter
-    - [ ] Restrict max depth
-    - [ ] Specific constructor
-- [ ] Serialize
+- [ ] User-defined custom formatter
+- [ ] Restrict max depth
+- [ ] Specific constructor
 
 ## Installation
 
@@ -71,7 +69,7 @@ https://github.com/hadashiA/VYaml.git?path=VYaml.Unity/Assets/VYaml#0.4.0
 
 ## Usage
 
-### Deserialize
+### Serialize / Deserialize
 
 Define a struct or class to be serialized and annotate it with the `[YamlObject]` attribute and the partial keyword.
 
@@ -97,14 +95,38 @@ public partial class Sample
 Why partial is necessary ?
 - VYaml uses [SourceGenerator](https://learn.microsoft.com/en-us/dotnet/csharp/roslyn-sdk/source-generators-overview) for metaprogramming, which supports automatic generation of partial declarations, sets to private fields.
 
-The following yaml is deserializable to the above class `Sample`.
+``` csharp
+var utf8Yaml = YamlSerializer.Serialize(new Sample
+{
+    A = "hello",
+    B = "foo",
+    C = "bar",
+    D = "hoge",
+});
+```
+
+
+Result:
 
 ```yaml
 a: hello
-b: aaa
-c: hoge
-d: ddd
+b: foo
+c: bar
+d: hoge
 ```
+
+By default, The `Serialize<T>` method returns an utf8 byte array. 
+This is because it is common for writes to files or any data stores to be stored as strings in utf8 format.
+
+
+If you wish to receive the results in a C# string, do the following
+Note that this has the overhead of conversion to utf16.
+
+``` csharp
+var yamlString = YamlSerializer.SerializeToString(...);
+```
+
+You can also convert yaml to C#.
 
 ```csharp
 using var stream = File.OpenRead("/path/to/yaml");
@@ -117,9 +139,9 @@ var sample = await YamlSerializer.DeserializeAsync<Sample>(stream);
 
 ```csharp
 sample.A // #=> "hello"
-sample.B // #=> "aaa"
-sample.C // #=> "hoge"
-sample.D // #=> "ddd"
+sample.B // #=> "foo"
+sample.C // #=> "bar"
+sample.D // #=> "hoge"
 ```
 
 #### Built-in supported types
@@ -131,6 +153,7 @@ These types can be serialized by default:
 - `string`, `decimal`, `Half`
 - `TimeSpan`, `DateTime`, `DateTimeOffset`
 - `Guid`, `Uri`
+- `byte[]` as base64 string
 - `T[]`
 - `Nullable<>`, `KeyValuePair<,>`, `Tuple<,...>`, `ValueTuple<,...>`
 - `List<>`
@@ -231,7 +254,7 @@ enum Foo
 ```
 
 ``` csharp
-YamlSerializer.Deserialize<Foo>(Encoding.UTF8.GetBytes("item1")); // #=> Foo.Item1
+YamlSerializer.Serialize(Foo.Item1); // #=> "item1"
 ```
 
 It respect `[EnumMember]`, and `[DataMember]`.
@@ -252,7 +275,7 @@ enum Foo
 ```
 
 ``` csharp
-YamlSerializer.Deserialize<Foo>(Utf8.GetBytes("item1-alias")); // #=> Foo.Item1
+YamlSerializer.Serialize(Foo.Item1); // #=> "item1-alias"
 ```
 
 #### Polymorphism (Union)
@@ -288,6 +311,18 @@ var obj = YamlSerializer.Deserialize<IUnionSample>(UTF8.GetBytes("!foo { a: 100 
 
 In the abobe example, The `!foo` and `!bar`  are called tag in the YAML specification.
 YAML can mark arbitrary data in this way, and VYaml Union takes advantage of this.
+
+You can also serialize:
+
+``` csharp
+YamlSerializer.Serialize<IUnionSample>(new FooClass { A = 100 });
+```
+
+Result:
+``` yaml
+!foo
+a: 100
+```
 
 ## Customize serialization behaviour
 
