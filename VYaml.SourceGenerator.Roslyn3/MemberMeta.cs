@@ -17,6 +17,7 @@ class MemberMeta
     public bool IsConstructorParameter { get; }
     public int Order { get; }
     public bool HasExplicitOrder { get; }
+    public bool HasKeyNameAlias { get; }
 
     public string KeyName => keyName ??= KeyNameHelper.ToCamelCase(Name);
     public byte[] KeyNameUtf8Bytes => keyNameUtf8Bytes ??= System.Text.Encoding.UTF8.GetBytes(KeyName);
@@ -35,6 +36,7 @@ class MemberMeta
         {
             if (memberAttribute.ConstructorArguments.Length > 0)
             {
+                HasKeyNameAlias = true;
                 keyName = (string?)memberAttribute.ConstructorArguments[0].Value;
             }
         }

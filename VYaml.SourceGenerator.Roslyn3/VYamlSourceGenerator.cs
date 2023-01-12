@@ -371,7 +371,14 @@ public class VYamlSourceGenerator : ISourceGenerator
         codeWriter.AppendLine("emitter.BeginMapping();");
         foreach (var memberMeta in memberMetas)
         {
-            codeWriter.AppendLine($"emitter.WriteString(\"{memberMeta.KeyName}\", ScalarStyle.Plain);");
+            if (memberMeta.HasKeyNameAlias)
+            {
+                codeWriter.AppendLine($"emitter.WriteString(\"{memberMeta.KeyName}\");");
+            }
+            else
+            {
+                codeWriter.AppendLine($"emitter.WriteString(\"{memberMeta.KeyName}\", ScalarStyle.Plain);");
+            }
             codeWriter.AppendLine($"context.Serialize(ref emitter, value.{memberMeta.Name});");
         }
         codeWriter.AppendLine("emitter.EndMapping();");
