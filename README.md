@@ -89,7 +89,6 @@ public partial class Sample
     [YamlIgnore]
     public int PublicProperty2 => PublicProperty + PublicField;
 }
-
 ```
 
 Why partial is necessary ?
@@ -235,9 +234,15 @@ You can customize this behaviour with `[YamlMember("name")]`
 [YamlObject]
 public partial class Sample
 {
-    [YamlMember("foo-bar")]
+    [YamlMember("foo-bar-alias")]
     public int FooBar { get; init; }
 }
+```
+
+This serialize as:
+
+```yaml
+foo-bar-alias: 100
 ```
 
 #### Enum
@@ -307,6 +312,8 @@ public partial class BarClass : IUnionSample
 ``` csharp
 // We can deserialize as interface type.
 var obj = YamlSerializer.Deserialize<IUnionSample>(UTF8.GetBytes("!foo { a: 100 }"));
+
+obj.GetType(); // #=> FooClass
 ```
 
 In the abobe example, The `!foo` and `!bar`  are called tag in the YAML specification.
