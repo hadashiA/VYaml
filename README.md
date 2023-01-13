@@ -333,10 +333,34 @@ a: 100
 
 ## Customize serialization behaviour
 
-- `IYamlFormatter<T>` interface customize the serialization behaviour of a your particular type.
-- `IYamlFormatterResolver` interface can customize how it searches for `IYamlFormatter<T>` at runtime.
+- `IYamlFormatter<T>` is an interface customize the serialization behaviour of a your particular type.
+- `IYamlFormatterResolver` is an interface can customize how it searches for `IYamlFormatter<T>` at runtime.
 
-TODO:
+To perform Serialize/Deserialize, it need an `IYamlFormatter<T>` corresponding to a certain C# type.  
+By default, the following `StandardResolver` works and identifies IYamlFormatter<T>.
+
+
+You can customize this behavior as follows:
+
+``` csharp
+var options = new YamlSerializerOptions
+{
+    Resolver = CompositeResolver.Create(
+        new IYamlFormatter[]
+        {
+            new YourCustomFormatter1(), // You can add additional formatter
+        },
+        new IYamlFormatterResolver[]
+        {
+            new YourCustomResolver(),  // You can add additional resolver
+            StandardResolver.Instance, // Fallback to default behavior at the end.
+        })
+};
+        
+YamlSerializer.Deserialize<T>(yaml, options);
+YamlSerializer.Deserialize<T>(yaml, options);
+```
+
 
 ## Low-Level API
 

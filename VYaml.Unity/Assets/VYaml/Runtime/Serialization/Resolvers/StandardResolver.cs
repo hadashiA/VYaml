@@ -36,41 +36,9 @@ namespace VYaml.Serialization
             }
         }
 
-        CompositeResolver? extra;
-
         public IYamlFormatter<T>? GetFormatter<T>()
         {
             return FormatterCache<T>.Formatter;
-        }
-
-        public void AddFormatter(params IYamlFormatter[] formatters)
-        {
-            if (extra is null)
-            {
-                extra = CompositeResolver.Create(formatters);
-            }
-            else
-            {
-                foreach (var f in formatters)
-                {
-                    extra.AddFormatter(f);
-                }
-            }
-        }
-
-        public void AddResolver(params IYamlFormatterResolver[] resolvers)
-        {
-            if (extra is null)
-            {
-                extra = CompositeResolver.Create(resolvers);
-            }
-            else
-            {
-                foreach (var r in resolvers)
-                {
-                    extra.AddResolver(r);
-                }
-            }
         }
     }
 }
