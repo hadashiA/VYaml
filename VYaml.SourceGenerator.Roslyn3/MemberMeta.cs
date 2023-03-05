@@ -39,6 +39,13 @@ class MemberMeta
                 HasKeyNameAlias = true;
                 keyName = (string?)memberAttribute.ConstructorArguments[0].Value;
             }
+
+            var orderProp = memberAttribute.NamedArguments.FirstOrDefault(x => x.Key == "Order");
+            if (orderProp.Key != "Order" && orderProp.Value.Value is { } explicitOrder)
+            {
+                HasExplicitOrder = true;
+                Order = (int)explicitOrder;
+            }
         }
 
         if (symbol is IFieldSymbol f)

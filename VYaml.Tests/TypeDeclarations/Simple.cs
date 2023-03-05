@@ -194,6 +194,20 @@ namespace VYaml.Tests.TypeDeclarations
 
         public int C { get; set; }
     }
+
+    // [YamlObject]
+    // public partial class WithCustomConstructor
+    // {
+    //     public int Foo { get; }
+    //     public string Bar { get; }
+    //
+    //     [YamlConstructor]
+    //     public WithCustomConstructor(int foo, string bar)
+    //     {
+    //         Foo = foo;
+    //         Bar = bar;
+    //     }
+    // }
 }
 
 // another namespace, same type name
