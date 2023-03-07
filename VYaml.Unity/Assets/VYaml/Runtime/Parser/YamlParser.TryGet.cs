@@ -166,6 +166,18 @@ namespace VYaml.Parser
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly bool TryGetScalarAsString(out string? value)
+        {
+            if (currentScalar is { } scalar)
+            {
+                value = scalar.IsNull() ? null : scalar.ToString();
+                return true;
+            }
+            value = default;
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly bool TryGetScalarAsBool(out bool value)
         {
             if (currentScalar is { } scalar)
