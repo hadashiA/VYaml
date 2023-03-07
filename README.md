@@ -373,7 +373,8 @@ YamlSerializer.Deserialize<T>(yaml, options);
 - `YamlParser.ParseEventType` indicates the state of the currently read yaml parsing result.
 - How to access scalar value:
     - `YamlParser.GetScalarAs*` families take the result of converting a scalar at the current position to a specified type.
-    - Or we can use `YamlParser.TryGetScalarAs*` style.
+    - `YamlParser.TryGetScalarAs*` families return true and take a result if the current position is a scalar and of the specified type.
+    - `YamlParser.ReadScalarAs*` families is similar to GetScalarAs*, but advances the present position to after the scalar read.
 - How to access meta information:
     - `YamlParser.TryGetTag(out Tag tag)` 
     - `YamlParser.TryGetCurrentAnchor(out Anchor anchor)`
@@ -448,8 +449,8 @@ while (parser.Read())
         {
              // After Mapping start, key and value appear alternately.
              
-             var key = parser.GetScalarAsString();  // if key is scalar
-             var value = parser.GetScalarAsString(); // if value is scalar
+             var key = parser.ReadScalarAsString();  // if key is scalar
+             var value = parser.ReadScalarAsString(); // if value is scalar
              
              // Or we can skip current key/value. (It could be a scalar, or alias, sequence, mapping...)
              // parser.SkipCurrentNode(); // skip key
