@@ -102,6 +102,70 @@ namespace VYaml.Parser
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public string? ReadScalarAsString()
+        {
+            var result = currentScalar?.ToString();
+            ReadWithVerify(ParseEventType.Scalar);
+            return result;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool ReadScalarAsBool()
+        {
+            var result = GetScalarAsBool();
+            ReadWithVerify(ParseEventType.Scalar);
+            return result;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int ReadScalarAsInt32()
+        {
+            var result = GetScalarAsInt32();
+            ReadWithVerify(ParseEventType.Scalar);
+            return result;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public long ReadScalarAsInt64()
+        {
+            var result = GetScalarAsInt64();
+            ReadWithVerify(ParseEventType.Scalar);
+            return result;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public uint ReadScalarAsUInt32()
+        {
+            var result = GetScalarAsUInt32();
+            ReadWithVerify(ParseEventType.Scalar);
+            return result;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ulong ReadScalarAsUInt64()
+        {
+            var result = GetScalarAsUInt64();
+            ReadWithVerify(ParseEventType.Scalar);
+            return result;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public float ReadScalarAsFloat()
+        {
+            var result = GetScalarAsFloat();
+            ReadWithVerify(ParseEventType.Scalar);
+            return result;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public double ReadScalarAsDouble()
+        {
+            var result = GetScalarAsDouble();
+            ReadWithVerify(ParseEventType.Scalar);
+            return result;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly bool TryGetScalarAsBool(out bool value)
         {
             if (currentScalar is { } scalar)
