@@ -21,6 +21,7 @@ namespace VYaml.Annotations
     public sealed class YamlMemberAttribute : Attribute
     {
         public string? Name { get; }
+        public int Order { get; set; }
 
         public YamlMemberAttribute(string? name = null)
         {
