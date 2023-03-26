@@ -438,6 +438,13 @@ namespace VYaml.Parser
                         var anchorName = tokenizer.TakeCurrentTokenContent<Scalar>().ToString();
                         var anchorId = RegisterAnchor(anchorName);
                         currentAnchor = new Anchor(anchorName, anchorId);
+
+                        // Unity compatible mode
+                        if (CurrentEventType == ParseEventType.DocumentStart &&
+                            currentTag?.Handle == "!u!")
+                        {
+                            tokenizer.SkipUnityStrippedSymbol();
+                        }
                         tokenizer.Read();
                     }
                     break;

@@ -60,6 +60,11 @@ namespace VYaml.Internal
         public static readonly byte[] HexPrefix = { (byte)'0', (byte)'x' };
         public static readonly byte[] HexPrefixNegative = { (byte)'-', (byte)'0', (byte)'x' };
 
+        public static readonly byte[] UnityStrippedSymbol =
+        {
+            (byte)'s', (byte)'t', (byte)'r', (byte)'i', (byte)'p', (byte)'p', (byte)'e', (byte)'d'
+        };
+
         public const byte Space = (byte)' ';
         public const byte Tab = (byte)'\t';
         public const byte Lf = (byte)'\n';
