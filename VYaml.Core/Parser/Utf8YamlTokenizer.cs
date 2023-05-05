@@ -35,7 +35,7 @@ namespace VYaml.Parser
             get => mark;
         }
 
-        internal SequenceReader<byte> reader;
+        SequenceReader<byte> reader;
         Marker mark;
         Token currentToken;
 
@@ -128,7 +128,7 @@ namespace VYaml.Parser
             return (T)result.Content!;
         }
 
-        internal void SkipUnityStrippedSymbol()
+        internal bool TrySkipUnityStrippedSymbol()
         {
             while (currentCode == YamlCodes.Space)
             {
@@ -137,7 +137,9 @@ namespace VYaml.Parser
             if (reader.IsNext(YamlCodes.UnityStrippedSymbol))
             {
                 Advance(YamlCodes.UnityStrippedSymbol.Length);
+                return true;
             }
+            return false;
         }
 
         void ConsumeMoreTokens()

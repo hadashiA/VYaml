@@ -74,7 +74,7 @@ namespace VYaml.Serialization
             {
                 return value;
             }
-            throw new YamlSerializerException($"Cannot detect a scalar value of {typeof(T)}");
+            throw new YamlSerializerException($"Cannot detect a scalar value of {typeof(T)}: {scalar}");
         }
     }
 }

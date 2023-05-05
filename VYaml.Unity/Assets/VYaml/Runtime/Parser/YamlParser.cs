@@ -234,7 +234,7 @@ namespace VYaml.Parser
         public void ReadWithVerify(ParseEventType eventType)
         {
             if (CurrentEventType != eventType)
-                throw new YamlParserException(CurrentMark, $"Did not find expected event : `{eventType}`");
+                throw new YamlParserException(CurrentMark, $"Did not find expected event : `{eventType}` actual: {CurrentEventType}");
             Read();
         }
 
