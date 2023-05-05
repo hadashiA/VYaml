@@ -78,6 +78,7 @@ namespace VYaml.Parser
         }
 
         public ParseEventType CurrentEventType { get; private set; }
+        public bool UnityStrippedMark { get; private set; }
 
         public readonly Marker CurrentMark
         {
@@ -115,6 +116,8 @@ namespace VYaml.Parser
             currentScalar = null;
             currentTag = null;
             currentAnchor = null;
+
+            UnityStrippedMark = false;
         }
 
         public void Dispose()
@@ -234,7 +237,7 @@ namespace VYaml.Parser
         public void ReadWithVerify(ParseEventType eventType)
         {
             if (CurrentEventType != eventType)
-                throw new YamlParserException(CurrentMark, $"Did not find expected event : `{eventType}` actual: {CurrentEventType}");
+                throw new YamlParserException(CurrentMark, $"Did not find expected event : `{eventType}`");
             Read();
         }
 
@@ -399,6 +402,7 @@ namespace VYaml.Parser
         {
             currentAnchor = null;
             currentTag = null;
+            UnityStrippedMark = false;
 
             switch (CurrentTokenType)
             {
@@ -443,7 +447,7 @@ namespace VYaml.Parser
                         if (CurrentEventType == ParseEventType.DocumentStart &&
                             currentTag?.Handle == "!u!")
                         {
-                            tokenizer.SkipUnityStrippedSymbol();
+                            UnityStrippedMark = tokenizer.TrySkipUnityStrippedSymbol();
                         }
                         tokenizer.Read();
                     }

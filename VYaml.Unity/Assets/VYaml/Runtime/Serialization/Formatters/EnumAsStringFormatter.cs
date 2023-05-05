@@ -64,7 +64,7 @@ namespace VYaml.Serialization
 
         public T Deserialize(ref YamlParser parser, YamlDeserializationContext context)
         {
-            var scalar = parser.ReadScalarAsString();
+            var scalar = parser.GetScalarAsString();
             if (scalar is null)
             {
                 throw new YamlSerializerException($"Cannot detect a scalar value of {typeof(T)}");
@@ -74,7 +74,7 @@ namespace VYaml.Serialization
             {
                 return value;
             }
-            throw new YamlSerializerException($"Cannot detect a scalar value of {typeof(T)}: {scalar}");
+            throw new YamlSerializerException($"Cannot detect a scalar value of {typeof(T)}");
         }
     }
 }
