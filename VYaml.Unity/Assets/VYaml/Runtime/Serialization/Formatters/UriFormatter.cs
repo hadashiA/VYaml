@@ -15,9 +15,9 @@ namespace VYaml.Serialization
 
         public Uri Deserialize(ref YamlParser parser, YamlDeserializationContext context)
         {
-            if (parser.TryGetScalarAsSpan(out var span))
+            if (parser.TryGetScalarAsString(out var scalar) && scalar != null)
             {
-                var uri = new Uri(span.ToString(), UriKind.RelativeOrAbsolute);
+                var uri = new Uri(scalar, UriKind.RelativeOrAbsolute);
                 parser.Read();
                 return uri;
             }
