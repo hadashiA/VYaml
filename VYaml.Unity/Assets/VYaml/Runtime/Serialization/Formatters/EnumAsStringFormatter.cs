@@ -64,7 +64,7 @@ namespace VYaml.Serialization
 
         public T Deserialize(ref YamlParser parser, YamlDeserializationContext context)
         {
-            var scalar = parser.GetScalarAsString();
+            var scalar = parser.ReadScalarAsString();
             if (scalar is null)
             {
                 throw new YamlSerializerException($"Cannot detect a scalar value of {typeof(T)}");
