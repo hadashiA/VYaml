@@ -182,7 +182,11 @@ namespace VYaml.Emitter
                         writer.Advance(FlowSequenceEmpty.Length);
                     }
                     PopState();
-                    DecreaseIndent();
+
+                    if (NextState == EmitState.BlockSequenceEntry)
+                    {
+                        DecreaseIndent();
+                    }
                     if (NextState != EmitState.None)
                     {
                         currentTokenCount++;
