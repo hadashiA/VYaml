@@ -419,6 +419,46 @@ namespace VYaml.Tests.Emitter
         }
 
         [Test]
+        public void BlockSequence_InBlockMappingMultiple()
+        {
+            using var emitter = CreateEmitter();
+            emitter.BeginMapping();
+            {
+                emitter.WriteString("aaa");
+                emitter.BeginMapping();
+                {
+                    emitter.WriteString("bbb");
+                    emitter.BeginSequence();
+                    {
+                        emitter.WriteInt32(200);
+                        emitter.WriteInt32(300);
+                    }
+                    emitter.EndSequence();
+
+                    emitter.WriteString("ccc");
+                    emitter.BeginSequence();
+                    {
+                        emitter.WriteInt32(400);
+                        emitter.WriteInt32(500);
+                    }
+                    emitter.EndSequence();
+                }
+                emitter.EndMapping();
+            }
+            emitter.EndMapping();
+
+            Assert.That(ToString(in emitter), Is.EqualTo(
+                "aaa: \n" +
+                "  bbb: \n" +
+                "  - 200\n" +
+                "  - 300\n" +
+                "  ccc: \n" +
+                "  - 400\n" +
+                "  - 500\n"
+            ));
+        }
+
+        [Test]
         public void BlockSequence_InvalidStartInKey()
         {
             Assert.Throws<YamlEmitterException>(() =>
