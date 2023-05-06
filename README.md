@@ -1,5 +1,7 @@
 # VYaml
 
+[![NuGet](https://img.shields.io/nuget/v/VYaml.svg)](https://www.nuget.org/packages/VYaml)
+[![openupm](https://img.shields.io/npm/v/jp.hadashikick.vyaml?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/jp.hadashikick.vyaml/)
 
 VYaml is a pure C# YAML 1.2 implementation, which is extra fast, low memory footprint with focued on .NET and Unity.
 
