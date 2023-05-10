@@ -294,15 +294,6 @@ public class VYamlSourceGenerator : ISourceGenerator
         // Union
         if (typeMeta.IsUnion)
         {
-            for (var i = 0; i < typeMeta.UnionMetas.Count; i++)
-            {
-                var unionMeta = typeMeta.UnionMetas[i];
-                codeWriter.Append($"static readonly byte[] UnionTag{i}Utf8Bytes = ");
-                codeWriter.AppendByteArrayString(System.Text.Encoding.UTF8.GetBytes(unionMeta.SubTypeTag));
-                codeWriter.AppendLine($"; // {unionMeta.SubTypeTag}", false);
-                codeWriter.AppendLine();
-            }
-
             return TryEmitSerializeMethodUnion(typeMeta, codeWriter, in context) &&
                    TryEmitDeserializeMethodUnion(typeMeta, codeWriter, in context);
         }
@@ -407,11 +398,10 @@ public class VYamlSourceGenerator : ISourceGenerator
 
         using (codeWriter.BeginBlockScope("switch (value)"))
         {
-            for (var i = 0; i < typeMeta.UnionMetas.Count; i++)
+            foreach (var unionMeta in typeMeta.UnionMetas)
             {
-                var unionMeta = typeMeta.UnionMetas[i];
                 codeWriter.AppendLine($"case {unionMeta.FullTypeName} x:");
-                codeWriter.AppendLine($"    emitter.Tag(UnionTag{i}Utf8Bytes);");
+                codeWriter.AppendLine($"    emitter.Tag(\"{unionMeta.SubTypeTag}\");");
                 codeWriter.AppendLine($"    context.Serialize(ref emitter, x);");
                 codeWriter.AppendLine( "    break;");
             }
