@@ -244,7 +244,8 @@ namespace VYaml.Tests.Emitter
             }
             emitter.EndSequence();
 
-            Assert.That(ToString(in emitter), Is.EqualTo(
+            var result = ToString(in emitter);
+            Assert.That(result, Is.EqualTo(
                 "- aaa: |\n" +
                 "    Mark McGwire's\n" +
                 "    year was crippled\n" +
@@ -338,7 +339,7 @@ namespace VYaml.Tests.Emitter
 
             Assert.That(ToString(in emitter), Is.EqualTo(
                 "- 100\n" +
-                "-\n" +
+                "- \n" +
                 "  - 200\n" +
                 "  - 300\n" +
                 "- 400\n"
@@ -346,7 +347,7 @@ namespace VYaml.Tests.Emitter
         }
 
         [Test]
-        public void BlockSequence_Nested2()
+        public void BlockSequence_NestedDeeply()
         {
             using var emitter = CreateEmitter();
             emitter.BeginSequence();
@@ -364,8 +365,18 @@ namespace VYaml.Tests.Emitter
                     emitter.WriteInt32(500);
                     emitter.BeginSequence();
                     {
-                        emitter.WriteInt32(600);
-                        emitter.WriteInt32(700);
+                        emitter.BeginSequence();
+                        {
+                            emitter.WriteInt32(600);
+                            emitter.WriteInt32(700);
+
+                            emitter.BeginSequence();
+                            emitter.EndSequence();
+
+                            emitter.BeginSequence(SequenceStyle.Flow);
+                            emitter.EndSequence();
+                        }
+                        emitter.EndSequence();
                     }
                     emitter.EndSequence();
                 }
@@ -376,16 +387,95 @@ namespace VYaml.Tests.Emitter
 
             Assert.That(ToString(in emitter), Is.EqualTo(
                 "- 100\n" +
-                "-\n" +
+                "- \n" +
                 "  - 200\n" +
                 "  - 300\n" +
                 "- 400\n" +
-                "-\n" +
+                "- \n" +
                 "  - 500\n" +
-                "  -\n" +
-                "    - 600\n" +
-                "    - 700\n" +
+                "  - \n" +
+                "    - \n" +
+                "      - 600\n" +
+                "      - 700\n" +
+                "      - []\n" +
+                "      - []\n" +
                 "- 800\n"
+            ));
+        }
+
+        [Test]
+        public void BlockSequence_NestedFirstElement()
+        {
+            using var emitter = CreateEmitter();
+            emitter.BeginSequence();
+            {
+                emitter.BeginSequence();
+                {
+                    emitter.BeginSequence();
+                    {
+                        emitter.BeginSequence();
+                        {
+                            emitter.BeginSequence();
+                            {
+                                emitter.WriteString("aaa");
+                            }
+                            emitter.EndSequence();
+                        }
+                        emitter.EndSequence();
+                    }
+                    emitter.EndSequence();
+                }
+                emitter.EndSequence();
+
+                emitter.BeginSequence();
+                {
+                    emitter.BeginSequence();
+                    {
+                        emitter.BeginSequence();
+                        {
+                            emitter.BeginSequence();
+                            emitter.EndSequence();
+                        }
+                        emitter.EndSequence();
+                    }
+                    emitter.EndSequence();
+                }
+                emitter.EndSequence();
+
+                emitter.BeginSequence();
+                {
+                    emitter.BeginSequence();
+                    {
+                        emitter.BeginSequence();
+                        {
+                            emitter.BeginMapping();
+                            emitter.EndMapping();
+                        }
+                        emitter.EndSequence();
+                    }
+                    emitter.EndSequence();
+                }
+                emitter.EndSequence();
+
+                emitter.WriteString("item1");
+            }
+            emitter.EndSequence();
+
+            Assert.That(ToString(in emitter), Is.EqualTo(
+                "- \n" +
+                "  - \n" +
+                "    - \n" +
+                "      - \n" +
+                "        - aaa\n" +
+                "- \n" +
+                "  - \n" +
+                "    - \n" +
+                "      - []\n" +
+                "- \n" +
+                "  - \n" +
+                "    - \n" +
+                "      - {}\n" +
+                "- item1\n"
             ));
         }
 
@@ -459,6 +549,26 @@ namespace VYaml.Tests.Emitter
         }
 
         [Test]
+        public void BlockSequence_NestedEmptySequences()
+        {
+            using var emitter = CreateEmitter();
+            emitter.BeginSequence();
+            {
+                emitter.BeginSequence();
+                emitter.EndSequence();
+
+                emitter.BeginSequence();
+                emitter.EndSequence();
+            }
+            emitter.EndSequence();
+
+            Assert.That(ToString(in emitter), Is.EqualTo(
+                "- []\n" +
+                "- []\n"
+            ));
+        }
+
+        [Test]
         public void BlockSequence_InvalidStartInKey()
         {
             Assert.Throws<YamlEmitterException>(() =>
@@ -474,10 +584,12 @@ namespace VYaml.Tests.Emitter
         {
             using var emitter = CreateEmitter();
             emitter.BeginMapping();
-            emitter.WriteInt32(1);
-            emitter.WriteInt32(100);
-            emitter.WriteInt32(2);
-            emitter.WriteInt32(200);
+            {
+                emitter.WriteInt32(1);
+                emitter.WriteInt32(100);
+                emitter.WriteInt32(2);
+                emitter.WriteInt32(200);
+            }
             emitter.EndMapping();
 
             Assert.That(ToString(in emitter), Is.EqualTo(
@@ -528,64 +640,235 @@ namespace VYaml.Tests.Emitter
         }
 
         [Test]
-        public void BlockMapping_Nested2()
+        public void BlockMapping_NestedDeeply()
         {
             using var emitter = CreateEmitter();
             emitter.BeginMapping();
             {
-                emitter.WriteInt32(1);
-                emitter.WriteInt32(100);
-                emitter.WriteInt32(2);
+                emitter.WriteString("key1");
                 emitter.BeginMapping();
                 {
-                    emitter.WriteInt32(3);
-                    emitter.WriteInt32(300);
-                    emitter.WriteInt32(4);
+                    emitter.WriteString("key2");
                     emitter.BeginMapping();
                     {
-                        emitter.WriteInt32(5);
-                        emitter.WriteInt32(500);
+                        emitter.WriteString("key3");
+                        emitter.BeginMapping();
+                        {
+                            emitter.WriteString("key4");
+                            emitter.BeginSequence();
+                            {
+                                emitter.WriteInt32(111);
+                                emitter.WriteInt32(222);
+                            }
+                            emitter.EndSequence();
+                        }
+                        emitter.EndMapping();
                     }
                     emitter.EndMapping();
                 }
                 emitter.EndMapping();
-                emitter.WriteInt32(6);
-                emitter.WriteInt32(600);
+
+                emitter.WriteString("key5");
+                emitter.BeginMapping();
+                {
+                    emitter.WriteString("key6");
+                    emitter.BeginMapping();
+                    {
+                        emitter.WriteString("key7");
+                        emitter.BeginMapping();
+                        {
+                            emitter.WriteString("key8");
+                            emitter.BeginSequence();
+                            emitter.EndSequence();
+                        }
+                        emitter.EndMapping();
+                    }
+                    emitter.EndMapping();
+                }
+                emitter.EndMapping();
+
+                emitter.WriteString("key9");
+                emitter.BeginMapping();
+                {
+                    emitter.WriteString("key10");
+                    emitter.BeginMapping();
+                    {
+                        emitter.WriteString("key11");
+                        emitter.BeginMapping();
+                        {
+                            emitter.WriteString("key12");
+                            emitter.BeginMapping();
+                            emitter.EndMapping();
+                        }
+                        emitter.EndMapping();
+                    }
+                    emitter.EndMapping();
+                }
             }
             emitter.EndMapping();
 
             Assert.That(ToString(in emitter), Is.EqualTo(
-                "1: 100\n" +
-                "2: \n" +
-                "  3: 300\n" +
-                "  4: \n" +
-                "    5: 500\n" +
-                "6: 600\n"
+                "key1: \n" +
+                "  key2: \n" +
+                "    key3: \n" +
+                "      key4: \n" +
+                "      - 111\n" +
+                "      - 222\n" +
+                "key5: \n" +
+                "  key6: \n" +
+                "    key7: \n" +
+                "      key8: []\n" +
+                "key9: \n" +
+                "  key10: \n" +
+                "    key11: \n" +
+                "      key12: {}\n"
             ));
         }
 
         [Test]
-        public void BlockMapping_InBlockSequence()
+        public void BlockMapping_NestedEmptyMappings()
         {
             using var emitter = CreateEmitter();
-            emitter.BeginSequence();
+            emitter.BeginMapping();
             {
+                emitter.WriteString("a");
                 emitter.BeginMapping();
-                {
-                    emitter.WriteInt32(1);
-                    emitter.WriteInt32(100);
-                    emitter.WriteInt32(2);
-                    emitter.WriteInt32(200);
-                }
                 emitter.EndMapping();
-                emitter.WriteInt32(300);
+
+                emitter.WriteString("b");
+                emitter.BeginMapping();
+                emitter.EndMapping();
             }
-            emitter.EndSequence();
+            emitter.EndMapping();
 
             Assert.That(ToString(in emitter), Is.EqualTo(
-                "- 1: 100\n" +
-                "  2: 200\n" +
-                "- 300\n"
+                "a: {}\n" +
+                "b: {}\n"
+            ));
+        }
+
+        [Test]
+        public void BlockMapping_NestedEmptySequences()
+        {
+            using var emitter = CreateEmitter();
+            emitter.BeginMapping();
+            {
+                emitter.WriteString("a");
+                emitter.BeginSequence();
+                emitter.EndSequence();
+
+                emitter.WriteString("b");
+                emitter.BeginSequence();
+                emitter.EndSequence();
+            }
+            emitter.EndMapping();
+
+            Assert.That(ToString(in emitter), Is.EqualTo(
+                "a: []\n" +
+                "b: []\n"
+            ));
+        }
+
+        [Test]
+        public void BlockMapping_NestedFirstElements()
+        {
+            using var emitter = CreateEmitter();
+            emitter.BeginMapping();
+            {
+                emitter.WriteString("key1");
+                emitter.BeginMapping();
+                {
+                    emitter.WriteString("key2");
+                    emitter.BeginMapping();
+                    {
+                        emitter.WriteString("key3");
+                        emitter.BeginMapping();
+                        {
+                            emitter.WriteString("key4");
+                            emitter.WriteString("aaa");
+                        }
+                        emitter.EndMapping();
+                    }
+                    emitter.EndMapping();
+                }
+                emitter.EndMapping();
+
+                emitter.WriteString("key5");
+                emitter.BeginMapping();
+                {
+                    emitter.WriteString("key6");
+                    emitter.BeginMapping();
+                    {
+                        emitter.WriteString("key7");
+                        emitter.BeginMapping();
+                        {
+                            emitter.WriteString("key8");
+                            emitter.BeginSequence();
+                            emitter.EndSequence();
+                        }
+                        emitter.EndMapping();
+                    }
+                    emitter.EndMapping();
+                }
+                emitter.EndMapping();
+
+                emitter.WriteString("key9");
+                emitter.BeginMapping();
+                {
+                    emitter.WriteString("key10");
+                    emitter.BeginMapping();
+                    {
+                        emitter.WriteString("key11");
+                        emitter.BeginMapping();
+                        {
+                            emitter.WriteString("key12");
+                            emitter.BeginSequence(SequenceStyle.Flow);
+                            emitter.EndSequence();
+                        }
+                        emitter.EndMapping();
+                    }
+                    emitter.EndMapping();
+                }
+                emitter.EndMapping();
+
+                emitter.WriteString("key13");
+                emitter.BeginMapping();
+                {
+                    emitter.WriteString("key14");
+                    emitter.BeginMapping();
+                    {
+                        emitter.WriteString("key15");
+                        emitter.BeginMapping();
+                        {
+                            emitter.WriteString("key16");
+                            emitter.BeginMapping();
+                            emitter.EndMapping();
+                        }
+                        emitter.EndMapping();
+                    }
+                    emitter.EndMapping();
+                }
+                emitter.EndMapping();
+            }
+            emitter.EndMapping();
+
+            Assert.That(ToString(in emitter), Is.EqualTo(
+                "key1: \n" +
+                "  key2: \n" +
+                "    key3: \n" +
+                "      key4: aaa\n" +
+                "key5: \n" +
+                "  key6: \n" +
+                "    key7: \n" +
+                "      key8: []\n" +
+                "key9: \n" +
+                "  key10: \n" +
+                "    key11: \n" +
+                "      key12: []\n" +
+                "key13: \n" +
+                "  key14: \n" +
+                "    key15: \n" +
+                "      key16: {}\n"
             ));
         }
 
@@ -601,10 +884,23 @@ namespace VYaml.Tests.Emitter
         }
 
         [Test]
+        public void BlockMapping_WithEmptyTag()
+        {
+            using var emitter = CreateEmitter();
+            emitter.Tag("!impl1");
+            emitter.BeginMapping();
+            emitter.EndMapping();
+
+            Assert.That(ToString(in emitter), Is.EqualTo(
+                "!impl1 {}"
+            ));
+        }
+
+        [Test]
         public void BlockMapping_WithTag()
         {
             using var emitter = CreateEmitter();
-            emitter.Tag(StringEncoding.Utf8.GetBytes("!impl1"));
+            emitter.Tag("!impl1");
             emitter.BeginMapping();
             {
                 emitter.WriteString("key1");
@@ -625,19 +921,39 @@ namespace VYaml.Tests.Emitter
 
             emitter.BeginSequence();
             {
-                emitter.Tag(StringEncoding.Utf8.GetBytes("!impl1"));
+                emitter.Tag("!impl1");
                 emitter.BeginMapping();
                 {
                     emitter.WriteString("key1");
                     emitter.WriteString("value1");
                 }
                 emitter.EndMapping();
+
+                emitter.BeginSequence();
+                {
+                    emitter.BeginSequence();
+                    {
+                        emitter.Tag("!impl2");
+                        emitter.BeginMapping();
+                        {
+                            emitter.WriteString("key2");
+                            emitter.WriteString("value2");
+                        }
+                        emitter.EndMapping();
+                    }
+                    emitter.EndSequence();
+                }
+                emitter.EndSequence();
             }
             emitter.EndSequence();
 
             Assert.That(ToString(in emitter), Is.EqualTo(
                 "- !impl1\n" +
-                "  key1: value1\n"
+                "  key1: value1\n" +
+                "- \n" +
+                "  - \n" +
+                "    - !impl2\n" +
+                "      key2: value2\n"
             ));
         }
 
@@ -649,7 +965,7 @@ namespace VYaml.Tests.Emitter
             emitter.BeginMapping();
             {
                 emitter.WriteString("key1");
-                emitter.Tag(StringEncoding.Utf8.GetBytes("!impl1"));
+                emitter.Tag("!impl1");
                 emitter.BeginMapping();
                 {
                     emitter.WriteString("key2");
@@ -657,6 +973,18 @@ namespace VYaml.Tests.Emitter
 
                     emitter.WriteString("key3");
                     emitter.WriteString("value3");
+
+                    emitter.WriteString("key4");
+                    emitter.BeginMapping();
+                    {
+                        emitter.WriteString("key5");
+                        emitter.Tag("!impl2");
+                        emitter.BeginMapping();
+                        {
+                        }
+                        emitter.EndMapping();
+                    }
+                    emitter.EndMapping();
                 }
                 emitter.EndMapping();
             }
@@ -665,7 +993,9 @@ namespace VYaml.Tests.Emitter
             Assert.That(ToString(in emitter), Is.EqualTo(
                 "key1: !impl1\n" +
                 "  key2: value2\n" +
-                "  key3: value3\n"
+                "  key3: value3\n" +
+                "  key4: \n" +
+                "    key5: !impl2 {}\n"
             ));
         }
 
@@ -674,9 +1004,11 @@ namespace VYaml.Tests.Emitter
         {
             using var emitter = CreateEmitter();
             emitter.BeginSequence(SequenceStyle.Flow);
-            emitter.WriteInt32(100);
-            emitter.WriteInt32(200);
-            emitter.WriteInt32(300);
+            {
+                emitter.WriteInt32(100);
+                emitter.WriteInt32(200);
+                emitter.WriteInt32(300);
+            }
             emitter.EndSequence();
 
             Assert.That(ToString(in emitter), Is.EqualTo(
@@ -698,6 +1030,7 @@ namespace VYaml.Tests.Emitter
                 emitter.EndSequence();
                 emitter.WriteInt32(300);
             }
+
             emitter.EndSequence();
 
             Assert.That(ToString(in emitter), Is.EqualTo(
@@ -726,8 +1059,6 @@ namespace VYaml.Tests.Emitter
 
                     emitter.WriteString("key2");
                     emitter.BeginSequence(SequenceStyle.Flow);
-                    {
-                    }
                     emitter.EndSequence();
 
                     emitter.WriteString("key3");
@@ -737,9 +1068,7 @@ namespace VYaml.Tests.Emitter
                         emitter.WriteInt32(400);
 
                         emitter.WriteString("key5");
-                        emitter.BeginSequence(SequenceStyle.Flow);
-                        {
-                        }
+                        emitter.BeginSequence();
                         emitter.EndSequence();
 
                         emitter.WriteString("key6");
@@ -754,6 +1083,15 @@ namespace VYaml.Tests.Emitter
                                 emitter.WriteString("ccc");
                                 emitter.BeginSequence();
                                 {
+                                    emitter.BeginSequence();
+                                    emitter.EndSequence();
+
+                                    emitter.BeginSequence(SequenceStyle.Flow);
+                                    emitter.EndSequence();
+
+                                    emitter.BeginMapping();
+                                    emitter.EndMapping();
+
                                     emitter.WriteFloat(1.234f);
                                     emitter.WriteString("Hello\nWorWorWorWorld\n");
                                 }
@@ -782,6 +1120,9 @@ namespace VYaml.Tests.Emitter
                 "        AAAAAAAAAAA\n" +
                 "        HEYHEYHEYHEYHEY\n" +
                 "      ccc: \n" +
+                "      - []\n" +
+                "      - []\n" +
+                "      - {}\n" +
                 "      - 1.234\n" +
                 "      - |\n" +
                 "        Hello\n" +
