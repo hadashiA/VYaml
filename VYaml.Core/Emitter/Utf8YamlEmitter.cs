@@ -674,24 +674,44 @@ namespace VYaml.Emitter
                         switch (PreviousState)
                         {
                             case EmitState.BlockSequenceEntry:
+                            {
+                                IncreaseIndent();
+
+                                // Try write tag
+                                if (tagStack.TryPop(out var tag))
+                                {
+                                    offset += StringEncoding.Utf8.GetBytes(tag, output[offset..]);
+                                    output[offset++] = YamlCodes.Lf;
+                                    WriteIndent(output, ref offset);
+                                }
+                                else
+                                {
+                                    WriteIndent(output, ref offset, options.IndentWidth - 2);
+                                }
                                 // The first key in block-sequence is like so that: "- key: .."
-                                IncreaseIndent();
-                                WriteIndent(output, ref offset, options.IndentWidth - 2);
                                 break;
+                            }
                             case EmitState.BlockMappingValue:
-                                output[offset++] = YamlCodes.Lf;
+                            {
                                 IncreaseIndent();
+                                // Try write tag
+                                if (tagStack.TryPop(out var tag))
+                                {
+                                    offset += StringEncoding.Utf8.GetBytes(tag, output[offset..]);
+                                }
+                                output[offset++] = YamlCodes.Lf;
                                 WriteIndent(output, ref offset);
                                 break;
+                            }
                             default:
                                 WriteIndent(output, ref offset);
                                 break;
                         }
 
                         // Write tag
-                        if (tagStack.TryPop(out var tag))
+                        if (tagStack.TryPop(out var tag2))
                         {
-                            offset += StringEncoding.Utf8.GetBytes(tag, output[offset..]);
+                            offset += StringEncoding.Utf8.GetBytes(tag2, output[offset..]);
                             output[offset++] = YamlCodes.Lf;
                             WriteIndent(output, ref offset);
                         }

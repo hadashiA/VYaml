@@ -953,7 +953,7 @@ namespace VYaml.Tests.Emitter
                 "- \n" +
                 "  - \n" +
                 "    - !impl2\n" +
-                "    key2: value2\n"
+                "      key2: value2\n"
             ));
         }
 
