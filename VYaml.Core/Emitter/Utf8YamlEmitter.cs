@@ -578,6 +578,23 @@ namespace VYaml.Emitter
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        void WriteRaw(ReadOnlySpan<byte> value, Span<byte> output, ref int offset, bool indent = false, bool lineBreak = false)
+        {
+            if (indent)
+            {
+                WriteIndent(output, ref offset);
+            }
+
+            value.CopyTo(output[offset..]);
+            offset += value.Length;
+
+            if (lineBreak)
+            {
+                output[offset++] = YamlCodes.Lf;
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void WriteBlockSequenceEntryHeader()
         {
             if (IsFirstElement)
@@ -654,9 +671,7 @@ namespace VYaml.Emitter
                                 break;
                         }
                     }
-                    WriteIndent(output, ref offset);
-                    BlockSequenceEntryHeader.CopyTo(output[offset..]);
-                    offset += BlockSequenceEntryHeader.Length;
+                    WriteRaw(BlockSequenceEntryHeader, output, ref offset, indent: true);
 
                     // Write tag
                     if (tagStack.TryPop(out var tag))
@@ -728,8 +743,7 @@ namespace VYaml.Emitter
                 case EmitState.FlowSequenceEntry:
                     if (currentElementCount > 0)
                     {
-                        FlowSequenceSeparator.CopyTo(output[offset..]);
-                        offset += FlowSequenceSeparator.Length;
+                        WriteRaw(FlowSequenceSeparator, output, ref offset);
                     }
                     break;
                 case EmitState.None:
@@ -749,8 +763,7 @@ namespace VYaml.Emitter
                     currentElementCount++;
                     break;
                 case EmitState.BlockMappingKey:
-                    MappingKeyFooter.CopyTo(output[offset..]);
-                    offset += MappingKeyFooter.Length;
+                    WriteRaw(MappingKeyFooter, output, ref offset);
                     ReplaceCurrentState(EmitState.BlockMappingValue);
                     break;
                 case EmitState.BlockMappingValue:
