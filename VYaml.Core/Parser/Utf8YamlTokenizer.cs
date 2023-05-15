@@ -1553,7 +1553,7 @@ namespace VYaml.Parser
                 return YamlCodes.IsEmpty(nextCode);
             }
 
-            var remainingOffset = offset - (reader.CurrentSpan.Length - reader.CurrentSpanIndex) - 1;
+            var remainingOffset = offset;
             var nextPosition = reader.Position;
             ReadOnlyMemory<byte> currentMemory;
 
@@ -1593,7 +1593,7 @@ namespace VYaml.Parser
                 return true;
             }
 
-            var remainingOffset = offset - (reader.CurrentSpan.Length - reader.CurrentSpanIndex) - 1;
+            var remainingOffset = offset;
             var nextPosition = reader.Position;
             ReadOnlyMemory<byte> currentMemory;
 
