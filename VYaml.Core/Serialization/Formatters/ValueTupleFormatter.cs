@@ -8,7 +8,7 @@ namespace VYaml.Serialization
     {
         public void Serialize(ref Utf8YamlEmitter emitter, ValueTuple<T1> value, YamlSerializationContext context)
         {
-            emitter.BeginSequence();
+            emitter.BeginSequence(SequenceStyle.Flow);
             context.Serialize(ref emitter, value.Item1);
             emitter.EndSequence();
         }
@@ -31,7 +31,7 @@ namespace VYaml.Serialization
     {
         public void Serialize(ref Utf8YamlEmitter emitter, (T1, T2) value, YamlSerializationContext context)
         {
-            emitter.BeginSequence();
+            emitter.BeginSequence(SequenceStyle.Flow);
             context.Serialize(ref emitter, value.Item1);
             context.Serialize(ref emitter, value.Item2);
             emitter.EndSequence();
@@ -56,7 +56,7 @@ namespace VYaml.Serialization
     {
         public void Serialize(ref Utf8YamlEmitter emitter, (T1, T2, T3) value, YamlSerializationContext context)
         {
-            emitter.BeginSequence();
+            emitter.BeginSequence(SequenceStyle.Flow);
             context.Serialize(ref emitter, value.Item1);
             context.Serialize(ref emitter, value.Item2);
             context.Serialize(ref emitter, value.Item3);
@@ -83,7 +83,7 @@ namespace VYaml.Serialization
     {
         public void Serialize(ref Utf8YamlEmitter emitter, (T1, T2, T3, T4) value, YamlSerializationContext context)
         {
-            emitter.BeginSequence();
+            emitter.BeginSequence(SequenceStyle.Flow);
             context.Serialize(ref emitter, value.Item1);
             context.Serialize(ref emitter, value.Item2);
             context.Serialize(ref emitter, value.Item3);
@@ -112,7 +112,7 @@ namespace VYaml.Serialization
     {
         public void Serialize(ref Utf8YamlEmitter emitter, (T1, T2, T3, T4, T5) value, YamlSerializationContext context)
         {
-            emitter.BeginSequence();
+            emitter.BeginSequence(SequenceStyle.Flow);
             context.Serialize(ref emitter, value.Item1);
             context.Serialize(ref emitter, value.Item2);
             context.Serialize(ref emitter, value.Item3);
@@ -143,7 +143,7 @@ namespace VYaml.Serialization
     {
         public void Serialize(ref Utf8YamlEmitter emitter, (T1, T2, T3, T4, T5, T6) value, YamlSerializationContext context)
         {
-            emitter.BeginSequence();
+            emitter.BeginSequence(SequenceStyle.Flow);
             context.Serialize(ref emitter, value.Item1);
             context.Serialize(ref emitter, value.Item2);
             context.Serialize(ref emitter, value.Item3);
@@ -176,7 +176,7 @@ namespace VYaml.Serialization
     {
         public void Serialize(ref Utf8YamlEmitter emitter, (T1, T2, T3, T4, T5, T6, T7) value, YamlSerializationContext context)
         {
-            emitter.BeginSequence();
+            emitter.BeginSequence(SequenceStyle.Flow);
             context.Serialize(ref emitter, value.Item1);
             context.Serialize(ref emitter, value.Item2);
             context.Serialize(ref emitter, value.Item3);
@@ -212,7 +212,7 @@ namespace VYaml.Serialization
     {
         public void Serialize(ref Utf8YamlEmitter emitter, ValueTuple<T1, T2, T3, T4, T5, T6, T7, TRest> value, YamlSerializationContext context)
         {
-            emitter.BeginSequence();
+            emitter.BeginSequence(SequenceStyle.Flow);
             context.Serialize(ref emitter, value.Item1);
             context.Serialize(ref emitter, value.Item2);
             context.Serialize(ref emitter, value.Item3);
