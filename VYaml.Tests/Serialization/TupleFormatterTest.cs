@@ -7,6 +7,13 @@ namespace VYaml.Tests.Serialization
     public class TupleFormatterTest : FormatterTestBase
     {
         [Test]
+        public void Serialize_TupleMem()
+        {
+            var result = Serialize(("item1", "item2"));
+            Assert.That(result, Is.EqualTo("00:00:01"));
+        }
+
+        [Test]
         public void Deserialize_TupleMember()
         {
             var result1 = Deserialize<WithTuple>(

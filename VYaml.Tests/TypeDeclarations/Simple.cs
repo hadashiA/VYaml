@@ -43,13 +43,13 @@ namespace VYaml.Tests.TypeDeclarations
     [YamlObject]
     public partial class WithTuple
     {
-        public Tuple<int> One { get; set; }
-        public Tuple<int, int> Two { get; set; }
-        public Tuple<int, int, int> Three { get; set; }
-        public Tuple<int, int, int, int> Four { get; set; }
-        public Tuple<int, int, int, int, int> Five { get; set; }
-        public Tuple<int, int, int, int, int, int> Six { get; set; }
-        public Tuple<int, int, int, int, int, int, int> Seven { get; set; }
+        public Tuple<int> One { get; set; } = default!;
+        public Tuple<int, int> Two { get; set; } = default!;
+        public Tuple<int, int, int> Three { get; set; } = default!;
+        public Tuple<int, int, int, int> Four { get; set; } = default!;
+        public Tuple<int, int, int, int, int> Five { get; set; } = default!;
+        public Tuple<int, int, int, int, int, int> Six { get; set; } = default!;
+        public Tuple<int, int, int, int, int, int, int> Seven { get; set; } = default!;
     }
 
     [YamlObject]
@@ -107,14 +107,14 @@ namespace VYaml.Tests.TypeDeclarations
     public partial class InterfaceImpl1 : IUnion
     {
         public int A { get; set; }
-        public string B { get; set; }
+        public string B { get; set; } = default!;
     }
 
     [YamlObject]
     public partial class InterfaceImpl2 : IUnion
     {
         public int A { get; set; }
-        public string C { get; set; }
+        public string C { get; set; } = default!;
     }
 
     [YamlObject]
@@ -129,7 +129,7 @@ namespace VYaml.Tests.TypeDeclarations
     public partial class AbstractImpl1 : AbstractUnion
     {
         public override int A { get; protected set; }
-        public string B { get; private set; }
+        public string B { get; private set; } = default!;
 
         public AbstractImpl1()
         {
@@ -146,7 +146,7 @@ namespace VYaml.Tests.TypeDeclarations
     public partial class AbstractImpl2 : AbstractUnion
     {
         public override int A { get; protected set; }
-        public string C { get; private set; }
+        public string C { get; private set; } = default!;
 
         public AbstractImpl2()
         {
@@ -163,14 +163,14 @@ namespace VYaml.Tests.TypeDeclarations
     public partial class WithUnionMember
     {
         public int A { get; set; }
-        public IUnion Union { get; set; }
+        public IUnion Union { get; set; } = default!;
     }
 
     [YamlObject]
     public partial class WithArrayUnionMember
     {
         public int A { get; set; }
-        public IUnion[] Unions { get; set; }
+        public IUnion[] Unions { get; set; } = default!;
     }
 
     [YamlObject]

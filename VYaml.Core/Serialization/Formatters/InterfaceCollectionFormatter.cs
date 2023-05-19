@@ -46,7 +46,7 @@ namespace VYaml.Serialization
             }
 
             parser.ReadWithVerify(ParseEventType.SequenceEnd);
-            return list;
+            return list!;
         }
     }
 }

@@ -16,7 +16,7 @@ public class JsonDeserializationBenchmark
     byte[]? jsonBytes;
     string? jsonString;
 
-    YamlDotNet.Serialization.IDeserializer yamlDotNetDeserializer;
+    YamlDotNet.Serialization.IDeserializer yamlDotNetDeserializer = default!;
 
     readonly System.Text.Json.JsonSerializerOptions systemTextJsonOptions = new()
     {

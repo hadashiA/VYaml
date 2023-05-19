@@ -12,8 +12,8 @@ public class SerializationBenchmark
     byte[]? yamlBytes;
     string? yamlString;
 
-    YamlDotNet.Serialization.ISerializer yamlDotNetSerializer;
-    SampleEnvoy sampleData;
+    YamlDotNet.Serialization.ISerializer yamlDotNetSerializer = default!;
+    SampleEnvoy sampleData = default!;
 
     [GlobalSetup]
     public void Setup()

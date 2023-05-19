@@ -14,7 +14,7 @@ public class DeserializationBenchmark
     byte[]? yamlBytes;
     string? yamlString;
 
-    YamlDotNet.Serialization.IDeserializer yamlDotNetDeserializer;
+    YamlDotNet.Serialization.IDeserializer yamlDotNetDeserializer = default!;
 
     [GlobalSetup]
     public void Setup()
