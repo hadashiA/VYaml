@@ -14,7 +14,7 @@ namespace VYaml.Serialization
                 return;
             }
 
-            emitter.BeginSequence();
+            emitter.BeginSequence(SequenceStyle.Flow);
             context.Serialize(ref emitter, value.Item1);
             emitter.EndSequence();
         }
@@ -43,7 +43,7 @@ namespace VYaml.Serialization
                 return;
             }
 
-            emitter.BeginSequence();
+            emitter.BeginSequence(SequenceStyle.Flow);
             context.Serialize(ref emitter, value.Item1);
             context.Serialize(ref emitter, value.Item2);
             emitter.EndSequence();
@@ -74,7 +74,7 @@ namespace VYaml.Serialization
                 return;
             }
 
-            emitter.BeginSequence();
+            emitter.BeginSequence(SequenceStyle.Flow);
             context.Serialize(ref emitter, value.Item1);
             context.Serialize(ref emitter, value.Item2);
             context.Serialize(ref emitter, value.Item3);
@@ -107,7 +107,7 @@ namespace VYaml.Serialization
                 return;
             }
 
-            emitter.BeginSequence();
+            emitter.BeginSequence(SequenceStyle.Flow);
             context.Serialize(ref emitter, value.Item1);
             context.Serialize(ref emitter, value.Item2);
             context.Serialize(ref emitter, value.Item3);
@@ -143,7 +143,7 @@ namespace VYaml.Serialization
                 return;
             }
 
-            emitter.BeginSequence();
+            emitter.BeginSequence(SequenceStyle.Flow);
             context.Serialize(ref emitter, value.Item1);
             context.Serialize(ref emitter, value.Item2);
             context.Serialize(ref emitter, value.Item3);
@@ -181,7 +181,7 @@ namespace VYaml.Serialization
                 return;
             }
 
-            emitter.BeginSequence();
+            emitter.BeginSequence(SequenceStyle.Flow);
             context.Serialize(ref emitter, value.Item1);
             context.Serialize(ref emitter, value.Item2);
             context.Serialize(ref emitter, value.Item3);
@@ -220,7 +220,7 @@ namespace VYaml.Serialization
                 return;
             }
 
-            emitter.BeginSequence();
+            emitter.BeginSequence(SequenceStyle.Flow);
             context.Serialize(ref emitter, value.Item1);
             context.Serialize(ref emitter, value.Item2);
             context.Serialize(ref emitter, value.Item3);
@@ -262,7 +262,7 @@ namespace VYaml.Serialization
                 return;
             }
 
-            emitter.BeginSequence();
+            emitter.BeginSequence(SequenceStyle.Flow);
             context.Serialize(ref emitter, value.Item1);
             context.Serialize(ref emitter, value.Item2);
             context.Serialize(ref emitter, value.Item3);
