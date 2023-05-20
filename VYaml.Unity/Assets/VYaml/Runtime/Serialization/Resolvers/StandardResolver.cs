@@ -1,3 +1,4 @@
+#nullable enable
 namespace VYaml.Serialization
 {
     public class StandardResolver : IYamlFormatterResolver

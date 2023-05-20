@@ -1,3 +1,4 @@
+#nullable enable
 namespace VYaml.Emitter
 {
     public enum ScalarStyle
@@ -29,3 +30,4 @@ namespace VYaml.Emitter
         public int IndentWidth { get; set; } = 2;
     }
 }
+

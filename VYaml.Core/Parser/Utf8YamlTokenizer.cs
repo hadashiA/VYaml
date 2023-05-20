@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
@@ -1619,3 +1620,4 @@ namespace VYaml.Parser
         }
     }
 }
+

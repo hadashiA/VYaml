@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using VYaml.Emitter;
 using VYaml.Parser;
@@ -46,7 +47,7 @@ namespace VYaml.Serialization
             }
 
             parser.ReadWithVerify(ParseEventType.SequenceEnd);
-            return list;
+            return list!;
         }
     }
 }

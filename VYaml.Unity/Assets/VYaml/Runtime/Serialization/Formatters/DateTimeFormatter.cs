@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Buffers;
 using System.Buffers.Text;
@@ -96,3 +97,4 @@ namespace VYaml.Serialization
         }
     }
 }
+

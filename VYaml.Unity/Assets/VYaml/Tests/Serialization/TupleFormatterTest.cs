@@ -1,3 +1,4 @@
+using System;
 using NUnit.Framework;
 using VYaml.Tests.TypeDeclarations;
 
@@ -6,6 +7,20 @@ namespace VYaml.Tests.Serialization
     [TestFixture]
     public class TupleFormatterTest : FormatterTestBase
     {
+        [Test]
+        public void Serialize_TupleMember()
+        {
+            var result = Serialize(new Tuple<string, string>("item1", "item2"));
+            Assert.That(result, Is.EqualTo("[item1, item2]"));
+        }
+
+        [Test]
+        public void Serialize_ValueTupleMember()
+        {
+            var result = Serialize(("item1", "item2"));
+            Assert.That(result, Is.EqualTo("[item1, item2"));
+        }
+
         [Test]
         public void Deserialize_TupleMember()
         {

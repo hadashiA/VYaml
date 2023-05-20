@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Runtime.CompilerServices;
 
@@ -119,3 +120,4 @@ namespace VYaml.Internal
         }
     }
 }
+

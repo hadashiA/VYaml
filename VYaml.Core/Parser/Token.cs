@@ -1,3 +1,4 @@
+#nullable enable
 namespace VYaml.Parser
 {
     readonly struct Token
@@ -14,3 +15,4 @@ namespace VYaml.Parser
         public override string ToString() => $"{Type} \"{Content}\"";
     }
 }
+

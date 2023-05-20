@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Buffers;
 using System.Collections.Concurrent;
@@ -67,8 +68,6 @@ namespace VYaml.Internal
         readonly Stack<ReusableByteSequenceSegment> segmentPool = new();
         readonly List<ReusableByteSequenceSegment> segments = new();
 
-        readonly ArraySegment<byte>? fallback;
-
         public void Add(ReadOnlyMemory<byte> buffer, bool returnToPool)
         {
             if (!segmentPool.TryPop(out var segment))
@@ -127,3 +126,4 @@ namespace VYaml.Internal
         }
     }
 }
+
