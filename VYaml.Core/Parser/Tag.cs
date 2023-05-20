@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 
 namespace VYaml.Parser
@@ -30,3 +31,4 @@ namespace VYaml.Parser
         }
     }
 }
+

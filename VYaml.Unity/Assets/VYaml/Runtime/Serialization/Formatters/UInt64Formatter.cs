@@ -1,3 +1,4 @@
+#nullable enable
 using VYaml.Emitter;
 using VYaml.Parser;
 

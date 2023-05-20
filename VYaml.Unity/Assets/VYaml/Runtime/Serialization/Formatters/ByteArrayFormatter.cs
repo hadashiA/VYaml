@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using VYaml.Emitter;
 using VYaml.Parser;
@@ -34,3 +35,4 @@ namespace VYaml.Serialization
         }
     }
 }
+

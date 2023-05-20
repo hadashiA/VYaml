@@ -1,3 +1,4 @@
+#nullable enable
 using VYaml.Emitter;
 
 namespace VYaml.Serialization

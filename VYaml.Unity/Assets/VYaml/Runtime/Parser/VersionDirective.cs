@@ -1,3 +1,4 @@
+#nullable enable
 namespace VYaml.Parser
 {
     struct VersionDirective : ITokenContent
@@ -12,3 +13,4 @@ namespace VYaml.Parser
         }
     }
 }
+

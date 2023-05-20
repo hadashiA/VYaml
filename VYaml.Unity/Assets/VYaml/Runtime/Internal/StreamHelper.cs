@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Buffers;
 using System.IO;
@@ -80,3 +81,4 @@ namespace VYaml.Internal
         }
     }
 }
+
