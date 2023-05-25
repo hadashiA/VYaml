@@ -10,6 +10,31 @@ namespace VYaml.Tests.Parser
     public class YamlParserTest
     {
         [Test]
+        public void IsNullScalar()
+        {
+            CreateParser(new []
+            {
+                "- null",
+                "- ",
+                "- ~",
+                "- not null",
+            }, out var parser);
+
+            parser.SkipAfter(ParseEventType.DocumentStart);
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.SequenceStart));
+            parser.Read();
+            Assert.That(parser.IsNullScalar(), Is.True);
+            parser.Read();
+            Assert.That(parser.IsNullScalar(), Is.True);
+            parser.Read();
+            Assert.That(parser.IsNullScalar(), Is.True);
+            parser.Read();
+            Assert.That(parser.IsNullScalar(), Is.False);
+            parser.Read();
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.SequenceEnd));
+        }
+
+        [Test]
         public void SkipCurrentNode()
         {
             CreateParser(new []
@@ -166,6 +191,34 @@ namespace VYaml.Tests.Parser
 
             Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.StreamEnd));
             Assert.That(parser.Read(), Is.False);
+        }
+
+        [Test]
+        public void EmptyElementInSequence()
+        {
+            CreateParser(new []
+            {
+                "keywords:",
+                "- ",
+                "- _RIDE_ON",
+                "- _COME_ON",
+            }, out var parser);
+
+            parser.SkipAfter(ParseEventType.DocumentStart);
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.MappingStart));
+            parser.Read();
+            Assert.That(parser.ReadScalarAsString(), Is.EqualTo("keywords"));
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.SequenceStart));
+            parser.Read();
+            Assert.That(parser.IsNullScalar(), Is.True);
+            parser.Read();
+            Assert.That(parser.ReadScalarAsString(), Is.EqualTo("_RIDE_ON"));
+            Assert.That(parser.ReadScalarAsString(), Is.EqualTo("_COME_ON"));
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.SequenceEnd));
+            parser.Read();
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.MappingEnd));
+            parser.Read();
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.DocumentEnd));
         }
 
         static void CreateParser(IEnumerable<string> lines, out YamlParser tokenizer)

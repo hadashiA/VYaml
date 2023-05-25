@@ -9,9 +9,9 @@ namespace VYaml.Parser
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly bool IsNullScalar()
         {
-            if (currentScalar is { } scalar)
-                return scalar.IsNull();
-            return false;
+            return CurrentEventType == ParseEventType.Scalar &&
+                   (currentScalar == null ||
+                    currentScalar.IsNull());
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

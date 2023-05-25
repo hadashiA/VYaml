@@ -18,7 +18,7 @@ namespace VYaml.Tests.Serialization
         public void Serialize_ValueTupleMember()
         {
             var result = Serialize(("item1", "item2"));
-            Assert.That(result, Is.EqualTo("[item1, item2"));
+            Assert.That(result, Is.EqualTo("[item1, item2]"));
         }
 
         [Test]
