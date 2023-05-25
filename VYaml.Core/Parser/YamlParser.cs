@@ -499,7 +499,13 @@ namespace VYaml.Parser
                     PopState();
                     EmptyScalar();
                     break;
-
+                
+                // consider empty entry in sequence ("- ") as null
+                case TokenType.BlockEntryStart when currentState == ParseState.IndentlessSequenceEntry:
+                    PopState();
+                    EmptyScalar();
+                    break;
+                
                 default:
                 {
                     throw new YamlTokenizerException(tokenizer.CurrentMark,
