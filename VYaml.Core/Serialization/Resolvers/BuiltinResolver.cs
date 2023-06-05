@@ -209,7 +209,7 @@ namespace VYaml.Serialization
             }
             else if (type.IsEnum)
             {
-                formatterType = typeof(EnumAsStringFormatter<>).MakeGenericType(type);
+                formatterType = typeof(EnumAsLowerCamelCaseStringFormatter<>).MakeGenericType(type);
             }
             else
             {
