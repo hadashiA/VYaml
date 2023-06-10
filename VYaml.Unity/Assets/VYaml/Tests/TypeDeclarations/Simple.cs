@@ -131,10 +131,6 @@ namespace VYaml.Tests.TypeDeclarations
         public override int A { get; protected set; }
         public string B { get; private set; } = default!;
 
-        public AbstractImpl1()
-        {
-        }
-
         public AbstractImpl1(int a, string b)
         {
             A = a;
@@ -146,11 +142,7 @@ namespace VYaml.Tests.TypeDeclarations
     public partial class AbstractImpl2 : AbstractUnion
     {
         public override int A { get; protected set; }
-        public string C { get; private set; } = default!;
-
-        public AbstractImpl2()
-        {
-        }
+        public string C { get; private set; }
 
         public AbstractImpl2(int a, string c)
         {
@@ -195,19 +187,54 @@ namespace VYaml.Tests.TypeDeclarations
         public int C { get; set; }
     }
 
-    // [YamlObject]
-    // public partial class WithCustomConstructor
-    // {
-    //     public int Foo { get; }
-    //     public string Bar { get; }
-    //
-    //     [YamlConstructor]
-    //     public WithCustomConstructor(int foo, string bar)
-    //     {
-    //         Foo = foo;
-    //         Bar = bar;
-    //     }
-    // }
+    [YamlObject]
+    public partial class WithCustomConstructor
+    {
+        public int Foo { get; }
+        public string Bar { get; }
+
+        public WithCustomConstructor(int foo, string bar)
+        {
+            Foo = foo;
+            Bar = bar;
+        }
+    }
+
+    [YamlObject]
+    public partial class WithCustomConstructor2
+    {
+        public int Foo { get; }
+        public string Bar { get; }
+
+        public WithCustomConstructor2()
+        {
+            Foo = default;
+            Bar = default!;
+        }
+
+        [YamlConstructor]
+        public WithCustomConstructor2(int foo, string bar)
+        {
+            Foo = foo;
+            Bar = bar;
+        }
+    }
+
+
+    [YamlObject]
+    public partial class WithCustomConstructorAndOtherProps
+    {
+        public int Foo { get; }
+        public string Bar { get; }
+        public string Hoge { get; init; } = default!;
+
+        [YamlConstructor]
+        public WithCustomConstructorAndOtherProps(int foo, string bar)
+        {
+            Foo = foo;
+            Bar = bar;
+        }
+    }
 }
 
 // another namespace, same type name
