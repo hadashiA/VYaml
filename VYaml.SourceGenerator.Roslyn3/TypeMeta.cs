@@ -25,9 +25,10 @@ class TypeMeta
     public AttributeData YamlObjectAttribute { get; }
     public string TypeName { get; }
     public string FullTypeName { get; }
-
+    public IReadOnlyList<IMethodSymbol> Constructors { get; }
     public IReadOnlyList<UnionMeta> UnionMetas { get; }
 
+    public IReadOnlyList<MemberMeta> MemberMetas => memberMetas ??= GetSerializeMembers();
     public bool IsUnion => UnionMetas.Count > 0;
 
     ReferenceSymbols references;
@@ -48,6 +49,10 @@ class TypeMeta
 
         YamlObjectAttribute = yamlObjectAttribute;
 
+        Constructors = symbol.InstanceConstructors
+            .Where(x => !x.IsImplicitlyDeclared) // remove empty ctor(struct always generate it), record's clone ctor
+            .ToArray();
+
         UnionMetas = symbol.GetAttributes()
             .Where(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, references.YamlObjectUnionAttribute))
             .Where(x => x.ConstructorArguments.Length == 2)
@@ -57,7 +62,17 @@ class TypeMeta
             .ToArray();
     }
 
-    public MemberMeta[] GetSerializeMembers()
+    public bool IsPartial()
+    {
+        return Syntax.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword));
+    }
+
+    public bool IsNested()
+    {
+        return Syntax.Parent is TypeDeclarationSyntax;
+    }
+
+    MemberMeta[] GetSerializeMembers()
     {
         if (memberMetas == null)
         {
@@ -84,15 +99,5 @@ class TypeMeta
                 .ToArray();
         }
         return memberMetas;
-    }
-
-    public bool IsPartial()
-    {
-        return Syntax.Modifiers.Any(m => m.IsKind(SyntaxKind.PartialKeyword));
-    }
-
-    public bool IsNested()
-    {
-        return Syntax.Parent is TypeDeclarationSyntax;
     }
 }

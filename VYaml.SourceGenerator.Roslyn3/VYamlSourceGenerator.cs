@@ -30,7 +30,7 @@ public class VYamlSourceGenerator : ISourceGenerator
                 var typeMeta = workItem.Analyze(in context, references);
                 if (typeMeta is null) continue;
 
-                if (TryEmit(typeMeta, codeWriter, in context))
+                if (TryEmit(typeMeta, codeWriter, references, in context))
                 {
                     var fullType = typeMeta.FullTypeName
                         .Replace("global::", "")
@@ -51,7 +51,11 @@ public class VYamlSourceGenerator : ISourceGenerator
         }
     }
 
-    static bool TryEmit(TypeMeta typeMeta, CodeWriter codeWriter, in GeneratorExecutionContext context)
+    static bool TryEmit(
+        TypeMeta typeMeta,
+        CodeWriter codeWriter,
+        ReferenceSymbols references,
+        in GeneratorExecutionContext context)
     {
         try
         {
@@ -158,32 +162,6 @@ public class VYamlSourceGenerator : ISourceGenerator
                     }
                 }
             }
-            else
-            {
-                // verify members
-                var memberMetas = typeMeta.GetSerializeMembers();
-                foreach (var memberMeta in memberMetas)
-                {
-                    if (memberMeta is { IsProperty: true, IsSettable: false })
-                    {
-                        context.ReportDiagnostic(Diagnostic.Create(
-                            DiagnosticDescriptors.YamlMemberPropertyMustHaveSetter,
-                            memberMeta.GetLocation(typeMeta.Syntax),
-                            typeMeta.TypeName,
-                            memberMeta.Name));
-                        error = true;
-                    }
-                    if (memberMeta is { IsField: true, IsSettable: false })
-                    {
-                        context.ReportDiagnostic(Diagnostic.Create(
-                            DiagnosticDescriptors.YamlMemberFieldCannotBeReadonly,
-                            memberMeta.GetLocation(typeMeta.Syntax),
-                            typeMeta.TypeName,
-                            memberMeta.Name));
-                        error = true;
-                    }
-                }
-            }
 
             if (error)
             {
@@ -235,7 +213,7 @@ public class VYamlSourceGenerator : ISourceGenerator
                 {
                     return false;
                 }
-                if (!TryEmitFormatter(typeMeta, codeWriter, in context))
+                if (!TryEmitFormatter(typeMeta, codeWriter, references, in context))
                 {
                     return false;
                 }
@@ -282,6 +260,7 @@ public class VYamlSourceGenerator : ISourceGenerator
     static bool TryEmitFormatter(
         TypeMeta typeMeta,
         CodeWriter codeWriter,
+        ReferenceSymbols references,
         in GeneratorExecutionContext context)
     {
         var returnType = typeMeta.Symbol.IsValueType
@@ -299,35 +278,7 @@ public class VYamlSourceGenerator : ISourceGenerator
         }
 
         // Default
-        var memberMetas = typeMeta.GetSerializeMembers();
-        var invalid = false;
-        foreach (var memberMeta in memberMetas)
-        {
-            if (memberMeta is { IsProperty: true, IsSettable: false })
-            {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    DiagnosticDescriptors.YamlMemberPropertyMustHaveSetter,
-                    memberMeta.GetLocation(typeMeta.Syntax),
-                    typeMeta.TypeName,
-                    memberMeta.Name));
-                invalid = true;
-            }
-            if (memberMeta is { IsField: true, IsSettable: false })
-            {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    DiagnosticDescriptors.YamlMemberFieldCannotBeReadonly,
-                    memberMeta.GetLocation(typeMeta.Syntax),
-                    typeMeta.TypeName,
-                    memberMeta.Name));
-                invalid = true;
-            }
-        }
-        if (invalid)
-        {
-            return false;
-        }
-
-        foreach (var memberMeta in memberMetas)
+        foreach (var memberMeta in typeMeta.MemberMetas)
         {
             codeWriter.Append($"static readonly byte[] {memberMeta.Name}KeyUtf8Bytes = ");
             codeWriter.AppendByteArrayString(memberMeta.KeyNameUtf8Bytes);
@@ -336,12 +287,12 @@ public class VYamlSourceGenerator : ISourceGenerator
         }
 
         return TryEmitSerializeMethod(typeMeta, codeWriter, in context) &&
-               TryEmitDeserializeMethod(typeMeta, codeWriter, in context);
+               TryEmitDeserializeMethod(typeMeta, codeWriter, references, in context);
     }
 
     static bool TryEmitSerializeMethod(TypeMeta typeMeta, CodeWriter codeWriter, in GeneratorExecutionContext context)
     {
-        var memberMetas = typeMeta.GetSerializeMembers();
+        var memberMetas = typeMeta.MemberMetas;
         var returnType = typeMeta.Symbol.IsValueType
             ? typeMeta.FullTypeName
             : $"{typeMeta.FullTypeName}?";
@@ -409,9 +360,48 @@ public class VYamlSourceGenerator : ISourceGenerator
         return true;
     }
 
-    static bool TryEmitDeserializeMethod(TypeMeta typeMeta, CodeWriter codeWriter, in GeneratorExecutionContext context)
+    static bool TryEmitDeserializeMethod(
+        TypeMeta typeMeta,
+        CodeWriter codeWriter,
+        ReferenceSymbols references,
+        in GeneratorExecutionContext context)
     {
-        var memberMetas = typeMeta.GetSerializeMembers();
+        if (!TryGetConstructor(typeMeta, references, in context,
+                out var selectedConstructor,
+                out var constructedMembers))
+        {
+            return false;
+        }
+
+        var setterMembers = typeMeta.MemberMetas
+            .Where(x =>
+            {
+                return constructedMembers.All(constructedMember => !SymbolEqualityComparer.Default.Equals(x.Symbol, constructedMember.Symbol));
+            })
+            .ToArray();
+
+        foreach (var setterMember in setterMembers)
+        {
+            switch (setterMember)
+            {
+                case { IsProperty: true, IsSettable: false }:
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        DiagnosticDescriptors.YamlMemberPropertyMustHaveSetter,
+                        setterMember.GetLocation(typeMeta.Syntax),
+                        typeMeta.TypeName,
+                        setterMember.Name));
+                    return false;
+                }
+                case { IsField: true, IsSettable: false }:
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        DiagnosticDescriptors.YamlMemberFieldCannotBeReadonly,
+                        setterMember.GetLocation(typeMeta.Syntax),
+                        typeMeta.TypeName,
+                        setterMember.Name));
+                    return false;
+            }
+        }
 
         var returnType = typeMeta.Symbol.IsValueType
             ? typeMeta.FullTypeName
@@ -426,7 +416,7 @@ public class VYamlSourceGenerator : ISourceGenerator
             codeWriter.AppendLine("return default;");
         }
 
-        if (memberMetas.Length <= 0)
+        if (typeMeta.MemberMetas.Count <= 0)
         {
             codeWriter.AppendLine("parser.SkipCurrentNode();");
             codeWriter.AppendLine($"return new {typeMeta.TypeName}();");
@@ -435,7 +425,7 @@ public class VYamlSourceGenerator : ISourceGenerator
 
         codeWriter.AppendLine("parser.ReadWithVerify(ParseEventType.MappingStart);");
         codeWriter.AppendLine();
-        foreach (var memberMeta in memberMetas)
+        foreach (var memberMeta in typeMeta.MemberMetas)
         {
             codeWriter.AppendLine($"var __{memberMeta.Name}__ = default({memberMeta.FullTypeName});");
         }
@@ -454,7 +444,7 @@ public class VYamlSourceGenerator : ISourceGenerator
             codeWriter.AppendLine();
             using (codeWriter.BeginBlockScope("switch (key.Length)"))
             {
-                var membersByNameLength = memberMetas.GroupBy(x => x.KeyNameUtf8Bytes.Length);
+                var membersByNameLength = typeMeta.MemberMetas.GroupBy(x => x.KeyNameUtf8Bytes.Length);
                 foreach (var group in membersByNameLength)
                 {
                     using (codeWriter.BeginIndentScope($"case {group.Key}:"))
@@ -488,11 +478,29 @@ public class VYamlSourceGenerator : ISourceGenerator
             }
         }
         codeWriter.AppendLine("parser.ReadWithVerify(ParseEventType.MappingEnd);");
-        using (codeWriter.BeginBlockScope($"return new {typeMeta.TypeName}"))
+
+        codeWriter.Append("return new ");
+        if (selectedConstructor != null)
         {
-            foreach (var memberMeta in memberMetas)
+            var parameters = string.Join(",", constructedMembers.Select(x => $"__{x.Name}__"));
+            codeWriter.Append($"{typeMeta.TypeName}({parameters})", false);
+        }
+        else
+        {
+            codeWriter.Append($"{typeMeta.TypeName}", false);
+        }
+
+        if (setterMembers.Length > 0)
+        {
+            using (codeWriter.BeginBlockScope())
             {
-                codeWriter.AppendLine($"{memberMeta.Name} = __{memberMeta.Name}__,");
+                foreach (var setterMember in setterMembers)
+                {
+                    if (!constructedMembers.Contains(setterMember))
+                    {
+                        codeWriter.AppendLine($"{setterMember.Name} = __{setterMember.Name}__,");
+                    }
+                }
             }
         }
         codeWriter.AppendLine(";");
@@ -536,5 +544,81 @@ public class VYamlSourceGenerator : ISourceGenerator
             codeWriter.AppendLine("throw new YamlSerializerException(parser.CurrentMark, \"Cannot find any subtype tag for union\");");
         }
         return true;
+    }
+
+    static bool TryGetConstructor(
+        TypeMeta typeMeta,
+        ReferenceSymbols reference,
+        in GeneratorExecutionContext context,
+        out IMethodSymbol? selectedConstructor,
+        out IReadOnlyList<MemberMeta> constructedMembers)
+    {
+        if (typeMeta.Constructors.Count <= 0)
+        {
+            selectedConstructor = null;
+            constructedMembers = Array.Empty<MemberMeta>();
+            return true;
+        }
+
+        if (typeMeta.Constructors.Count == 1)
+        {
+            selectedConstructor = typeMeta.Constructors[0];
+        }
+        else
+        {
+            var ctorWithAttrs = typeMeta.Constructors
+                .Where(x => x.ContainsAttribute(reference.YamlConstructorAttribute))
+                .ToArray();
+
+            switch (ctorWithAttrs.Length)
+            {
+                case 1:
+                    selectedConstructor = ctorWithAttrs[0];
+                    break;
+                case > 1:
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        DiagnosticDescriptors.MultipleConstructorAttribute,
+                        typeMeta.Syntax.Identifier.GetLocation(),
+                        typeMeta.Symbol.Name));
+                    selectedConstructor = null;
+                    constructedMembers = Array.Empty<MemberMeta>();
+                    return false;
+
+                default:
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        DiagnosticDescriptors.MultipleConstructorWithoutAttribute,
+                        typeMeta.Syntax.Identifier.GetLocation(),
+                        typeMeta.Symbol.Name));
+                    selectedConstructor = null;
+                    constructedMembers = Array.Empty<MemberMeta>();
+                    return false;
+            }
+        }
+
+        var parameterMembers = new List<MemberMeta>();
+        var error = false;
+        foreach (var parameter in selectedConstructor.Parameters)
+        {
+            var matchedMember = typeMeta.MemberMetas
+                .FirstOrDefault(member => parameter.Name.Equals(member.Name, StringComparison.OrdinalIgnoreCase));
+            if (matchedMember != null)
+            {
+                parameterMembers.Add(matchedMember);
+            }
+            else
+            {
+                var location = selectedConstructor.Locations.FirstOrDefault() ??
+                               typeMeta.Syntax.Identifier.GetLocation();
+                context.ReportDiagnostic(Diagnostic.Create(
+                    DiagnosticDescriptors.ConstructorHasNoMatchedParameter,
+                    location,
+                    typeMeta.Symbol.Name,
+                    parameter.Name));
+                constructedMembers = Array.Empty<MemberMeta>();
+                error = true;
+            }
+        }
+        constructedMembers = parameterMembers;
+        return !error;
     }
 }

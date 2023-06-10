@@ -101,4 +101,28 @@ static class DiagnosticDescriptors
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor MultipleConstructorAttribute = new(
+        id: "VYAML013",
+        title: "[YamlConstructor] exists in multiple constructors",
+        messageFormat: "Mupltiple [YamlConstructor] exists in '{0}' but allows only single ctor",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor MultipleConstructorWithoutAttribute = new(
+        id: "VYAML014",
+        title: "Require [YamlConstructor] when exists multiple constructors",
+        messageFormat: "The Yaml object '{0}' must annotate with [YamlConstructor] when exists multiple constructors",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor ConstructorHasNoMatchedParameter = new(
+        id: "VYAML0015",
+        title: "VYaml's constructor has no matched parameter",
+        messageFormat: "The VYaml object '{0}' constructor's parameter '{1}' must match a serialized member name(case-insensitive)",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
 }

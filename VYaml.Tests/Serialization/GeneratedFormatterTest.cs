@@ -301,7 +301,7 @@ namespace VYaml.Tests.Serialization
         }
 
         [Test]
-        public void Deseiralize_AnotherNamespace()
+        public void Deserialize_AnotherNamespace()
         {
             var result = Deserialize<VYaml.Tests.TypeDeclarations.More.StandardTypeTwo>("{ one: a, two: b }");
             Assert.That(result.One, Is.EqualTo("a"));
@@ -309,10 +309,27 @@ namespace VYaml.Tests.Serialization
         }
 
         [Test]
-        public void Deseiralize_GlobalNamespace()
+        public void Deserialize_GlobalNamespace()
         {
             var result = Deserialize<GlobalNamespaceType>("{ myProperty: 111 }");
             Assert.That(result.MyProperty, Is.EqualTo(111));
+        }
+
+        [Test]
+        public void Deserialize_CustomConstructor()
+        {
+            var result = Deserialize<WithCustomConstructor>("{ foo: 111, bar: aaa }");
+            Assert.That(result.Foo, Is.EqualTo(111));
+            Assert.That(result.Bar, Is.EqualTo("aaa"));
+        }
+
+        [Test]
+        public void Deserialize_CustomConstructorWithSetter()
+        {
+            var result = Deserialize<WithCustomConstructorAndOtherProps>("{ foo: 111, bar: aaa, hoge: bbb }");
+            Assert.That(result.Foo, Is.EqualTo(111));
+            Assert.That(result.Bar, Is.EqualTo("aaa"));
+            Assert.That(result.Hoge, Is.EqualTo("bbb"));
         }
     }
 }
