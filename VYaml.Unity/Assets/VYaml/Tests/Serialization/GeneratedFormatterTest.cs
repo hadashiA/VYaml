@@ -318,9 +318,13 @@ namespace VYaml.Tests.Serialization
         [Test]
         public void Deserialize_CustomConstructor()
         {
-            var result = Deserialize<WithCustomConstructor>("{ foo: 111, bar: aaa }");
-            Assert.That(result.Foo, Is.EqualTo(111));
-            Assert.That(result.Bar, Is.EqualTo("aaa"));
+            var result1 = Deserialize<WithCustomConstructor>("{ foo: 111, bar: aaa }");
+            Assert.That(result1.Foo, Is.EqualTo(111));
+            Assert.That(result1.Bar, Is.EqualTo("aaa"));
+
+            var result2 = Deserialize<WithCustomConstructor2>("{ foo: 111, bar: aaa }");
+            Assert.That(result2.Foo, Is.EqualTo(111));
+            Assert.That(result2.Bar, Is.EqualTo("aaa"));
         }
 
         [Test]

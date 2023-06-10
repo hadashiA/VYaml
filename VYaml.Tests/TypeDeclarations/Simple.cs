@@ -193,13 +193,33 @@ namespace VYaml.Tests.TypeDeclarations
         public int Foo { get; }
         public string Bar { get; }
 
-        [YamlConstructor]
         public WithCustomConstructor(int foo, string bar)
         {
             Foo = foo;
             Bar = bar;
         }
     }
+
+    [YamlObject]
+    public partial class WithCustomConstructor2
+    {
+        public int Foo { get; }
+        public string Bar { get; }
+
+        public WithCustomConstructor2()
+        {
+            Foo = default;
+            Bar = default!;
+        }
+
+        [YamlConstructor]
+        public WithCustomConstructor2(int foo, string bar)
+        {
+            Foo = foo;
+            Bar = bar;
+        }
+    }
+
 
     [YamlObject]
     public partial class WithCustomConstructorAndOtherProps

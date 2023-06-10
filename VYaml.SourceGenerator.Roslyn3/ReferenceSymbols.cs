@@ -15,7 +15,7 @@ public class ReferenceSymbols
             YamlObjectAttribute = yamlObjectAttribute,
             YamlMemberAttribute = compilation.GetTypeByMetadataName("VYaml.Annotations.YamlMemberAttribute")!,
             YamlIgnoreAttribute = compilation.GetTypeByMetadataName("VYaml.Annotations.YamlIgnoreAttribute")!,
-            YamlConstructorAttribute = compilation.GetTypeByMetadataName("VYaml.Annotations.YamlConstructor")!,
+            YamlConstructorAttribute = compilation.GetTypeByMetadataName("VYaml.Annotations.YamlConstructorAttribute")!,
             YamlObjectUnionAttribute = compilation.GetTypeByMetadataName("VYaml.Annotations.YamlObjectUnionAttribute")!,
         };
     }
