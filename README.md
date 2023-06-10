@@ -44,7 +44,6 @@ Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular y
 
 - [ ] Support incremental source generator (Only Roslyn 4)
 - [ ] Restrict max depth
-- [ ] Specific constructor
 
 ## Installation
 
@@ -247,6 +246,69 @@ This serialize as:
 
 ```yaml
 foo-bar-alias: 100
+```
+
+#### Custom constructor
+
+VYaml supports both parameterized and parameterless constructors. The selection of the constructor follows these rules.
+
+- If there is `[YamlConstructor]`, use it.
+- If there is no explicit constructor use a parameterless one.
+- If there is one constructor use it.
+- If there are multiple constructors, then the `[YamlConstructor]` attribute must be applied to the desired constructor (the generator will not automatically choose one), otherwise the generator will emit an error.
+
+:note: If using a parameterized constructor, all parameter names must match corresponding member names (case-insensitive).
+
+``` csharp
+[YamlObject]
+public partial class Person
+{
+    public int Age { get; } 
+    public string Name { get; }
+
+    // You can use a parameterized constructor - parameter names must match corresponding members name (case-insensitive)
+    public Person(int age, string name)
+    {
+        Age = age;
+        Name = name;
+    }
+}
+
+[YamlObject]
+public partial class Person
+{
+    public int Age { get; set; }
+    public string Name { get; set; }
+    
+    public Person()
+    {
+        // ...
+    }
+
+    // If there are multiple constructors, then [MemoryPackConstructor] should be used
+    [YamlConstructor]
+    public Person(int age, string name)
+    {
+        this.Age = age;
+        this.Name = name;
+    }
+}
+
+
+[YamlObject]
+public partial class Person
+{
+    public int Age { get; } // from constructor
+    public string Name { get; } // from constructor
+    public string Profile { get; set; } // from setter
+
+    // If all members of the construct are not taken as arguments, setters are used for the other members
+    public Person3(int age, string name)
+    {
+        this.Age = age;
+        this.Name = name;
+    }
+}
 ```
 
 #### Enum
