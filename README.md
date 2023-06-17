@@ -285,7 +285,7 @@ public partial class Person
         // ...
     }
 
-    // If there are multiple constructors, then [MemoryPackConstructor] should be used
+    // If there are multiple constructors, then [YamlConstructor] should be used
     [YamlConstructor]
     public Person(int age, string name)
     {
