@@ -67,7 +67,7 @@ Require Unity 2021.3 or later.
 You can add following url to Unity Package Manager.
 
 ```
-https://github.com/hadashiA/VYaml.git?path=VYaml.Unity/Assets/VYaml#0.13.0
+https://github.com/hadashiA/VYaml.git?path=VYaml.Unity/Assets/VYaml#0.13.1
 ```
 
 ## Usage
