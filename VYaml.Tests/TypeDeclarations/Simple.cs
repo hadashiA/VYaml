@@ -226,7 +226,7 @@ namespace VYaml.Tests.TypeDeclarations
     {
         public int Foo { get; }
         public string Bar { get; }
-        public string Hoge { get; init; } = default!;
+        public string Hoge { get; set; } = default!;
 
         [YamlConstructor]
         public WithCustomConstructorAndOtherProps(int foo, string bar)

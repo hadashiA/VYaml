@@ -22,6 +22,11 @@ namespace VYaml.Serialization
 
         public string? Deserialize(ref YamlParser parser, YamlDeserializationContext context)
         {
+            if (parser.IsNullScalar())
+            {
+                parser.Read();
+                return null;
+            }
             return parser.ReadScalarAsString();
         }
     }
