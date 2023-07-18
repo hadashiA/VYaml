@@ -1,7 +1,7 @@
 {
   "name": "jp.hadashikick.vyaml",
   "displayName": "VYaml",
-  "version": "0.13.1",
+  "version": "0.13.2",
   "unity": "2021.3",
   "description": "The extra fast YAML library",
   "keywords": ["yaml", "serialization", "parser"],
