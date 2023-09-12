@@ -30,7 +30,7 @@ namespace VYaml.Serialization
                 return null;
             }
 
-            var str = parser.GetScalarAsString();
+            var str = parser.ReadScalarAsString();
             return Convert.FromBase64String(str!);
         }
     }
