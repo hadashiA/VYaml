@@ -214,7 +214,7 @@ namespace VYaml.Parser
 
         public bool TryGetInt64(out long value)
         {
-            var span = buffer.AsSpan();
+            var span = AsSpan();
             if (Utf8Parser.TryParse(span, out value, out var bytesConsumed) &&
                 bytesConsumed == span.Length)
             {
