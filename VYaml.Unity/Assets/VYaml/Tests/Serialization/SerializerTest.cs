@@ -18,5 +18,19 @@ namespace VYaml.Tests.Serialization
             Assert.That(documents[1]["Warning"], Is.EqualTo("A slightly different error message."));
             Assert.That(documents[2]["Fatal"], Is.EqualTo("Unknown variable \"bar\""));
         }
+
+        [Test]
+        public void DeserializeHighDigitNumber()
+        {
+            var yamlBytes = StringEncoding.Utf8.GetBytes("id1: 8083928222794209684\n" +
+                                                         "id2: 123\n" +
+                                                         "id3: 8083928222794209684.123456789\n");
+            var documents = YamlSerializer.Deserialize<dynamic>(yamlBytes);
+            Assert.That(documents.Count, Is.EqualTo(3));
+            Assert.That(documents["id1"], Is.InstanceOf<long>());
+            Assert.That(documents["id1"], Is.EqualTo(8083928222794209684));
+            Assert.That(documents["id2"], Is.InstanceOf<int>());
+            Assert.That(documents["id3"], Is.InstanceOf<double>());
+        }
     }
 }

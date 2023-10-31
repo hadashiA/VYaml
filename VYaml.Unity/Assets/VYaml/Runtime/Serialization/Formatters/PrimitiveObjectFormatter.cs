@@ -148,6 +148,11 @@ namespace VYaml.Serialization
                         parser.Read();
                         result = intValue;
                     }
+                    else if (parser.TryGetScalarAsInt64(out var int64Value))
+                    {
+                        parser.Read();
+                        result = int64Value;
+                    }
                     else if (parser.TryGetScalarAsDouble(out var doubleValue))
                     {
                         parser.Read();
