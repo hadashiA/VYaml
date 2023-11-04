@@ -21,7 +21,7 @@ namespace VYaml.Serialization
         }
     }
 
-    public static class YamlSerializer
+    public static partial class YamlSerializer
     {
         [ThreadStatic]
         static YamlDeserializationContext? deserializationContext;

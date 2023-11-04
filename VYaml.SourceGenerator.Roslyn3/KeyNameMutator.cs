@@ -2,14 +2,34 @@ using System.Text;
 
 namespace VYaml.SourceGenerator;
 
-static class KeyNameHelper
+enum NamingConvention
 {
+    LowerCamelCase,
+    UpperCamelCase,
+    SnakeCase,
+    KebabCase,
+}
+
+static class KeyNameMutator
+{
+    public static string Mutate(string s, NamingConvention namingConvention)
+    {
+        return namingConvention switch
+        {
+            NamingConvention.LowerCamelCase => ToLowerCamelCase(s),
+            NamingConvention.UpperCamelCase => s,
+            NamingConvention.SnakeCase => ToSnakeCase(s),
+            NamingConvention.KebabCase => ToSnakeCase(s, '-'),
+            _ => throw new ArgumentOutOfRangeException(nameof(namingConvention), namingConvention, null)
+        };
+    }
+
     public static string Original(string s)
     {
         return s;
     }
 
-    public static string ToCamelCase(string s)
+    public static string ToLowerCamelCase(string s)
     {
         if (string.IsNullOrEmpty(s) || char.IsLower(s, 0))
         {
@@ -21,7 +41,7 @@ static class KeyNameHelper
         return new string(array);
     }
 
-    public static string ToSnakeCase(string s)
+    public static string ToSnakeCase(string s, char separator = '_')
     {
         if (string.IsNullOrEmpty(s)) return s;
 
@@ -56,4 +76,3 @@ static class KeyNameHelper
         return sb.ToString();
     }
 }
-

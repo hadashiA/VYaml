@@ -1,16 +1,30 @@
 #nullable enable
+using System;
 using System.Text;
+using VYaml.Annotations;
 
 namespace VYaml.Internal
 {
-    static class KeyNameHelper
+    static class KeyNameMutator
     {
+        public static string Mutate(string s, NamingConvention namingConvention)
+        {
+            return namingConvention switch
+            {
+                NamingConvention.LowerCamelCase => ToLowerCamelCase(s),
+                NamingConvention.UpperCamelCase => s,
+                NamingConvention.SnakeCase => ToSnakeCase(s),
+                NamingConvention.KebabCase => ToSnakeCase(s, '-'),
+                _ => throw new ArgumentOutOfRangeException(nameof(namingConvention), namingConvention, null)
+            };
+        }
+
         public static string Original(string s)
         {
             return s;
         }
 
-        public static string ToCamelCase(string s)
+        public static string ToLowerCamelCase(string s)
         {
             if (string.IsNullOrEmpty(s) || char.IsLower(s, 0))
             {
@@ -22,7 +36,7 @@ namespace VYaml.Internal
             return new string(array);
         }
 
-        public static string ToSnakeCase(string s)
+        public static string ToSnakeCase(string s, char separator = '_')
         {
             if (string.IsNullOrEmpty(s)) return s;
 
@@ -44,7 +58,7 @@ namespace VYaml.Internal
                     }
                     else
                     {
-                        sb.Append("_");
+                        sb.Append(separator);
                         sb.Append(char.ToLowerInvariant(c));
                     }
                 }
