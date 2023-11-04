@@ -2,12 +2,22 @@ using System.Linq;
 using NUnit.Framework;
 using VYaml.Internal;
 using VYaml.Serialization;
+using VYaml.Tests.TypeDeclarations;
 
 namespace VYaml.Tests.Serialization
 {
     [TestFixture]
     public class SerializerTest
     {
+        [Test]
+        public void Deserialize_ExplicitDefaultValueFromConstructor()
+        {
+            var yamlBytes = StringEncoding.Utf8.GetBytes("valueSet: 22");
+            var value = YamlSerializer.Deserialize<WithDefaultValue>(yamlBytes);
+            Assert.That(value.Value, Is.EqualTo(12));
+            Assert.That(value.ValueSet, Is.EqualTo(22));
+        }
+
         [Test]
         public void DeserializeMultipleDocuments()
         {

@@ -9,15 +9,19 @@ class MemberMeta
     public string Name { get; }
     public string FullTypeName { get; }
     public ITypeSymbol MemberType { get; }
-    public INamedTypeSymbol? CustomFormatter { get; }
-    public string? CustomFormatterName { get; }
     public bool IsField { get; }
     public bool IsProperty { get; }
     public bool IsSettable { get; }
-    public bool IsConstructorParameter { get; }
     public int Order { get; }
     public bool HasExplicitOrder { get; }
     public bool HasKeyNameAlias { get; }
+
+    public bool IsConstructorParameter { get; set; }
+    public bool HasExplicitDefaultValueFromConstructor { get; set; }
+    public object? ExplicitDefaultValueFromConstructor { get; set; }
+
+    public INamedTypeSymbol? CustomFormatter { get; }
+    public string? CustomFormatterName { get; }
 
     public string KeyName => keyName ??= KeyNameHelper.ToCamelCase(Name);
     public byte[] KeyNameUtf8Bytes => keyNameUtf8Bytes ??= System.Text.Encoding.UTF8.GetBytes(KeyName);
