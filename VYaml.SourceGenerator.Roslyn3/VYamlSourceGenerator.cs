@@ -427,7 +427,26 @@ public class VYamlSourceGenerator : ISourceGenerator
         codeWriter.AppendLine();
         foreach (var memberMeta in typeMeta.MemberMetas)
         {
-            codeWriter.AppendLine($"var __{memberMeta.Name}__ = default({memberMeta.FullTypeName});");
+            codeWriter.Append($"var __{memberMeta.Name}__ = ");
+            if (memberMeta.HasExplicitDefaultValueFromConstructor)
+            {
+                switch (memberMeta.ExplicitDefaultValueFromConstructor)
+                {
+                    case null:
+                        codeWriter.AppendLine("null;", false);
+                        break;
+                    case string stringValue:
+                        codeWriter.AppendLine($"\"{stringValue}\";", false);
+                        break;
+                    case {} anyValue:
+                        codeWriter.AppendLine($"{anyValue};", false);
+                        break;
+                }
+            }
+            else
+            {
+                codeWriter.AppendLine($"default({memberMeta.FullTypeName});", false);
+            }
         }
 
         using (codeWriter.BeginBlockScope("while (!parser.End && parser.CurrentEventType != ParseEventType.MappingEnd)"))
