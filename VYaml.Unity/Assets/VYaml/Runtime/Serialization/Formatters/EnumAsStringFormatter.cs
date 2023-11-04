@@ -49,7 +49,7 @@ namespace VYaml.Serialization
             var values = new List<object>();
 
             var type = typeof(T);
-            var attr = type.GetCustomAttribute<YamlObjectAttribute>();
+            var namingConvention = type.GetCustomAttribute<YamlObjectAttribute>()?.NamingConvention ?? NamingConvention.LowerCamelCase;
             foreach (var item in type.GetFields().Where(x => x.FieldType == type))
             {
                 var value = item.GetValue(null);
@@ -67,7 +67,7 @@ namespace VYaml.Serialization
                 else
                 {
                     var name = Enum.GetName(type, value)!;
-                    names.Add(KeyNameMutator.Mutate(name, attr.NamingConvention));
+                    names.Add(KeyNameMutator.Mutate(name, namingConvention));
                 }
             }
 
@@ -89,7 +89,7 @@ namespace VYaml.Serialization
             }
             else
             {
-                throw new YamlSerializerException($"Cannot detect a value of enum: {typeof(T)}, {value}");
+                YamlSerializerException.ThrowInvalidType(value);
             }
         }
 
@@ -98,14 +98,14 @@ namespace VYaml.Serialization
             var scalar = parser.ReadScalarAsString();
             if (scalar is null)
             {
-                throw new YamlSerializerException($"Cannot detect a scalar value of {typeof(T)}");
+                YamlSerializerException.ThrowInvalidType<T>();
             }
-
-            if (NameValueMapping.TryGetValue(scalar, out var value))
+            else if (NameValueMapping.TryGetValue(scalar, out var value))
             {
                 return value;
             }
-            throw new YamlSerializerException($"Cannot detect a scalar value of {typeof(T)}");
+            YamlSerializerException.ThrowInvalidType<T>();
+            return default!;
         }
     }
 }
