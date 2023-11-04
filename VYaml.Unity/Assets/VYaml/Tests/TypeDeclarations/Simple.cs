@@ -64,6 +64,20 @@ namespace VYaml.Tests.TypeDeclarations
         public ValueTuple<int, int, int, int, int, int, int> Seven { get; set; }
     }
 
+    [YamlObject]
+    public partial class WithDefaultValue
+    {
+        public readonly int Value;
+        public readonly int ValueSet;
+
+        [YamlConstructor]
+        public WithDefaultValue(int valueSet, int value = 12)
+        {
+            ValueSet = valueSet;
+            Value = value;
+        }
+    }
+
     public enum SimpleEnum
     {
         A,

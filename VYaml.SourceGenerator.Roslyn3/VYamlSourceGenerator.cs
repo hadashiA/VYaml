@@ -482,7 +482,19 @@ public class VYamlSourceGenerator : ISourceGenerator
         codeWriter.Append("return new ");
         if (selectedConstructor != null)
         {
-            var parameters = string.Join(",", constructedMembers.Select(x => $"__{x.Name}__"));
+            var parameters = string.Join(",", constructedMembers.Select(x =>
+            {
+                if (x.HasExplicitDefaultValueFromConstructor)
+                {
+                    return x.ExplicitDefaultValueFromConstructor switch
+                    {
+                        null => $"__{x.Name}__ = null",
+                        string stringValue => $"__{x.Name}__ = \"{stringValue}\"",
+                        { } anyValue => $"__{x.Name}__ = {anyValue}"
+                    };
+                }
+                return $"__{x.Name}__";
+            }));
             codeWriter.Append($"{typeMeta.TypeName}({parameters})", false);
         }
         else
@@ -603,6 +615,12 @@ public class VYamlSourceGenerator : ISourceGenerator
                 .FirstOrDefault(member => parameter.Name.Equals(member.Name, StringComparison.OrdinalIgnoreCase));
             if (matchedMember != null)
             {
+                matchedMember.IsConstructorParameter = true;
+                if (parameter.HasExplicitDefaultValue)
+                {
+                    matchedMember.HasExplicitDefaultValueFromConstructor = true;
+                    matchedMember.ExplicitDefaultValueFromConstructor = parameter.ExplicitDefaultValue;
+                }
                 parameterMembers.Add(matchedMember);
             }
             else
