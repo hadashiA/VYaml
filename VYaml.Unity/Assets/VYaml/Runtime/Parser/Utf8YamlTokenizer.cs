@@ -56,7 +56,7 @@ namespace VYaml.Parser
         ExpandBuffer<int> indents;
         ExpandBuffer<byte> lineBreaksBuffer;
 
-        public Utf8YamlTokenizer(in ReadOnlySequence<byte> sequence)
+        public Utf8YamlTokenizer(ReadOnlySequence<byte> sequence)
         {
             reader = new SequenceReader<byte>(sequence);
             mark = new Marker(0, 1, 0);
