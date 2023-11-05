@@ -64,7 +64,7 @@ namespace VYaml.Serialization
 
 // when not found, cache null.
 CACHE:
-                formattersCache.TryAdd(typeof(T), formatter);
+                formattersCache.TryAdd(typeof(T), formatter!);
             }
 
             return formatter as IYamlFormatter<T>;

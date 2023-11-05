@@ -5,7 +5,7 @@ using VYaml.Parser;
 
 namespace VYaml.Serialization
 {
-    public class InterfaceReadOnlyDictionaryFormatter<TKey, TValue> : IYamlFormatter<IReadOnlyDictionary<TKey, TValue>?>
+    public class InterfaceReadOnlyDictionaryFormatter<TKey, TValue> : IYamlFormatter<IReadOnlyDictionary<TKey, TValue>?> where TKey : notnull
     {
         public void Serialize(ref Utf8YamlEmitter emitter, IReadOnlyDictionary<TKey, TValue>? value, YamlSerializationContext context)
         {
