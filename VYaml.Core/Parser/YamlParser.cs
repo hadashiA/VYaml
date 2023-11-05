@@ -103,22 +103,6 @@ namespace VYaml.Parser
         readonly Dictionary<string, int> anchors;
         ExpandBuffer<ParseState> stateStack;
 
-        public YamlParser(ref ReadOnlySequence<byte> sequence)
-        {
-            tokenizer = new Utf8YamlTokenizer(sequence);
-            currentState = ParseState.StreamStart;
-            CurrentEventType = default;
-            lastAnchorId = -1;
-            anchors = new Dictionary<string, int>();
-            stateStack = new ExpandBuffer<ParseState>(16);
-
-            currentScalar = null;
-            currentTag = null;
-            currentAnchor = null;
-
-            UnityStrippedMark = false;
-        }
-
         public YamlParser(ReadOnlySequence<byte> sequence)
         {
             tokenizer = new Utf8YamlTokenizer(sequence);
