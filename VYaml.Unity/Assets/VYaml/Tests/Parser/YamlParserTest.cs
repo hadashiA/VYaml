@@ -12,13 +12,13 @@ namespace VYaml.Tests.Parser
         [Test]
         public void IsNullScalar()
         {
-            CreateParser(new []
+            using var parser = CreateParser(new []
             {
                 "- null",
                 "- ",
                 "- ~",
                 "- not null",
-            }, out var parser);
+            });
 
             parser.SkipAfter(ParseEventType.DocumentStart);
             Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.SequenceStart));
@@ -37,7 +37,7 @@ namespace VYaml.Tests.Parser
         [Test]
         public void SkipCurrentNode()
         {
-            CreateParser(new []
+            using var parser = CreateParser(new []
             {
                 "a: 1",
                 "b: { ba: 2 }",
@@ -45,7 +45,7 @@ namespace VYaml.Tests.Parser
                 "d: { da: [100, 200, 300], db: 100 }",
                 "e: { ea: [{eaa: 100}, 200, 300], db: {} }",
                 "f: [{ fa: 100, fb: [100, 200, 300] }]",
-            }, out var parser);
+            });
 
             parser.SkipAfter(ParseEventType.MappingStart);
             Assert.That(parser.GetScalarAsString(), Is.EqualTo("a"));
@@ -78,12 +78,12 @@ namespace VYaml.Tests.Parser
         [Test]
         public void Tag_BlockMapping()
         {
-            CreateParser(new []
+            using var parser = CreateParser(new []
             {
                 "!tag1",
                 "a: 100",
                 "b: 200",
-            }, out var parser);
+            });
 
             parser.SkipAfter(ParseEventType.DocumentStart);
             Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.MappingStart));
@@ -94,7 +94,7 @@ namespace VYaml.Tests.Parser
         [Test]
         public void UnityFormat()
         {
-            CreateParser(new []
+            using var parser = CreateParser(new []
             {
                 "%YAML 1.1",
                 "%TAG !u! tag:unity3d.com,2011:",
@@ -130,7 +130,7 @@ namespace VYaml.Tests.Parser
                 "  serializedVersion: 2",
                 "  m_Modification:",
                 "    serializedVersion: 2",
-            }, out var parser);
+            });
 
             parser.SkipAfter(ParseEventType.StreamStart);
 
@@ -196,13 +196,13 @@ namespace VYaml.Tests.Parser
         [Test]
         public void EmptyElementInSequence()
         {
-            CreateParser(new []
+            using var parser = CreateParser(new []
             {
                 "keywords:",
                 "- ",
                 "- _RIDE_ON",
                 "- _COME_ON",
-            }, out var parser);
+            });
 
             parser.SkipAfter(ParseEventType.DocumentStart);
             Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.MappingStart));
@@ -221,16 +221,17 @@ namespace VYaml.Tests.Parser
             Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.DocumentEnd));
         }
 
-        static void CreateParser(IEnumerable<string> lines, out YamlParser tokenizer)
+        static YamlParser CreateParser(IEnumerable<string> lines)
         {
             var yaml = string.Join('\n', lines);
-            CreateParser(yaml, out tokenizer);
+            var sequence = new ReadOnlySequence<byte>(Encoding.UTF8.GetBytes(yaml));
+            return new YamlParser(sequence);
         }
 
         static void CreateParser(string yaml, out YamlParser x)
         {
             var sequence = new ReadOnlySequence<byte>(Encoding.UTF8.GetBytes(yaml));
-            x = YamlParser.FromSequence(sequence);
+            x = new YamlParser(sequence);
         }
     }
 }
