@@ -27,6 +27,7 @@ class TypeMeta
     public string FullTypeName { get; }
     public IReadOnlyList<IMethodSymbol> Constructors { get; }
     public IReadOnlyList<UnionMeta> UnionMetas { get; }
+    public NamingConvention NamingConvention { get; }
 
     public IReadOnlyList<MemberMeta> MemberMetas => memberMetas ??= GetSerializeMembers();
     public bool IsUnion => UnionMetas.Count > 0;
@@ -48,6 +49,17 @@ class TypeMeta
         FullTypeName = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
         YamlObjectAttribute = yamlObjectAttribute;
+
+        foreach (var arg in YamlObjectAttribute.ConstructorArguments)
+        {
+            if (SymbolEqualityComparer.Default.Equals(arg.Type, references.NamingConventionEnum))
+            {
+                NamingConvention = arg.Value != null
+                    ? (NamingConvention)arg.Value
+                    : NamingConvention.LowerCamelCase;
+                break;
+            }
+        }
 
         Constructors = symbol.InstanceConstructors
             .Where(x => !x.IsImplicitlyDeclared) // remove empty ctor(struct always generate it), record's clone ctor
@@ -94,7 +106,7 @@ class TypeMeta
                     }
                     return true;
                 })
-                .Select((x, i) => new MemberMeta(x, references, i))
+                .Select((x, i) => new MemberMeta(x, references, NamingConvention, i))
                 .OrderBy(x => x.Order)
                 .ToArray();
         }

@@ -3,7 +3,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using VYaml.Emitter;
-using VYaml.Internal;
 using VYaml.Parser;
 
 namespace VYaml.Serialization
@@ -94,7 +93,8 @@ namespace VYaml.Serialization
 
             if (type.IsEnum)
             {
-                emitter.WriteString(KeyNameHelper.ToCamelCase(value.ToString()), ScalarStyle.Plain); // TODO:
+                var enumValue = EnumAsStringNonGenericCache.Instance.GetStringValue(type, value);
+                emitter.WriteString(enumValue, ScalarStyle.Plain);
                 return;
             }
 

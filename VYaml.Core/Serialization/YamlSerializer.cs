@@ -12,6 +12,16 @@ namespace VYaml.Serialization
 {
     public class YamlSerializerException : Exception
     {
+        public static void ThrowInvalidType<T>(T value)
+        {
+            throw new YamlSerializerException($"Cannot detect a value of enum: {typeof(T)}, {value}");
+        }
+
+        public static void ThrowInvalidType<T>()
+        {
+            throw new YamlSerializerException($"Cannot detect a scalar value of {typeof(T)}");
+        }
+
         public YamlSerializerException(string message) : base(message)
         {
         }
@@ -21,7 +31,7 @@ namespace VYaml.Serialization
         }
     }
 
-    public static class YamlSerializer
+    public static partial class YamlSerializer
     {
         [ThreadStatic]
         static YamlDeserializationContext? deserializationContext;

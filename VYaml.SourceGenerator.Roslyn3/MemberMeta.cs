@@ -15,33 +15,30 @@ class MemberMeta
     public int Order { get; }
     public bool HasExplicitOrder { get; }
     public bool HasKeyNameAlias { get; }
+    public string KeyName { get; }
 
     public bool IsConstructorParameter { get; set; }
     public bool HasExplicitDefaultValueFromConstructor { get; set; }
     public object? ExplicitDefaultValueFromConstructor { get; set; }
 
-    public INamedTypeSymbol? CustomFormatter { get; }
-    public string? CustomFormatterName { get; }
-
-    public string KeyName => keyName ??= KeyNameHelper.ToCamelCase(Name);
     public byte[] KeyNameUtf8Bytes => keyNameUtf8Bytes ??= System.Text.Encoding.UTF8.GetBytes(KeyName);
-
-    string? keyName;
     byte[]? keyNameUtf8Bytes;
 
-    public MemberMeta(ISymbol symbol, ReferenceSymbols references, int sequentialOrder)
+    public MemberMeta(ISymbol symbol, ReferenceSymbols references, NamingConvention namingConvention, int sequentialOrder)
     {
         Symbol = symbol;
         Name = symbol.Name;
         Order = sequentialOrder;
+        KeyName = KeyNameMutator.Mutate(Name, namingConvention);
 
         var memberAttribute = symbol.GetAttribute(references.YamlMemberAttribute);
         if (memberAttribute != null)
         {
-            if (memberAttribute.ConstructorArguments.Length > 0)
+            if (memberAttribute.ConstructorArguments.Length > 0 &&
+                memberAttribute.ConstructorArguments[0].Value is string aliasValue)
             {
                 HasKeyNameAlias = true;
-                keyName = (string?)memberAttribute.ConstructorArguments[0].Value;
+                KeyName = aliasValue;
             }
 
             var orderProp = memberAttribute.NamedArguments.FirstOrDefault(x => x.Key == "Order");

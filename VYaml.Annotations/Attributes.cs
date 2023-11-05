@@ -11,11 +11,19 @@ namespace VYaml.Annotations
         KebabCase,
     }
 
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface, Inherited = false)]
+    [AttributeUsage(AttributeTargets.Class |
+                    AttributeTargets.Struct |
+                    AttributeTargets.Interface |
+                    AttributeTargets.Enum,
+        Inherited = false)]
     public class YamlObjectAttribute : Attribute
     {
-        // TODO:
-        // public NamingConvention NamingConvention { get; set; }
+        public NamingConvention NamingConvention { get; }
+
+        public YamlObjectAttribute(NamingConvention namingConvention = NamingConvention.LowerCamelCase)
+        {
+            NamingConvention = namingConvention;
+        }
     }
 
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
@@ -40,8 +48,11 @@ namespace VYaml.Annotations
     {
     }
 
-    [AttributeUsage(AttributeTargets.Interface | AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
-    public sealed class YamlObjectUnionAttribute : Attribute
+    [AttributeUsage(AttributeTargets.Interface |
+                    AttributeTargets.Class,
+        AllowMultiple = true,
+        Inherited = false)]
+    public class YamlObjectUnionAttribute : Attribute
     {
         public string Tag { get; }
         public Type SubType { get; }

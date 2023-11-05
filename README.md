@@ -231,7 +231,33 @@ documents[2]["Fatal"]   // #=> "Unknown variable \"bar\""
 
 :exclamation: By default, VYaml maps C# property names in lower camel case (e.g. `propertyName`) format to yaml keys.
 
-You can customize this behaviour with `[YamlMember("name")]`
+If you want to customize this behaviour, use argment of `[YamlObject]` attribute.
+
+```csharp
+[YamlObject(NamingConvention.SnakeCase)]
+public partial class Sample
+{
+    public int FooBar { get; init; }
+}
+```
+
+This serialize as:
+
+```yaml
+foo_bar: 100
+```
+
+List of possible values:
+- NamingConvention.LowerCamelCase
+  - Like `propertyName` 
+- NamingConvention.UpperCamelCase:
+  - Like `PropertyName` 
+- NamingConvention.SnakeCase: 
+  - Like  `property_name` 
+- NamingConvention.KebabCase: 
+  - Like `property-name` 
+
+Alos, you can change the key name each members with `[YamlMember("name")]`
 
 ```csharp
 [YamlObject]
@@ -313,7 +339,8 @@ public partial class Person
 
 #### Enum
 
-Deserialize a string in `camelCase` format as an enum.
+By default, Enum is serialized in camelCase with a leading lowercase letter, as is the key name of the object. 
+For example:
 
 ``` csharp
 enum Foo
@@ -347,6 +374,23 @@ enum Foo
 
 ``` csharp
 YamlSerializer.Serialize(Foo.Item1); // #=> "item1-alias"
+```
+
+And, naming covnention can also be specified by using the `[YamlMember]` attribute.
+
+
+``` csharp
+[YamlObject(NamingConvention.SnakeCase)]
+enum Foo
+{
+    ItemOne,
+    ItemTwo,
+    ItemThree,
+}
+```
+
+``` csharp
+YamlSerializer.Serialize(Foo.ItemOne); // #=> "item_one"
 ```
 
 #### Polymorphism (Union)
