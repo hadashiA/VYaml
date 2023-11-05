@@ -32,9 +32,9 @@ namespace VYaml.Tests.Serialization
                 FooBar = 222,
                 Buz = UpperCamelEnum.FugaFuga
             });
-            Assert.That(result, Is.EqualTo("foo: 111\n" +
-                                           "fooBar: 222\n" +
-                                           "buz: FugaFuga\n"));
+            Assert.That(result, Is.EqualTo("Foo: 111\n" +
+                                           "FooBar: 222\n" +
+                                           "Buz: FugaFuga\n"));
         }
 
         [Test]
@@ -47,7 +47,7 @@ namespace VYaml.Tests.Serialization
                 Buz = SnakeCaseEnum.FugaFuga
             });
             Assert.That(result, Is.EqualTo("foo: 111\n" +
-                                           "fooBar: 222\n" +
+                                           "foo_bar: 222\n" +
                                            "buz: fuga_fuga\n"));
         }
 
@@ -61,7 +61,7 @@ namespace VYaml.Tests.Serialization
                 Buz = KebabCaseEnum.FugaFuga
             });
             Assert.That(result, Is.EqualTo("foo: 111\n" +
-                                           "fooBar: 222\n" +
+                                           "foo-bar: 222\n" +
                                            "buz: fuga-fuga\n"));
         }
 
@@ -82,9 +82,9 @@ namespace VYaml.Tests.Serialization
         public void Deserialize_UpperCamel()
         {
             var result = YamlSerializer.Deserialize<AsUpperCamel>(
-                StringEncoding.Utf8.GetBytes("foo: 111\n" +
-                                             "fooBar: 222\n" +
-                                             "buz: FugaFuga\n"));
+                StringEncoding.Utf8.GetBytes("Foo: 111\n" +
+                                             "FooBar: 222\n" +
+                                             "Buz: FugaFuga\n"));
 
             Assert.That(result.Foo, Is.EqualTo(111));
             Assert.That(result.FooBar, Is.EqualTo(222));
@@ -96,7 +96,7 @@ namespace VYaml.Tests.Serialization
         {
             var result = YamlSerializer.Deserialize<AsSnakeCase>(
                 StringEncoding.Utf8.GetBytes("foo: 111\n" +
-                                             "fooBar: 222\n" +
+                                             "foo_bar: 222\n" +
                                              "buz: fuga_fuga\n"));
 
             Assert.That(result.Foo, Is.EqualTo(111));
@@ -109,7 +109,7 @@ namespace VYaml.Tests.Serialization
         {
             var result = YamlSerializer.Deserialize<AsKebabCase>(
                 StringEncoding.Utf8.GetBytes("foo: 111\n" +
-                                             "fooBar: 222\n" +
+                                             "foo-bar: 222\n" +
                                              "buz: fuga-fuga\n"));
 
             Assert.That(result.Foo, Is.EqualTo(111));

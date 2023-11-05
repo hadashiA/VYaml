@@ -50,12 +50,15 @@ class TypeMeta
 
         YamlObjectAttribute = yamlObjectAttribute;
 
-        var namingConventionArg = YamlObjectAttribute.ConstructorArguments
-            .FirstOrDefault(arg => SymbolEqualityComparer.Default.Equals(arg.Type, references.NamingConventionEnum));
-
-        if (namingConventionArg.Value is NamingConvention namingConvention)
+        foreach (var arg in YamlObjectAttribute.ConstructorArguments)
         {
-            NamingConvention = namingConvention;
+            if (SymbolEqualityComparer.Default.Equals(arg.Type, references.NamingConventionEnum))
+            {
+                NamingConvention = arg.Value != null
+                    ? (NamingConvention)arg.Value
+                    : NamingConvention.LowerCamelCase;
+                break;
+            }
         }
 
         Constructors = symbol.InstanceConstructors
