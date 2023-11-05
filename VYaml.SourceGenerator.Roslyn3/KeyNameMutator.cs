@@ -68,6 +68,6 @@ static class KeyNameMutator
                 buf[written++] = ch;
             }
         }
-        return buf[..written].ToString();
+        return buf.Slice(0, written).ToString();
     }
 }

@@ -14,7 +14,7 @@ namespace VYaml.Parser
             Id = id;
         }
 
-        public bool Equals(Anchor other) => Id == other.Id;
+        public bool Equals(Anchor? other) => other != null && Id == other.Id;
         public override bool Equals(object? obj) => obj is Anchor other && Equals(other);
         public override int GetHashCode() => Id;
 

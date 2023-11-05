@@ -253,7 +253,7 @@ namespace VYaml.Serialization
         }
     }
 
-    public class TupleFormatter<T1, T2, T3, T4, T5, T6, T7, T8> : IYamlFormatter<Tuple<T1, T2, T3, T4, T5, T6, T7, T8>?>
+    public class TupleFormatter<T1, T2, T3, T4, T5, T6, T7, T8> : IYamlFormatter<Tuple<T1, T2, T3, T4, T5, T6, T7, T8>?> where T8 : notnull
     {
         public void Serialize(ref Utf8YamlEmitter emitter, Tuple<T1, T2, T3, T4, T5, T6, T7, T8>? value, YamlSerializationContext context)
         {
