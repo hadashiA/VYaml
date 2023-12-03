@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using NUnit.Framework;
 using VYaml.Tests.TypeDeclarations;
 
@@ -284,6 +285,21 @@ namespace VYaml.Tests.Serialization
             Assert.That(result2, Is.InstanceOf<AbstractImpl2>());
             Assert.That(result2.A, Is.EqualTo(100));
             Assert.That(((AbstractImpl2)result2).C, Is.EqualTo("bar"));
+        }
+
+        [Test]
+        public void Deserialize_UnionFromEmptyElement()
+        {
+            var result = Deserialize<Dictionary<string, IEmpty[]>>(
+                "list:\n" +
+                "  - !impl1\n" +
+                "    a: 9999\n" +
+                "  - !impl2\n" +
+                "  - !impl1\n" +
+                "    a: 3333");
+
+            Assert.That(result.Count, Is.EqualTo(1));
+            Assert.That(result["list"].Length, Is.EqualTo(3));
         }
 
         [Test]

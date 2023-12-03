@@ -132,6 +132,23 @@ namespace VYaml.Tests.TypeDeclarations
     }
 
     [YamlObject]
+    [YamlObjectUnion("!impl1", typeof(EmptyInterfaceImpl1))]
+    [YamlObjectUnion("!impl2", typeof(EmptyInterfaceImpl2))]
+    public partial interface IEmpty
+    {
+    }
+
+    [YamlObject]
+    public partial class EmptyInterfaceImpl1 : IEmpty
+    {
+    }
+
+    [YamlObject]
+    public partial class EmptyInterfaceImpl2 : IEmpty
+    {
+    }
+
+    [YamlObject]
     [YamlObjectUnion("!impl1", typeof(AbstractImpl1))]
     [YamlObjectUnion("!impl2", typeof(AbstractImpl2))]
     public abstract partial class AbstractUnion
