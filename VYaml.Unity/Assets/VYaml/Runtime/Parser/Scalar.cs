@@ -41,7 +41,12 @@ namespace VYaml.Parser
         }
     }
 
-    class Scalar : ITokenContent, IDisposable
+    public interface IReturnableScalar : IDisposable
+    {
+        public ReadOnlySpan<byte> AsUtf8();
+    }
+
+    class Scalar : ITokenContent, IReturnableScalar
     {
         const int MinimumGrow = 4;
         const int GrowFactor = 200;
@@ -67,6 +72,9 @@ namespace VYaml.Parser
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Span<byte> AsSpan(int start, int length) => buffer.AsSpan(start, length);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ReadOnlySpan<byte> AsUtf8() => buffer.AsSpan(0, Length);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(byte code)

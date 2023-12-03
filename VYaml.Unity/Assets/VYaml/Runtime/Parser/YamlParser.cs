@@ -9,8 +9,12 @@ namespace VYaml.Parser
 {
     public class YamlParserException : Exception
     {
-        public YamlParserException(in Marker marker, string message)
-            : base($"{message} at {marker}")
+        public static void Throw(in Marker marker, string message)
+        {
+            throw new YamlParserException(marker, message);
+        }
+
+        public YamlParserException(in Marker marker, string message) : base($"{message} at {marker}")
         {
         }
     }
