@@ -21,6 +21,28 @@ namespace VYaml.Parser
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly ReadOnlySpan<byte> GetScalarAsUtf8()
+        {
+            if (currentScalar is { } scalar)
+            {
+                return scalar.AsUtf8();
+            }
+            YamlParserException.Throw(CurrentMark, $"Cannot detect a scalar value as utf8 : {CurrentEventType} {currentScalar}");
+            return default!;
+        }
+
+        // [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        // public readonly bool IsScalar
+        // {
+        //     if (currentScalar is { } scalar)
+        //     {
+        //         return scalar.AsUtf8();
+        //     }
+        //     YamlParserException.Throw(CurrentMark, $"Cannot detect a scalar value as utf8 : {CurrentEventType} {currentScalar}");
+        //     return default!;
+        // }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly bool TryGetScalarAsSpan(out ReadOnlySpan<byte> span)
         {
             if (currentScalar is null)
@@ -39,7 +61,8 @@ namespace VYaml.Parser
             {
                 return value;
             }
-            throw new YamlParserException(CurrentMark, $"Cannot detect a scalar value as bool : {CurrentEventType} {currentScalar}");
+            YamlParserException.Throw(CurrentMark, $"Cannot detect a scalar value as bool : {CurrentEventType} {currentScalar}");
+            return default!;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -49,7 +72,8 @@ namespace VYaml.Parser
             {
                 return value;
             }
-            throw new YamlParserException(CurrentMark, $"Cannot detect a scalar value as Int32: {CurrentEventType} {currentScalar}");
+            YamlParserException.Throw(CurrentMark, $"Cannot detect a scalar value as Int32: {CurrentEventType} {currentScalar}");
+            return default!;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -59,7 +83,8 @@ namespace VYaml.Parser
             {
                 return value;
             }
-            throw new YamlParserException(CurrentMark, $"Cannot detect a scalar value as Int64: {CurrentEventType} {currentScalar}");
+            YamlParserException.Throw(CurrentMark, $"Cannot detect a scalar value as Int64: {CurrentEventType} {currentScalar}");
+            return default!;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -69,7 +94,8 @@ namespace VYaml.Parser
             {
                 return value;
             }
-            throw new YamlParserException(CurrentMark, $"Cannot detect a scalar value as UInt32 : {CurrentEventType} {currentScalar}");
+            YamlParserException.Throw(CurrentMark, $"Cannot detect a scalar value as UInt32 : {CurrentEventType} {currentScalar}");
+            return default!;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -79,7 +105,8 @@ namespace VYaml.Parser
             {
                 return value;
             }
-            throw new YamlParserException(CurrentMark, $"Cannot detect a scalar value as UInt64 : {CurrentEventType} ({currentScalar})");
+            YamlParserException.Throw(CurrentMark, $"Cannot detect a scalar value as UInt64 : {CurrentEventType} ({currentScalar})");
+            return default!;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -89,7 +116,8 @@ namespace VYaml.Parser
             {
                 return value;
             }
-            throw new YamlParserException(CurrentMark, $"Cannot detect scalar value as float : {CurrentEventType} {currentScalar}");
+            YamlParserException.Throw(CurrentMark, $"Cannot detect scalar value as float : {CurrentEventType} {currentScalar}");
+            return default!;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -99,7 +127,8 @@ namespace VYaml.Parser
             {
                 return value;
             }
-            throw new YamlParserException(CurrentMark, $"Cannot detect a scalar value as double : {CurrentEventType} {currentScalar}");
+            YamlParserException.Throw(CurrentMark, $"Cannot detect a scalar value as double : {CurrentEventType} {currentScalar}");
+            return default!;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

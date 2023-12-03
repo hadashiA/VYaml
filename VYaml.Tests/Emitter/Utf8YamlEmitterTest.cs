@@ -1,3 +1,4 @@
+#nullable enable
 using System.Buffers;
 using NUnit.Framework;
 using VYaml.Emitter;
@@ -11,7 +12,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void WriteNull()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.WriteNull();
             Assert.That(ToString(in emitter), Is.EqualTo("null"));
         }
@@ -21,7 +22,7 @@ namespace VYaml.Tests.Emitter
         [TestCase(false, ExpectedResult = "false")]
         public string WriteBool(bool value)
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.WriteBool(value);
             return ToString(in emitter);
         }
@@ -34,7 +35,7 @@ namespace VYaml.Tests.Emitter
         [TestCase(int.MinValue, ExpectedResult = "-2147483648")]
         public string WriteInt32(int value)
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.WriteInt32(value);
             return ToString(in emitter);
         }
@@ -47,7 +48,7 @@ namespace VYaml.Tests.Emitter
         [TestCase(long.MinValue, ExpectedResult = "-9223372036854775808")]
         public string WriteInt64(long value)
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.WriteInt64(value);
             return ToString(in emitter);
         }
@@ -58,7 +59,7 @@ namespace VYaml.Tests.Emitter
         [TestCase(uint.MaxValue, ExpectedResult = "4294967295")]
         public string WriteUInt32(uint value)
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.WriteUInt32(value);
             return ToString(in emitter);
         }
@@ -69,7 +70,7 @@ namespace VYaml.Tests.Emitter
         [TestCase(ulong.MaxValue, ExpectedResult = "18446744073709551615")]
         public string WriteUInt64(ulong value)
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.WriteUInt64(value);
             return ToString(in emitter);
         }
@@ -80,7 +81,7 @@ namespace VYaml.Tests.Emitter
         [TestCase(-123.4567f, ExpectedResult = "-123.4567")]
         public string WriteFloat(float value)
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.WriteFloat(value);
             return ToString(in emitter);
         }
@@ -91,7 +92,7 @@ namespace VYaml.Tests.Emitter
         [TestCase(-123.456789123, ExpectedResult = "-123.456789123")]
         public string WriteDouble(double value)
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.WriteDouble(value);
             return ToString(in emitter);
         }
@@ -99,7 +100,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void WriteString_PlainScalar()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.WriteString("aiueo", ScalarStyle.Plain);
             Assert.That(ToString(in emitter), Is.EqualTo("aiueo"));
         }
@@ -116,7 +117,7 @@ namespace VYaml.Tests.Emitter
         [TestCase("\x1F", ExpectedResult = "\"\\u001f\"")]
         public string WriteString_DoubleQuotedScalar(string value)
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.WriteString(value, ScalarStyle.DoubleQuoted);
             return ToString(in emitter);
         }
@@ -132,7 +133,7 @@ namespace VYaml.Tests.Emitter
         [TestCase("\x1F", ExpectedResult = "'\\u001f'")]
         public string WriteString_SingleQuotedScalar(string value)
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.WriteString(value, ScalarStyle.SingleQuoted);
             return ToString(in emitter);
         }
@@ -140,7 +141,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void WriteString_LiteralScalar()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
 
             emitter.WriteString(
                 "Mark McGwire's\nyear was crippled\nby a knee injury.\n",
@@ -157,7 +158,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void WriteString_LiteralScalar_NoNewLineAtEnd()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
 
             emitter.WriteString(
                 "Mark McGwire's\nyear was crippled\nby a knee injury.",
@@ -174,7 +175,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void WriteString_LiteralScalar_AllNewlinesFromEnd()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
 
             emitter.WriteString(
                 "Mark McGwire's\nyear was crippled\nby a knee injury.\n\n\n",
@@ -193,7 +194,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void WriteString_LiteralScalarInSequence()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.BeginSequence();
             emitter.WriteString(
                 "Mark McGwire's\nyear was crippled\nby a knee injury.\n",
@@ -211,7 +212,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void WriteString_LiteralScalarInMapping()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.BeginMapping();
             emitter.WriteString("aaa");
             emitter.WriteString(
@@ -230,7 +231,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void WriteString_LiteralScalarNested()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.BeginSequence();
             {
                 emitter.BeginMapping();
@@ -256,7 +257,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void WriteString_AutoDetectPlainScalar()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.WriteString("aiueo kakikukeko");
             Assert.That(ToString(in emitter), Is.EqualTo("aiueo kakikukeko"));
         }
@@ -277,7 +278,7 @@ namespace VYaml.Tests.Emitter
         [TestCase("http://example.com#bbb", ExpectedResult = "\"http://example.com#bbb\"")]
         public string WriteString_AutoDoubleQuoted(string value)
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.WriteString(value);
             return ToString(in emitter);
         }
@@ -286,7 +287,7 @@ namespace VYaml.Tests.Emitter
         [TestCase("aaa\nbbb\n", ExpectedResult = "|\n  aaa\n  bbb\n")]
         public string WriteString_AutoMultiLines(string value)
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.WriteString(value);
             return ToString(in emitter);
         }
@@ -294,7 +295,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void BlockSequence()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.BeginSequence();
             emitter.WriteInt32(100);
             emitter.WriteInt32(200);
@@ -311,7 +312,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void BlockSequence_Empty()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.BeginSequence();
             emitter.EndSequence();
 
@@ -323,7 +324,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void BlockSequence_Nested1()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.BeginSequence();
             {
                 emitter.WriteInt32(100);
@@ -349,7 +350,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void BlockSequence_NestedDeeply()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.BeginSequence();
             {
                 emitter.WriteInt32(100);
@@ -406,7 +407,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void BlockSequence_NestedFirstElement()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.BeginSequence();
             {
                 emitter.BeginSequence();
@@ -482,7 +483,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void BlockSequence_InBlockMapping()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.BeginMapping();
             {
                 emitter.WriteString("aaa");
@@ -511,7 +512,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void BlockSequence_InBlockMappingMultiple()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.BeginMapping();
             {
                 emitter.WriteString("aaa");
@@ -551,7 +552,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void BlockSequence_NestedEmptySequences()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.BeginSequence();
             {
                 emitter.BeginSequence();
@@ -573,7 +574,7 @@ namespace VYaml.Tests.Emitter
         {
             Assert.Throws<YamlEmitterException>(() =>
             {
-                using var emitter = CreateEmitter();
+                var emitter = CreateEmitter();
                 emitter.BeginMapping();
                 emitter.BeginSequence();
             });
@@ -582,7 +583,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void BlockMapping()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.BeginMapping();
             {
                 emitter.WriteInt32(1);
@@ -601,7 +602,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void BlockMapping_Empty()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.BeginMapping();
             emitter.EndMapping();
 
@@ -611,7 +612,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void BlockMapping_Nested1()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.BeginMapping();
             {
                 emitter.WriteInt32(1);
@@ -642,7 +643,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void BlockMapping_NestedDeeply()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.BeginMapping();
             {
                 emitter.WriteString("key1");
@@ -728,7 +729,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void BlockMapping_NestedEmptyMappings()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.BeginMapping();
             {
                 emitter.WriteString("a");
@@ -750,7 +751,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void BlockMapping_NestedEmptySequences()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.BeginMapping();
             {
                 emitter.WriteString("a");
@@ -772,7 +773,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void BlockMapping_NestedFirstElements()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.BeginMapping();
             {
                 emitter.WriteString("key1");
@@ -877,7 +878,7 @@ namespace VYaml.Tests.Emitter
         {
             Assert.Throws<YamlEmitterException>(() =>
             {
-                using var emitter = CreateEmitter();
+                var emitter = CreateEmitter();
                 emitter.BeginMapping();
                 emitter.BeginMapping();
             });
@@ -886,7 +887,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void BlockMapping_WithEmptyTag()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.Tag("!impl1");
             emitter.BeginMapping();
             emitter.EndMapping();
@@ -899,7 +900,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void BlockMapping_WithTag()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.Tag("!impl1");
             emitter.BeginMapping();
             {
@@ -917,7 +918,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void BlockMapping_WithTagInSequence()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
 
             emitter.BeginSequence();
             {
@@ -960,7 +961,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void BlockMapping_WithTagNested()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
 
             emitter.BeginMapping();
             {
@@ -1002,7 +1003,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void FlowSequence()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.BeginSequence(SequenceStyle.Flow);
             {
                 emitter.WriteInt32(100);
@@ -1019,7 +1020,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void FlowSequence_Nested1()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.BeginSequence(SequenceStyle.Flow);
             {
                 emitter.WriteInt32(100);
@@ -1041,7 +1042,7 @@ namespace VYaml.Tests.Emitter
         [Test]
         public void ComplexStructure()
         {
-            using var emitter = CreateEmitter();
+            var emitter = CreateEmitter();
             emitter.BeginSequence();
             {
                 emitter.BeginSequence(SequenceStyle.Flow);

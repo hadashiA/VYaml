@@ -9,8 +9,12 @@ namespace VYaml.Parser
 {
     public class YamlParserException : Exception
     {
-        public YamlParserException(in Marker marker, string message)
-            : base($"{message} at {marker}")
+        public static void Throw(in Marker marker, string message)
+        {
+            throw new YamlParserException(marker, message);
+        }
+
+        public YamlParserException(in Marker marker, string message) : base($"{message} at {marker}")
         {
         }
     }
@@ -65,6 +69,12 @@ namespace VYaml.Parser
 
     public ref partial struct YamlParser
     {
+        [ThreadStatic]
+        static Dictionary<string, int>? anchorsBufferStatic;
+
+        [ThreadStatic]
+        static ExpandBuffer<ParseState>? stateStackBufferStatic;
+
         public static YamlParser FromBytes(Memory<byte> bytes)
         {
             var sequence = new ReadOnlySequence<byte>(bytes);
@@ -101,7 +111,7 @@ namespace VYaml.Parser
         int lastAnchorId;
 
         readonly Dictionary<string, int> anchors;
-        ExpandBuffer<ParseState> stateStack;
+        readonly ExpandBuffer<ParseState> stateStack;
 
         public YamlParser(ReadOnlySequence<byte> sequence)
         {
@@ -109,8 +119,12 @@ namespace VYaml.Parser
             currentState = ParseState.StreamStart;
             CurrentEventType = default;
             lastAnchorId = -1;
-            anchors = new Dictionary<string, int>();
-            stateStack = new ExpandBuffer<ParseState>(16);
+
+            anchors = anchorsBufferStatic ??= new Dictionary<string, int>();
+            anchors.Clear();
+
+            stateStack = stateStackBufferStatic ??= new ExpandBuffer<ParseState>(16);
+            stateStack.Clear();
 
             currentScalar = null;
             currentTag = null;
@@ -135,17 +149,11 @@ namespace VYaml.Parser
             UnityStrippedMark = false;
         }
 
-        public void Dispose()
-        {
-            tokenizer.Dispose();
-            stateStack.Dispose();
-        }
-
         public bool Read()
         {
             if (currentScalar is { } scalar)
             {
-                tokenizer.ReturnToPool(scalar);
+                ScalarPool.Shared.Return(scalar);
                 currentScalar = null;
             }
 
