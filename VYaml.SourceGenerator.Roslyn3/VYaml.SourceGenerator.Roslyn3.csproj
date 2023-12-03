@@ -8,7 +8,7 @@
         <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
         <DevelopmentDependency>true</DevelopmentDependency>
         <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackBuildOutputs</TargetsForTfmSpecificContentInPackage>
-        <LangVersion>11</LangVersion>
+        <LangVersion>12</LangVersion>
         <RootNamespace>VYaml.SourceGenerator</RootNamespace>
         <IsRoslynComponent>true</IsRoslynComponent>
         <PackageTags>yaml</PackageTags>
