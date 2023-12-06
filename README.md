@@ -492,7 +492,7 @@ YamlSerializer.Deserialize<T>(yaml, options);
 Basic example:
 
 ```csharp
-using var parser = YamlParser.FromBytes(utf8Bytes);
+var parser = YamlParser.FromBytes(utf8Bytes);
 
 // YAML contains more than one `Document`. 
 // Here we skip to before first document content.
@@ -555,7 +555,7 @@ while (parser.Read())
         parser.Read(); // Skip MappingStart
 
         // Read to end of mapping
-        while (!parser.End && parser.CurrentEventType != ParseEventType.MappingEnd)
+        while (parser.CurrentEventType != ParseEventType.MappingEnd)
         {
              // After Mapping start, key and value appear alternately.
              
@@ -590,7 +590,7 @@ Basic usage:
 
 ``` csharp
 var buffer = new ArrayBufferWriter();
-using var emitter = new Utf8YamlEmitter(buffer); // It needs buffer implemented `IBufferWriter<byte>`
+var emitter = new Utf8YamlEmitter(buffer); // It needs buffer implemented `IBufferWriter<byte>`
 
 emitter.BeginMapping(); // Mapping is a collection like Dictionary in YAML
 {
