@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using NUnit.Framework;
@@ -2300,7 +2301,7 @@ namespace VYaml.Tests.Parser
 
         static void AssertParseEvents(string yaml, IReadOnlyList<TestParseResult> expects)
         {
-            using var parser = YamlParser.FromBytes(StringEncoding.Utf8.GetBytes(yaml));
+            var parser = YamlParser.FromBytes(StringEncoding.Utf8.GetBytes(yaml));
             for (var i = 0; i < expects.Count; i++)
             {
                 var expect = expects[i];

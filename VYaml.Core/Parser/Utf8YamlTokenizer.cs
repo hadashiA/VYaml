@@ -24,6 +24,18 @@ namespace VYaml.Parser
 
     public ref struct Utf8YamlTokenizer
     {
+        [ThreadStatic]
+        static InsertionQueue<Token>? tokensBufferStatic;
+
+        [ThreadStatic]
+        static ExpandBuffer<SimpleKeyState>? simpleKeyBufferStatic;
+
+        [ThreadStatic]
+        static ExpandBuffer<int>? indentsBufferStatic;
+
+        [ThreadStatic]
+        static ExpandBuffer<byte>? lineBreaksBufferStatic;
+
         public TokenType CurrentTokenType
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -50,21 +62,14 @@ namespace VYaml.Parser
         int tokensParsed;
         bool tokenAvailable;
 
-        InsertionQueue<Token> tokens;
-        ScalarPool scalarPool;
-        ExpandBuffer<SimpleKeyState> simpleKeyCandidates;
-        ExpandBuffer<int> indents;
-        ExpandBuffer<byte> lineBreaksBuffer;
+        readonly InsertionQueue<Token> tokens;
+        readonly ExpandBuffer<SimpleKeyState> simpleKeyCandidates;
+        readonly ExpandBuffer<int> indents;
 
         public Utf8YamlTokenizer(ReadOnlySequence<byte> sequence)
         {
             reader = new SequenceReader<byte>(sequence);
             mark = new Marker(0, 1, 0);
-            tokens = new InsertionQueue<Token>(16);
-            simpleKeyCandidates = new ExpandBuffer<SimpleKeyState>(16);
-            indents = new ExpandBuffer<int>(16);
-            lineBreaksBuffer = new ExpandBuffer<byte>(64);
-            scalarPool = new ScalarPool(32);
 
             indent = -1;
             flowLevel = 0;
@@ -77,15 +82,16 @@ namespace VYaml.Parser
 
             currentToken = default;
 
-            reader.TryPeek(out currentCode);
-        }
+            tokens = tokensBufferStatic ??= new InsertionQueue<Token>(16);
+            tokens.Clear();
 
-        public void Dispose()
-        {
-            scalarPool.Dispose();
-            simpleKeyCandidates.Dispose();
-            indents.Dispose();
-            lineBreaksBuffer.Dispose();
+            simpleKeyCandidates = simpleKeyBufferStatic ??= new ExpandBuffer<SimpleKeyState>(16);
+            simpleKeyCandidates.Clear();
+
+            indents = indentsBufferStatic ??= new ExpandBuffer<int>(16);
+            indents.Clear();
+
+            reader.TryPeek(out currentCode);
         }
 
         public bool Read()
@@ -102,7 +108,7 @@ namespace VYaml.Parser
 
             if (currentToken.Content is Scalar scalar)
             {
-                ReturnToPool(scalar);
+                ScalarPool.Shared.Return(scalar);
             }
             currentToken = tokens.Dequeue();
             tokenAvailable = false;
@@ -113,12 +119,6 @@ namespace VYaml.Parser
                 streamEndProduced = true;
             }
             return true;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void ReturnToPool(Scalar scalar)
-        {
-            scalarPool.Return(scalar);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -258,17 +258,17 @@ namespace VYaml.Parser
                 // Plain Scaler
                 case YamlCodes.BlockEntryIndent when !TryPeek(1, out var nextCode) ||
                                                      YamlCodes.IsBlank(nextCode):
-                    ConsumePlainScaler();
+                    ConsumePlainScalar();
                     break;
                 case YamlCodes.MapValueIndent or YamlCodes.ExplicitKeyIndent
                     when flowLevel == 0 &&
                          (!TryPeek(1, out var nextCode) || YamlCodes.IsBlank(nextCode)):
-                    ConsumePlainScaler();
+                    ConsumePlainScalar();
                     break;
                 case (byte)'%' or (byte)'@' or (byte)'`':
                     throw new YamlTokenizerException(in mark, $"Unexpected character: '{currentCode}'");
                 default:
-                    ConsumePlainScaler();
+                    ConsumePlainScalar();
                     break;
             }
         }
@@ -304,7 +304,7 @@ namespace VYaml.Parser
 
             Advance(1);
 
-            var name = scalarPool.Rent();
+            var name = ScalarPool.Shared.Rent();
             try
             {
                 ConsumeDirectiveName(name);
@@ -330,7 +330,7 @@ namespace VYaml.Parser
             }
             finally
             {
-                scalarPool.Return(name);
+                ScalarPool.Shared.Return(name);
             }
 
             while (YamlCodes.IsBlank(currentCode))
@@ -427,8 +427,8 @@ namespace VYaml.Parser
 
         void ConsumeTagDirectiveValue()
         {
-            var handle = scalarPool.Rent();
-            var suffix = scalarPool.Rent();
+            var handle = ScalarPool.Shared.Rent();
+            var suffix = ScalarPool.Shared.Rent();
             try
             {
                 // Eat whitespaces.
@@ -459,8 +459,8 @@ namespace VYaml.Parser
             }
             finally
             {
-                scalarPool.Return(handle);
-                scalarPool.Return(suffix);
+                ScalarPool.Shared.Return(handle);
+                ScalarPool.Shared.Return(suffix);
             }
         }
 
@@ -578,7 +578,7 @@ namespace VYaml.Parser
             SaveSimpleKeyCandidate();
             simpleKeyAllowed = false;
 
-            var scalar = scalarPool.Rent();
+            var scalar = ScalarPool.Shared.Rent();
             Advance(1);
 
             while (YamlCodes.IsAlphaNumericDashOrUnderscore(currentCode))
@@ -618,8 +618,8 @@ namespace VYaml.Parser
             SaveSimpleKeyCandidate();
             simpleKeyAllowed = false;
 
-            var handle = scalarPool.Rent();
-            var suffix = scalarPool.Rent();
+            var handle = ScalarPool.Shared.Rent();
+            var suffix = ScalarPool.Shared.Rent();
 
             try
             {
@@ -677,8 +677,8 @@ namespace VYaml.Parser
             }
             finally
             {
-                scalarPool.Return(handle);
-                scalarPool.Return(suffix);
+                ScalarPool.Shared.Return(handle);
+                ScalarPool.Shared.Return(suffix);
             }
         }
 
@@ -811,9 +811,10 @@ namespace VYaml.Parser
             var trailingBlank = false;
             var leadingBlank = false;
             var leadingBreak = LineBreakState.None;
-            var scalar = scalarPool.Rent();
+            var scalar = ScalarPool.Shared.Rent();
 
-            lineBreaksBuffer.Clear();
+            lineBreaksBufferStatic ??= new ExpandBuffer<byte>(64);
+            lineBreaksBufferStatic.Clear();
 
             // skip '|' or '>'
             Advance(1);
@@ -883,7 +884,7 @@ namespace VYaml.Parser
             }
 
             // Scan the leading line breaks and determine the indentation level if needed.
-            ConsumeBlockScalarBreaks(ref blockIndent, ref lineBreaksBuffer);
+            ConsumeBlockScalarBreaks(ref blockIndent, ref lineBreaksBufferStatic);
 
             while (mark.Col == blockIndent)
             {
@@ -894,7 +895,7 @@ namespace VYaml.Parser
                     !leadingBlank &&
                     !trailingBlank)
                 {
-                    if (lineBreaksBuffer.Length <= 0)
+                    if (lineBreaksBufferStatic.Length <= 0)
                     {
                         scalar.Write(YamlCodes.Space);
                     }
@@ -904,10 +905,10 @@ namespace VYaml.Parser
                     scalar.Write(leadingBreak);
                 }
 
-                scalar.Write(lineBreaksBuffer.AsSpan());
+                scalar.Write(lineBreaksBufferStatic.AsSpan());
                 leadingBlank = YamlCodes.IsBlank(currentCode);
                 leadingBreak = LineBreakState.None;
-                lineBreaksBuffer.Clear();
+                lineBreaksBufferStatic.Clear();
 
                 while (!reader.End && !YamlCodes.IsLineBreak(currentCode))
                 {
@@ -919,7 +920,7 @@ namespace VYaml.Parser
 
                 leadingBreak = ConsumeLineBreaks();
                 // Eat the following indentation spaces and line breaks.
-                ConsumeBlockScalarBreaks(ref blockIndent, ref lineBreaksBuffer);
+                ConsumeBlockScalarBreaks(ref blockIndent, ref lineBreaksBufferStatic);
             }
 
             // Chomp the tail.
@@ -929,7 +930,7 @@ namespace VYaml.Parser
             }
             if (chomping == 1)
             {
-                scalar.Write(lineBreaksBuffer.AsSpan());
+                scalar.Write(lineBreaksBufferStatic.AsSpan());
             }
 
             var tokenType = literal ? TokenType.LiteralScalar : TokenType.FoldedScalar;
@@ -1001,7 +1002,7 @@ namespace VYaml.Parser
             var leadingBreak = default(LineBreakState);
             var trailingBreak = default(LineBreakState);
             var isLeadingBlanks = false;
-            var scalar = scalarPool.Rent();
+            var scalar = ScalarPool.Shared.Rent();
 
             Span<byte> whitespaceBuffer = stackalloc byte[32];
             var whitespaceLength = 0;
@@ -1231,7 +1232,7 @@ namespace VYaml.Parser
                 scalar));
         }
 
-        void ConsumePlainScaler()
+        void ConsumePlainScalar()
         {
             SaveSimpleKeyCandidate();
             simpleKeyAllowed = false;
@@ -1240,9 +1241,9 @@ namespace VYaml.Parser
             var leadingBreak = default(LineBreakState);
             var trailingBreak = default(LineBreakState);
             var isLeadingBlanks = false;
-            var scalar = scalarPool.Rent();
+            var scalar = ScalarPool.Shared.Rent();
 
-            Span<byte> whitespaceBuffer = stackalloc byte[32];
+            Span<byte> whitespaceBuffer = stackalloc byte[16];
             var whitespaceLength = 0;
 
             while (true)

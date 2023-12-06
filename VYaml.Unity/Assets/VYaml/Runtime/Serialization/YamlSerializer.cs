@@ -53,17 +53,10 @@ namespace VYaml.Serialization
             var contextLocal = serializationContext ??= new YamlSerializationContext(options);
             var writer = contextLocal.GetArrayBufferWriter();
             var emitter = new Utf8YamlEmitter(writer);
-            try
-            {
-                contextLocal.Reset();
-                var formatter = contextLocal.Resolver.GetFormatterWithVerify<T>();
-                formatter.Serialize(ref emitter, value, contextLocal);
-                return writer.WrittenMemory;
-            }
-            finally
-            {
-                emitter.Dispose();
-            }
+            contextLocal.Reset();
+            var formatter = contextLocal.Resolver.GetFormatterWithVerify<T>();
+            formatter.Serialize(ref emitter, value, contextLocal);
+            return writer.WrittenMemory;
         }
 
         public static void Serialize<T>(IBufferWriter<byte> writer, T value, YamlSerializerOptions? options = null)
@@ -74,19 +67,12 @@ namespace VYaml.Serialization
 
         public static void Serialize<T>(ref Utf8YamlEmitter emitter, T value, YamlSerializerOptions? options = null)
         {
-            try
-            {
-                options ??= DefaultOptions;
-                var contextLocal = serializationContext ??= new YamlSerializationContext(options);
-                contextLocal.Reset();
+            options ??= DefaultOptions;
+            var contextLocal = serializationContext ??= new YamlSerializationContext(options);
+            contextLocal.Reset();
 
-                var formatter = contextLocal.Resolver.GetFormatterWithVerify<T>();
-                formatter.Serialize(ref emitter, value, contextLocal);
-            }
-            finally
-            {
-                emitter.Dispose();
-            }
+            var formatter = contextLocal.Resolver.GetFormatterWithVerify<T>();
+            formatter.Serialize(ref emitter, value, contextLocal);
         }
 
         public static string SerializeToString<T>(T value, YamlSerializerOptions? options = null)
@@ -123,21 +109,14 @@ namespace VYaml.Serialization
 
         public static T Deserialize<T>(ref YamlParser parser, YamlSerializerOptions? options = null)
         {
-            try
-            {
-                options ??= DefaultOptions;
-                var contextLocal = deserializationContext ??= new YamlDeserializationContext(options);
-                contextLocal.Reset();
+            options ??= DefaultOptions;
+            var contextLocal = deserializationContext ??= new YamlDeserializationContext(options);
+            contextLocal.Reset();
 
-                parser.SkipAfter(ParseEventType.DocumentStart);
+            parser.SkipAfter(ParseEventType.DocumentStart);
 
-                var formatter = options.Resolver.GetFormatterWithVerify<T>();
-                return contextLocal.DeserializeWithAlias(formatter, ref parser);
-            }
-            finally
-            {
-                parser.Dispose();
-            }
+            var formatter = options.Resolver.GetFormatterWithVerify<T>();
+            return contextLocal.DeserializeWithAlias(formatter, ref parser);
         }
 
         public static async ValueTask<IEnumerable<T>> DeserializeMultipleDocumentsAsync<T>(Stream stream, YamlSerializerOptions? options = null)
@@ -168,8 +147,8 @@ namespace VYaml.Serialization
 
         public static IEnumerable<T> DeserializeMultipleDocuments<T>(ref YamlParser parser, YamlSerializerOptions? options = null)
         {
-            try
-            {
+            // try
+            // {
                 options ??= DefaultOptions;
                 var contextLocal = deserializationContext ??= new YamlDeserializationContext(options);
                 var formatter = options.Resolver.GetFormatterWithVerify<T>();
@@ -188,11 +167,11 @@ namespace VYaml.Serialization
                     documents.Add(document);
                 }
                 return documents;
-            }
-            finally
-            {
-                parser.Dispose();
-            }
+            // }
+            // finally
+            // {
+            //     parser.Dispose();
+            // }
         }
     }
 }

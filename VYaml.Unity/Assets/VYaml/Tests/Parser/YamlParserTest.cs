@@ -12,7 +12,7 @@ namespace VYaml.Tests.Parser
         [Test]
         public void IsNullScalar()
         {
-            using var parser = CreateParser(new []
+            var parser = CreateParser(new []
             {
                 "- null",
                 "- ",
@@ -37,7 +37,7 @@ namespace VYaml.Tests.Parser
         [Test]
         public void SkipCurrentNode()
         {
-            using var parser = CreateParser(new []
+            var parser = CreateParser(new []
             {
                 "a: 1",
                 "b: { ba: 2 }",
@@ -78,7 +78,7 @@ namespace VYaml.Tests.Parser
         [Test]
         public void Tag_BlockMapping()
         {
-            using var parser = CreateParser(new []
+            var parser = CreateParser(new []
             {
                 "!tag1",
                 "a: 100",
@@ -94,7 +94,7 @@ namespace VYaml.Tests.Parser
         [Test]
         public void UnityFormat()
         {
-            using var parser = CreateParser(new []
+            var parser = CreateParser(new []
             {
                 "%YAML 1.1",
                 "%TAG !u! tag:unity3d.com,2011:",
@@ -196,7 +196,7 @@ namespace VYaml.Tests.Parser
         [Test]
         public void EmptyElementInSequence()
         {
-            using var parser = CreateParser(new []
+            var parser = CreateParser(new []
             {
                 "keywords:",
                 "- ",

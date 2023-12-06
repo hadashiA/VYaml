@@ -4,10 +4,17 @@ using System.Runtime.CompilerServices;
 
 namespace VYaml.Internal
 {
-    ref struct InsertionQueue<T>
+    class InsertionQueue<T>
     {
         const int MinimumGrow = 4;
         const int GrowFactor = 200;
+
+        public int Count
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get;
+            private set;
+        }
 
         T[] array;
         int headIndex;
@@ -20,11 +27,9 @@ namespace VYaml.Internal
             headIndex = tailIndex = Count = 0;
         }
 
-        public int Count
+        public void Clear()
         {
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            get;
-            private set;
+            headIndex = tailIndex = Count = 0;
         }
 
         public T Peek()

@@ -39,6 +39,18 @@ namespace VYaml.Emitter
         static readonly byte[] MappingKeyFooter = { (byte)':', (byte)' ' };
         static readonly byte[] FlowMappingEmpty = { (byte)'{', (byte)'}' };
 
+        [ThreadStatic]
+        static ExpandBuffer<char>? stringBufferStatic;
+
+        [ThreadStatic]
+        static ExpandBuffer<EmitState>? stateBufferStatic;
+
+        [ThreadStatic]
+        static ExpandBuffer<int>? elementCountBufferSTatic;
+
+        [ThreadStatic]
+        static ExpandBuffer<string>? tagBufferStatic;
+
         EmitState CurrentState
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -60,10 +72,10 @@ namespace VYaml.Emitter
         readonly IBufferWriter<byte> writer;
         readonly YamlEmitOptions options;
 
-        ExpandBuffer<char> stringBuffer;
-        ExpandBuffer<EmitState> stateStack;
-        ExpandBuffer<int> elementCountStack;
-        ExpandBuffer<string> tagStack;
+        readonly ExpandBuffer<char> stringBuffer;
+        readonly ExpandBuffer<EmitState> stateStack;
+        readonly ExpandBuffer<int> elementCountStack;
+        readonly ExpandBuffer<string> tagStack;
 
         int currentIndentLevel;
         int currentElementCount;
@@ -74,9 +86,16 @@ namespace VYaml.Emitter
             this.options = options ?? YamlEmitOptions.Default;
 
             currentIndentLevel = 0;
-            stringBuffer = new ExpandBuffer<char>(1024);
-            stateStack = new ExpandBuffer<EmitState>(16);
-            elementCountStack = new ExpandBuffer<int>(16);
+
+            stringBuffer = stringBufferStatic ??= new ExpandBuffer<char>(1024);
+            stringBuffer.Clear();
+
+            stateStack = stateBufferStatic ??= new ExpandBuffer<EmitState>(16);
+            stateStack.Clear();
+
+            elementCountStack = elementCountBufferSTatic ??= new ExpandBuffer<int>(16);
+            elementCountStack.Clear();
+
             stateStack.Add(EmitState.None);
             currentElementCount = 0;
 
@@ -84,14 +103,6 @@ namespace VYaml.Emitter
         }
 
         internal readonly IBufferWriter<byte> GetWriter() => writer;
-
-        public void Dispose()
-        {
-            stringBuffer.Dispose();
-            stateStack.Dispose();
-            elementCountStack.Dispose();
-            tagStack.Dispose();
-        }
 
         public void BeginSequence(SequenceStyle style = SequenceStyle.Block)
         {

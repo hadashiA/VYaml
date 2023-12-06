@@ -2,46 +2,35 @@
 using System;
 using System.Buffers;
 using System.Buffers.Text;
+using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using VYaml.Internal;
 
 namespace VYaml.Parser
 {
-    ref struct ScalarPool
+    class ScalarPool
     {
-        ExpandBuffer<Scalar> queue;
+        public static readonly ScalarPool Shared = new();
 
-        public ScalarPool(int capacity)
-        {
-            queue = new ExpandBuffer<Scalar>(capacity);
-        }
+        readonly ConcurrentQueue<Scalar> queue = new();
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Scalar Rent()
         {
-            return queue.TryPop(out var scalar)
-                ? scalar
-                : new Scalar(256);
+            if (queue.TryDequeue(out var value))
+            {
+                return value;
+            }
+            return new Scalar(256);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Return(Scalar scalar)
         {
             scalar.Clear();
-            queue.Add(scalar);
-        }
-
-        public void Dispose()
-        {
-            queue.Dispose();
-            for (var i = 0; i < queue.Length; i++)
-            {
-                queue[i].Dispose();
-            }
+            queue.Enqueue(scalar);
         }
     }
 
-    class Scalar : ITokenContent, IDisposable
+    class Scalar : ITokenContent
     {
         const int MinimumGrow = 4;
         const int GrowFactor = 200;
@@ -53,12 +42,12 @@ namespace VYaml.Parser
 
         public Scalar(int capacity)
         {
-            buffer = ArrayPool<byte>.Shared.Rent(capacity);
+            buffer = new byte[capacity];
         }
 
         public Scalar(ReadOnlySpan<byte> content)
         {
-            buffer = ArrayPool<byte>.Shared.Rent(content.Length);
+            buffer = new byte[content.Length];
             Write(content);
         }
 
@@ -67,6 +56,9 @@ namespace VYaml.Parser
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Span<byte> AsSpan(int start, int length) => buffer.AsSpan(start, length);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public ReadOnlySpan<byte> AsUtf8() => buffer.AsSpan(0, Length);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(byte code)
@@ -123,14 +115,6 @@ namespace VYaml.Parser
         public void Clear()
         {
             Length = 0;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dispose()
-        {
-            if (Length < 0) return;
-            ArrayPool<byte>.Shared.Return(buffer);
-            Length = -1;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
