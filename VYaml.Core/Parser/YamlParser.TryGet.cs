@@ -196,6 +196,96 @@ namespace VYaml.Parser
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryReadScalarAsString(out string? result)
+        {
+            if (CurrentEventType != ParseEventType.Scalar)
+            {
+                result = default;
+                return false;
+            }
+            result = currentScalar?.ToString();
+            ReadWithVerify(ParseEventType.Scalar);
+            return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryReadScalarAsBool(out bool result)
+        {
+            if (TryGetScalarAsBool(out result))
+            {
+                ReadWithVerify(ParseEventType.Scalar);
+                return true;
+            }
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryReadScalarAsInt32(out int result)
+        {
+            if (TryGetScalarAsInt32(out result))
+            {
+                ReadWithVerify(ParseEventType.Scalar);
+                return true;
+            }
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryReadScalarAsInt64(out long result)
+        {
+            if (TryGetScalarAsInt64(out result))
+            {
+                ReadWithVerify(ParseEventType.Scalar);
+                return true;
+            }
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryReadScalarAsUInt32(out uint result)
+        {
+            if (TryGetScalarAsUInt32(out result))
+            {
+                ReadWithVerify(ParseEventType.Scalar);
+                return true;
+            }
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryReadScalarAsUInt64(out ulong result)
+        {
+            if (TryGetScalarAsUInt64(out result))
+            {
+                ReadWithVerify(ParseEventType.Scalar);
+                return true;
+            }
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryReadScalarAsFloat(out float result)
+        {
+            if (TryGetScalarAsFloat(out result))
+            {
+                ReadWithVerify(ParseEventType.Scalar);
+                return true;
+            }
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public bool TryReadScalarAsDouble(out double result)
+        {
+            if (TryGetScalarAsDouble(out result))
+            {
+                ReadWithVerify(ParseEventType.Scalar);
+                return true;
+            }
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly bool TryGetScalarAsString(out string? value)
         {
             if (currentScalar is { } scalar)
@@ -226,10 +316,28 @@ namespace VYaml.Parser
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly bool TryGetScalarAsUInt32(out uint value)
+        {
+            if (currentScalar is { } scalar)
+                return scalar.TryGetUInt32(out value);
+            value = default;
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly bool TryGetScalarAsInt64(out long value)
         {
             if (currentScalar is { } scalar)
                 return scalar.TryGetInt64(out value);
+            value = default;
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly bool TryGetScalarAsUInt64(out ulong value)
+        {
+            if (currentScalar is { } scalar)
+                return scalar.TryGetUInt64(out value);
             value = default;
             return false;
         }

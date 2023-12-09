@@ -1,3 +1,4 @@
+#nullable enable
 using System.Buffers;
 using NUnit.Framework;
 using VYaml.Emitter;
