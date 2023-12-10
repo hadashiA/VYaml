@@ -49,7 +49,7 @@ internal sealed class GlobalAliases : IEquatable<GlobalAliases>
         {
             var hashCode = 0;
             foreach (var tuple in this.AliasAndSymbolNames)
-                hashCode = HashCode.Combine(tuple.GetHashCode(), hashCode);
+                hashCode = Hash.Combine(tuple.GetHashCode(), hashCode);
 
             _hashCode = hashCode == 0 ? 1 : hashCode;
         }

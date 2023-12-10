@@ -22,7 +22,7 @@ namespace VYaml.PerformanceTest
 
     [YamlObject]
     public partial class RouteConfig
-    {1
+    {
         public string Name { get; set; }
 
         [YamlMember("virtual_hosts")]

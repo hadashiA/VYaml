@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using Roslyn.Utilities;
 
 namespace Microsoft.CodeAnalysis.DotnetRuntime.Extensions;
 
@@ -23,7 +24,7 @@ internal static partial class SyntaxValueProviderExtensions
         {
             var hashCode = 0;
             foreach (var value in obj)
-                hashCode = HashCode.Combine(hashCode, EqualityComparer<T>.Default.GetHashCode(value!));
+                hashCode = Hash.Combine(hashCode, EqualityComparer<T>.Default.GetHashCode(value!));
 
             return hashCode;
         }
