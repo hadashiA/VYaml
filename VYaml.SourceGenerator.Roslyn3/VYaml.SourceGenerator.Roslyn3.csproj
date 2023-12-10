@@ -1,16 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
+        <LangVersion>12</LangVersion>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <RootNamespace>VYaml.SourceGenerator</RootNamespace>
+
         <AnalyzerLanguage>cs</AnalyzerLanguage>
         <IncludeBuildOutput>false</IncludeBuildOutput>
         <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
         <DevelopmentDependency>true</DevelopmentDependency>
-        <TargetsForTfmSpecificContentInPackage>$(TargetsForTfmSpecificContentInPackage);PackBuildOutputs</TargetsForTfmSpecificContentInPackage>
-        <LangVersion>11</LangVersion>
-        <RootNamespace>VYaml.SourceGenerator</RootNamespace>
         <IsRoslynComponent>true</IsRoslynComponent>
+
         <PackageTags>yaml</PackageTags>
         <Description>Code generator for VYaml</Description>
     </PropertyGroup>
@@ -24,19 +25,7 @@
         </PackageReference>
     </ItemGroup>
 
-    <!-- Copy files for Unity -->
-    <PropertyGroup>
-        <DestinationRoot>$(MSBuildProjectDirectory)\..\VYaml.Unity\Assets\VYaml\Runtime</DestinationRoot>
-    </PropertyGroup>
-    <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="$(Configuration) == 'Release'">
-        <Copy SourceFiles="$(TargetPath)" DestinationFiles="$(DestinationRoot)\$(TargetFileName)" SkipUnchangedFiles="true" />
-    </Target>
-
-    <!-- for nuget publish -->
-    <Target Name="PackBuildOutputs" DependsOnTargets="SatelliteDllsProjectOutputGroup;DebugSymbolsProjectOutputGroup">
-        <ItemGroup>
-            <TfmSpecificPackageFile Include="$(TargetDir)\*.dll" PackagePath="analyzers\dotnet\cs" />
-            <TfmSpecificPackageFile Include="@(SatelliteDllsProjectOutputGroupOutput->'%(FinalOutputPath)')" PackagePath="analyzers\dotnet\cs\%(SatelliteDllsProjectOutputGroupOutput.Culture)\" />
-        </ItemGroup>
-    </Target>
+    <ItemGroup>
+        <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    </ItemGroup>
 </Project>
