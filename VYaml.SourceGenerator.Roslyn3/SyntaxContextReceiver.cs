@@ -35,6 +35,5 @@ class SyntaxContextReceiver : ISyntaxContextReceiver
                     classDeclarations.Add(typeSyntax);
                 }
             }
-        }
-    }
+        } }
 }
