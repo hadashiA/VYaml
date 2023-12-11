@@ -64,11 +64,15 @@ Require Unity 2021.3 or later.
 
 #### Install via git url
 
-You can add following url to Unity Package Manager.
+If you are using a version of Unity newer than 2022.2, you can install as the Unity package manager at the following git URL;
 
 ```
-https://github.com/hadashiA/VYaml.git?path=VYaml.Unity/Assets/VYaml#0.15.0
+https://github.com/hadashiA/VYaml.git?path=VYaml.Unity/Assets/VYaml#0.20.0
 ```
+
+If you are using Unity 2022.1 or older, the git url cannot be used as is because the source generator versions are different.
+Instead, install with VYaml.2022_1_or_lower.unitypackage from the [Releases](https://github.com/hadashiA/VYaml/releases) page.
+
 
 ## Usage
 
