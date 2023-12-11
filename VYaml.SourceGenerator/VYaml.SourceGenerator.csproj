@@ -3,21 +3,17 @@
         <TargetFramework>netstandard2.0</TargetFramework>
         <LangVersion>12</LangVersion>
         <Nullable>enable</Nullable>
+        <RootNamespace>VYaml.SourceGenerator</RootNamespace>
 
         <AnalyzerLanguage>cs</AnalyzerLanguage>
         <IncludeBuildOutput>false</IncludeBuildOutput>
         <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
-        <IsPackable>false</IsPackable>
-        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
         <DevelopmentDependency>true</DevelopmentDependency>
         <IsRoslynComponent>true</IsRoslynComponent>
-
-        <RootNamespace>VYaml.SourceGenerator</RootNamespace>
-        <PackageId>VYaml.SourceGenerator</PackageId>
+        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 
         <PackageTags>yaml</PackageTags>
         <Description>Code generator for VYaml</Description>
-
     </PropertyGroup>
 
     <ItemGroup>

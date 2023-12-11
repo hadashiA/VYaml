@@ -26,6 +26,7 @@ jobs:
       - run: dotnet pack -c Release --no-build -o ./publish
       - run: |
           rm ./publish/VYaml.Benchmark.*
+          rm ./publish/VYaml.SourceGenerator.Roslyn3.*
       - uses: actions/upload-artifact@v3
         with:
           name: nuget
