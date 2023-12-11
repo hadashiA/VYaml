@@ -2,7 +2,7 @@ using Microsoft.CodeAnalysis;
 
 namespace VYaml.SourceGenerator;
 
-class ReferenceSymbols
+public class ReferenceSymbols
 {
     public static ReferenceSymbols? Create(Compilation compilation)
     {

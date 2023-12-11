@@ -10,7 +10,7 @@ on:
         default: false
         type: boolean
 jobs:
-  nuget-publish:
+  build-dotnet:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -20,11 +20,12 @@ jobs:
       - uses: actions/setup-dotnet@v3
         with:
           dotnet-version: |
-            6.0.x
+            8.0.x
       - run: dotnet build -c Release
       - run: dotnet test -c Release --no-build
       - run: dotnet pack -c Release --no-build -o ./publish
-      - run: rm ./publish/VYaml.Benchmark.*
+      - run: |
+          rm ./publish/VYaml.Benchmark.*
       - uses: actions/upload-artifact@v3
         with:
           name: nuget

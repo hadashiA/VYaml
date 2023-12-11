@@ -1,3 +1,5 @@
+#pragma warning disable RS2008
+
 using Microsoft.CodeAnalysis;
 
 namespace VYaml.SourceGenerator;
