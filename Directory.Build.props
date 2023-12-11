@@ -7,6 +7,5 @@
         <RepositoryUrl>$(PackageProjectUrl)</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <Version>$(Version)</Version>
     </PropertyGroup>
 </Project>
