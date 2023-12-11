@@ -29,7 +29,7 @@
 
     <!-- Copy files for Unity -->
     <PropertyGroup>
-        <DestinationRoot>$(MSBuildProjectDirectory)\..\VYaml.Unity\Assets\VYaml\Tests</DestinationRoot>
+        <DestinationRoot>$(MSBuildProjectDirectory)\..\VYaml.Unity\Assets\Tests</DestinationRoot>
     </PropertyGroup>
     <ItemGroup>
         <TargetFiles1 Include="$(MSBuildProjectDirectory)\**\*.cs" Exclude="**\bin\**\*.*;**\obj\**\*.*" />
