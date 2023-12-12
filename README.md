@@ -42,7 +42,6 @@ Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular y
 
 ## Most recent roadmap
 
-- [ ] Support incremental source generator (Only Roslyn 4)
 - [ ] Restrict max depth
 
 ## Installation
