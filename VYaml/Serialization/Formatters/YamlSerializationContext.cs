@@ -17,8 +17,9 @@ namespace VYaml.Serialization
 
     public class YamlSerializationContext : IDisposable
     {
-        public IYamlFormatterResolver Resolver { get; }
-        public YamlEmitOptions EmitOptions { get; }
+        public YamlSerializerOptions Options { get; set; }
+        public IYamlFormatterResolver Resolver { get; set; }
+        public YamlEmitOptions EmitOptions { get; set; }
 
         readonly byte[] primitiveValueBuffer;
         ArrayBufferWriter<byte>? arrayBufferWriter;
@@ -26,6 +27,7 @@ namespace VYaml.Serialization
         public YamlSerializationContext(YamlSerializerOptions options)
         {
             primitiveValueBuffer = ArrayPool<byte>.Shared.Rent(64);
+            Options = options;
             Resolver = options.Resolver;
             EmitOptions = options.EmitOptions;
         }
