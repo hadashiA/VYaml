@@ -1,5 +1,7 @@
 # VYaml
 
+[![GitHub license](https://img.shields.io/github/license/hadashiA/VYaml)](./LICENSE)
+![Unity 2022.2+](https://img.shields.io/badge/unity-2021.3+-000.svg)
 [![NuGet](https://img.shields.io/nuget/v/VYaml.svg)](https://www.nuget.org/packages/VYaml)
 [![openupm](https://img.shields.io/npm/v/jp.hadashikick.vyaml?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/jp.hadashikick.vyaml/)
 
@@ -735,20 +737,20 @@ Following is the results of the [test](https://github.com/hadashiA/VYaml/blob/ma
   - :white_check_mark: Example 2.1 Sequence of Scalars (ball players)
   - :white_check_mark: Example 2.2 Mapping Scalars to Scalars (player statistics)
   - :white_check_mark: Example 2.3 Mapping Scalars to Sequences (ball clubs in each league)
-  - :white_check_mark: Example 2.4 Sequence of Mappings (playersb  statistics)
+  - :white_check_mark: Example 2.4 Sequence of Mappings (players statistics)
   - :white_check_mark: Example 2.5 Sequence of Sequences
   - :white_check_mark: Example 2.6 Mapping of Mappings
 - 2.2. Structures
   - :white_check_mark: Example 2.7 Two Documents in a Stream (each with a leading comment)
   - :white_check_mark: Example 2.8 Play by Play Feed from a Game
   - :white_check_mark: Example 2.9 Single Document with Two Comments
-  - :white_check_mark: Example 2.10 Node for b Sammy Sosab  appears twice in this document
+  - :white_check_mark: Example 2.10 Node for Sammy Sosa appears twice in this document
   - :white_check_mark: Example 2.11 Mapping between Sequences
   - :white_check_mark: Example 2.12 Compact Nested Mapping
 - 2.3. Scalars
   - :white_check_mark: Example 2.13 In literals, newlines are preserved
   - :white_check_mark: Example 2.14 In the folded scalars, newlines become spaces
-  - :white_check_mark: Example 2.15 Folded newlines are preserved for b more indentedb  and blank lines
+  - :white_check_mark: Example 2.15 Folded newlines are preserved for more indented and blank lines
   - :white_check_mark: Example 2.16 Indentation determines scope
   - :white_check_mark: Example 2.17 Quoted Scalars
   - :white_check_mark: Example 2.18 Multi-line Flow Scalars
@@ -802,9 +804,9 @@ Following is the results of the [test](https://github.com/hadashiA/VYaml/blob/ma
   - :white_check_mark: Example 6.12 Separation Spaces
 - 6.8. Directives
   - :white_check_mark: Example 6.13 Reserved Directives
-  - :white_check_mark: Example 6.14 b YAMLb  directive
+  - :white_check_mark: Example 6.14 YAML directive
   - :white_check_mark: Example 6.15 Invalid Repeated YAML directive
-  - :white_check_mark: Example 6.16 b TAGb  directive
+  - :white_check_mark: Example 6.16 TAG directive
   - :white_check_mark: Example 6.17 Invalid Repeated TAG directive
   - :white_check_mark: Example 6.18 Primary Tag Handle
   - :white_check_mark: Example 6.19 Secondary Tag Handle
