@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFrameworks>netstandard2.1;net6.0;net7.0</TargetFrameworks>
+        <TargetFrameworks>netstandard2.1;net6.0;net8.0</TargetFrameworks>
         <ImplicitUsings>disable</ImplicitUsings>
         <Nullable>enable</Nullable>
 
@@ -12,12 +12,26 @@
         <Description>The extra fast YAML library for C#</Description>
     </PropertyGroup>
 
+    <!-- Bundle SourceGenerator -->
+    <ItemGroup>
+        <None Include="..\VYaml.SourceGenerator\bin\$(Configuration)\netstandard2.0\VYaml.SourceGenerator.dll"
+              PackagePath="analyzers\dotnet\roslyn4.1\cs"
+              Pack="true"
+              Visible="false" />
+
+        <None Include="..\VYaml.SourceGenerator.Roslyn3\bin\$(Configuration)\netstandard2.0\VYaml.SourceGenerator.Roslyn3.dll"
+              PackagePath="analyzers\dotnet\roslyn3.8\cs"
+              Pack="true"
+              Visible="false" />
+    </ItemGroup>
+
     <ItemGroup>
         <InternalsVisibleTo Include="VYaml.Tests" />
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\VYaml.Core\VYaml.Core.csproj" />
-        <ProjectReference Include="..\VYaml.SourceGenerator\VYaml.SourceGenerator.csproj" />
+        <ProjectReference Include="..\VYaml.SourceGenerator\VYaml.SourceGenerator.csproj"
+                          ReferenceOutputAssembly="false" />
     </ItemGroup>
 </Project>
