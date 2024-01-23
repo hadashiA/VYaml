@@ -5,9 +5,6 @@
         <Nullable>enable</Nullable>
         <LangVersion>9</LangVersion>
 
-        <!-- This project is meta package -->
-        <IncludeBuildOutput>false</IncludeBuildOutput>
-        <IncludeContentInPack>true</IncludeContentInPack>
         <NoWarn>$(NoWarn);NU5128</NoWarn>
         <PackageTags>yaml,serialization</PackageTags>
         <Description>The extra fast YAML library for C#</Description>
