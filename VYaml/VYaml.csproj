@@ -3,6 +3,7 @@
         <TargetFrameworks>netstandard2.1;net6.0;net8.0</TargetFrameworks>
         <ImplicitUsings>disable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <LangVersion>9</LangVersion>
 
         <!-- This project is meta package -->
         <IncludeBuildOutput>false</IncludeBuildOutput>
@@ -10,6 +11,7 @@
         <NoWarn>$(NoWarn);NU5128</NoWarn>
         <PackageTags>yaml,serialization</PackageTags>
         <Description>The extra fast YAML library for C#</Description>
+        <RootNamespace>VYaml</RootNamespace>
     </PropertyGroup>
 
     <!-- Bundle SourceGenerator -->
@@ -30,8 +32,19 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\VYaml.Core\VYaml.Core.csproj" />
+        <ProjectReference Include="..\VYaml.Annotations\VYaml.Annotations.csproj" />
         <ProjectReference Include="..\VYaml.SourceGenerator\VYaml.SourceGenerator.csproj"
                           ReferenceOutputAssembly="false" />
     </ItemGroup>
+
+    <!-- Copy files for Unity -->
+    <PropertyGroup>
+        <DestinationRoot>$(MSBuildProjectDirectory)\..\VYaml.Unity\Assets\VYaml\Runtime</DestinationRoot>
+    </PropertyGroup>
+    <ItemGroup>
+        <TargetFiles1 Include="$(MSBuildProjectDirectory)\**\*.cs" Exclude="**\bin\**\*.*;**\obj\**\*.*" />
+    </ItemGroup>
+    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+        <Copy SourceFiles="@(TargetFiles1)" DestinationFiles="$(DestinationRoot)\%(RecursiveDir)%(Filename)%(Extension)" SkipUnchangedFiles="true" />
+    </Target>
 </Project>

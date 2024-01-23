@@ -16,7 +16,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\VYaml.Core\VYaml.Core.csproj" />
+      <ProjectReference Include="..\VYaml\VYaml.csproj" />
         <ProjectReference Include="..\VYaml.SourceGenerator\VYaml.SourceGenerator.csproj">
             <OutputItemType>Analyzer</OutputItemType>
             <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
