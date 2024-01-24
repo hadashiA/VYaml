@@ -98,6 +98,11 @@ namespace VYaml.Serialization
             return StringEncoding.Utf8.GetString(utf8Bytes.Span);
         }
 
+        public async static Task SerializeAsync<T>(T value, Stream stream, YamlSerializerOptions? options = null)
+        {
+            await stream.WriteAsync(Serialize(value, options));
+        }
+
         public static T Deserialize<T>(ReadOnlyMemory<byte> memory, YamlSerializerOptions? options = null)
         {
             var parser = YamlParser.FromSequence(new ReadOnlySequence<byte>(memory));
