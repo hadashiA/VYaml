@@ -24,14 +24,4 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
     </ItemGroup>
-
-    <!-- Copy files for Unity -->
-    <PropertyGroup>
-        <UnityAssetsRoot>$(MSBuildProjectDirectory)\..\VYaml.Unity\Assets\VYaml\Runtime</UnityAssetsRoot>
-    </PropertyGroup>
-    <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="$(Configuration) == 'Release'">
-        <Copy SourceFiles="$(TargetPath)"
-              DestinationFiles="$(UnityAssetsRoot)\$(TargetFileName)"
-              SkipUnchangedFiles="true" />
-    </Target>
 </Project>

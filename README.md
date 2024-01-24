@@ -71,8 +71,9 @@ If you are using a version of Unity newer than 2022.2, you can install as the Un
 https://github.com/hadashiA/VYaml.git?path=VYaml.Unity/Assets/VYaml#0.23.0
 ```
 
-> [!NOTE]
-> If you are using Unity 2022.1 or older, SourceGenerator dll version is different, but VYaml automatically determines which dlls should be given the RoslynAnalyzer label.
+> [!IMPORTANT]  
+> If you are using Unity 2022.1 or older, the git url cannot be used as is because the source generator versions are different.
+> Instead, install with VYaml.2022_1_or_lower.unitypackage from the [Releases](https://github.com/hadashiA/VYaml/releases) page.
 
 
 ## Usage
