@@ -21,6 +21,8 @@ namespace VYaml.Emitter
         BlockMappingKey,
         BlockMappingValue,
         FlowSequenceEntry,
+        FlowMappingKey,
+        FlowMappingValue,
     }
 
     public ref struct Utf8YamlEmitter
@@ -36,6 +38,8 @@ namespace VYaml.Emitter
         static readonly byte[] FlowSequenceEmpty = { (byte)'[', (byte)']' };
         static readonly byte[] FlowSequenceSeparator = { (byte)',', (byte)' ' };
         static readonly byte[] MappingKeyFooter = { (byte)':', (byte)' ' };
+        static readonly byte[] FlowMappingHeader = { (byte)'{', (byte)' ' };
+        static readonly byte[] FlowMappingFooter = { (byte)' ', (byte)'}' };
         static readonly byte[] FlowMappingEmpty = { (byte)'{', (byte)'}' };
 
         [ThreadStatic]
@@ -132,7 +136,7 @@ namespace VYaml.Emitter
                     switch (CurrentState)
                     {
                         case EmitState.BlockMappingKey:
-                            throw new YamlEmitterException("To start flow-mapping in the mapping key is not supported.");
+                            throw new YamlEmitterException("To start flow-sequence in the mapping key is not supported.");
 
                         case EmitState.BlockSequenceEntry:
                         {
@@ -149,8 +153,11 @@ namespace VYaml.Emitter
                         {
                             var output = writer.GetSpan(FlowSequenceSeparator.Length + 1);
                             var offset = 0;
-                            FlowSequenceSeparator.CopyTo(output);
-                            offset += FlowSequenceSeparator.Length;
+                            if (currentElementCount > 0)
+                            {
+                                FlowSequenceSeparator.CopyTo(output);
+                                offset += FlowSequenceSeparator.Length;
+                            }
                             output[offset++] = YamlCodes.FlowSequenceStart;
                             writer.Advance(offset);
                             break;
@@ -207,7 +214,6 @@ namespace VYaml.Emitter
                     }
                     break;
                 }
-
                 case EmitState.FlowSequenceEntry:
                 {
                     PopState();
@@ -227,6 +233,10 @@ namespace VYaml.Emitter
                         case EmitState.FlowSequenceEntry:
                             currentElementCount++;
                             break;
+                        case EmitState.FlowMappingValue:
+                            ReplaceCurrentState(EmitState.FlowMappingKey);
+                            currentElementCount++;
+                            break;
                     }
 
                     var suffixLength = 1;
@@ -242,7 +252,6 @@ namespace VYaml.Emitter
                     writer.Advance(offset);
                     break;
                 }
-
                 default:
                     throw new YamlEmitterException($"Current state is not sequence: {CurrentState}");
             }
@@ -272,7 +281,45 @@ namespace VYaml.Emitter
                     break;
                 }
                 case MappingStyle.Flow:
-                    throw new NotSupportedException();
+                    switch (CurrentState)
+                    {
+                        case EmitState.BlockMappingKey:
+                            throw new YamlEmitterException("To start flow-mapping in the mapping key is not supported.");
+
+                        case EmitState.BlockSequenceEntry:
+                        {
+                            var output = writer.GetSpan(currentIndentLevel * options.IndentWidth + BlockSequenceEntryHeader.Length + FlowMappingHeader.Length);
+                            var offset = 0;
+                            WriteIndent(output, ref offset);
+
+                            BlockSequenceEntryHeader.CopyTo(output[offset..]);
+                            offset += BlockSequenceEntryHeader.Length;
+
+                            FlowMappingHeader.CopyTo(output[offset..]);
+                            offset += FlowMappingHeader.Length;
+                            writer.Advance(offset);
+                            break;
+                        }
+                        case EmitState.FlowSequenceEntry:
+                        {
+                            var output = writer.GetSpan(FlowSequenceSeparator.Length + FlowMappingHeader.Length);
+                            var offset = 0;
+                            if (currentElementCount > 0)
+                            {
+                                FlowSequenceSeparator.CopyTo(output);
+                                offset += FlowSequenceSeparator.Length;
+                            }
+                            FlowMappingHeader.CopyTo(output[offset..]);
+                            offset += FlowMappingHeader.Length;
+                            writer.Advance(offset);
+                            break;
+                        }
+                        default:
+                            WriteRaw(FlowMappingHeader, false, false);
+                            break;
+                    }
+                    PushState(EmitState.FlowMappingKey);
+                    break;
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(style), style, null);
@@ -281,50 +328,89 @@ namespace VYaml.Emitter
 
         public void EndMapping()
         {
-            if (CurrentState != EmitState.BlockMappingKey)
-            {
-                throw new YamlEmitterException($"Invalid block mapping end: {CurrentState}");
-            }
-
-            var isEmptyMapping = currentElementCount <= 0;
-            PopState();
-
-            if (isEmptyMapping)
-            {
-                var lineBreak = CurrentState is EmitState.BlockSequenceEntry or EmitState.BlockMappingValue;
-                if (tagStack.TryPop(out var tag))
-                {
-                    var tagBytes = StringEncoding.Utf8.GetBytes(tag + " "); // TODO:
-                    WriteRaw(tagBytes, FlowMappingEmpty, false, lineBreak);
-                }
-                else
-                {
-                    WriteRaw(FlowMappingEmpty, false, lineBreak);
-                }
-            }
-
             switch (CurrentState)
             {
-                case EmitState.BlockSequenceEntry:
-                    if (!isEmptyMapping)
-                    {
-                        DecreaseIndent();
-                    }
-                    currentElementCount++;
-                    break;
+                case EmitState.BlockMappingKey:
+                {
+                    var isEmptyMapping = currentElementCount <= 0;
+                    PopState();
 
-                case EmitState.BlockMappingValue:
-                    if (!isEmptyMapping)
+                    if (isEmptyMapping)
                     {
-                        DecreaseIndent();
+                        var lineBreak = CurrentState is EmitState.BlockSequenceEntry or EmitState.BlockMappingValue;
+                        if (tagStack.TryPop(out var tag))
+                        {
+                            var tagBytes = StringEncoding.Utf8.GetBytes(tag + " "); // TODO:
+                            WriteRaw(tagBytes, FlowMappingEmpty, false, lineBreak);
+                        }
+                        else
+                        {
+                            WriteRaw(FlowMappingEmpty, false, lineBreak);
+                        }
                     }
-                    ReplaceCurrentState(EmitState.BlockMappingKey);
-                    currentElementCount++;
-                    break;
 
-                case EmitState.FlowSequenceEntry:
-                    currentElementCount++;
+                    switch (CurrentState)
+                    {
+                        case EmitState.BlockSequenceEntry:
+                            if (!isEmptyMapping)
+                            {
+                                DecreaseIndent();
+                            }
+                            currentElementCount++;
+                            break;
+
+                        case EmitState.BlockMappingValue:
+                            if (!isEmptyMapping)
+                            {
+                                DecreaseIndent();
+                            }
+                            ReplaceCurrentState(EmitState.BlockMappingKey);
+                            currentElementCount++;
+                            break;
+                    }
                     break;
+                }
+                case EmitState.FlowMappingKey:
+                {
+                    PopState();
+
+                    var needsLineBreak = false;
+                    switch (CurrentState)
+                    {
+                        case EmitState.BlockSequenceEntry:
+                            needsLineBreak = true;
+                            currentElementCount++;
+                            break;
+                        case EmitState.BlockMappingValue:
+                            ReplaceCurrentState(EmitState.BlockMappingKey); // end mapping value
+                            needsLineBreak = true;
+                            currentElementCount++;
+                            break;
+                        case EmitState.FlowSequenceEntry:
+                            currentElementCount++;
+                            break;
+                        case EmitState.FlowMappingValue:
+                            ReplaceCurrentState(EmitState.FlowMappingKey);
+                            currentElementCount++;
+                            break;
+                    }
+
+                    var suffixLength = FlowMappingFooter.Length;
+                    if (needsLineBreak) suffixLength++;
+
+                    var offset = 0;
+                    var output = writer.GetSpan(suffixLength);
+                    FlowMappingFooter.CopyTo(output[offset..]);
+                    offset += FlowMappingFooter.Length;
+                    if (needsLineBreak)
+                    {
+                        output[offset++] = YamlCodes.Lf;
+                    }
+                    writer.Advance(offset);
+                    break;
+                }
+                default:
+                    throw new YamlEmitterException($"Invalid mapping end: {CurrentState}");
             }
         }
 
@@ -737,12 +823,14 @@ namespace VYaml.Emitter
                     break;
 
                 case EmitState.FlowSequenceEntry:
+                case EmitState.FlowMappingKey:
                     if (currentElementCount > 0)
                     {
                         FlowSequenceSeparator.CopyTo(output[offset..]);
                         offset += FlowSequenceSeparator.Length;
                     }
                     break;
+                case EmitState.FlowMappingValue:
                 case EmitState.None:
                     break;
                 default:
@@ -770,6 +858,15 @@ namespace VYaml.Emitter
                     currentElementCount++;
                     break;
                 case EmitState.FlowSequenceEntry:
+                    currentElementCount++;
+                    break;
+                case EmitState.FlowMappingKey:
+                    MappingKeyFooter.CopyTo(output[offset..]);
+                    offset += MappingKeyFooter.Length;
+                    ReplaceCurrentState(EmitState.FlowMappingValue);
+                    break;
+                case EmitState.FlowMappingValue:
+                    ReplaceCurrentState(EmitState.FlowMappingKey);
                     currentElementCount++;
                     break;
                 case EmitState.None:
@@ -814,4 +911,3 @@ namespace VYaml.Emitter
         }
     }
 }
-
