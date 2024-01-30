@@ -291,12 +291,9 @@ namespace VYaml.Emitter
                             var output = writer.GetSpan(currentIndentLevel * options.IndentWidth + BlockSequenceEntryHeader.Length + FlowMappingHeader.Length);
                             var offset = 0;
                             WriteIndent(output, ref offset);
-
                             BlockSequenceEntryHeader.CopyTo(output[offset..]);
                             offset += BlockSequenceEntryHeader.Length;
-
-                            FlowMappingHeader.CopyTo(output[offset..]);
-                            offset += FlowMappingHeader.Length;
+                            output[offset++] = YamlCodes.FlowMapStart;
                             writer.Advance(offset);
                             break;
                         }
@@ -309,13 +306,12 @@ namespace VYaml.Emitter
                                 FlowSequenceSeparator.CopyTo(output);
                                 offset += FlowSequenceSeparator.Length;
                             }
-                            FlowMappingHeader.CopyTo(output[offset..]);
-                            offset += FlowMappingHeader.Length;
+                            output[offset++] = YamlCodes.FlowMapStart;
                             writer.Advance(offset);
                             break;
                         }
                         default:
-                            WriteRaw(FlowMappingHeader, false, false);
+                            WriteRaw1(YamlCodes.FlowMapStart);
                             break;
                     }
                     PushState(EmitState.FlowMappingKey);
@@ -372,6 +368,7 @@ namespace VYaml.Emitter
                 }
                 case EmitState.FlowMappingKey:
                 {
+                    var isEmptyMapping = currentElementCount <= 0;
                     PopState();
 
                     var needsLineBreak = false;
@@ -400,8 +397,11 @@ namespace VYaml.Emitter
 
                     var offset = 0;
                     var output = writer.GetSpan(suffixLength);
-                    FlowMappingFooter.CopyTo(output[offset..]);
-                    offset += FlowMappingFooter.Length;
+                    if (!isEmptyMapping)
+                    {
+                        output[offset++] = YamlCodes.Space;
+                    }
+                    output[offset++] = YamlCodes.FlowMapEnd;
                     if (needsLineBreak)
                     {
                         output[offset++] = YamlCodes.Lf;
@@ -823,8 +823,18 @@ namespace VYaml.Emitter
                     break;
 
                 case EmitState.FlowSequenceEntry:
+                    if (!IsFirstElement)
+                    {
+                        FlowSequenceSeparator.CopyTo(output[offset..]);
+                        offset += FlowSequenceSeparator.Length;
+                    }
+                    break;
                 case EmitState.FlowMappingKey:
-                    if (currentElementCount > 0)
+                    if (IsFirstElement)
+                    {
+                        output[offset++] = YamlCodes.Space;
+                    }
+                    else
                     {
                         FlowSequenceSeparator.CopyTo(output[offset..]);
                         offset += FlowSequenceSeparator.Length;

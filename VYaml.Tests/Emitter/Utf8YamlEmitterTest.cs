@@ -1180,6 +1180,25 @@ namespace VYaml.Tests.Emitter
         }
 
         [Test]
+        public void FlowMapping_WithTag()
+        {
+            var emitter = CreateEmitter();
+            emitter.Tag("!foo");
+            emitter.BeginMapping(MappingStyle.Flow);
+            {
+                emitter.WriteString("a");
+                emitter.WriteInt32(100);
+                emitter.WriteString("b");
+                emitter.WriteInt32(300);
+            }
+            emitter.EndMapping();
+
+            Assert.That(ToString(in emitter), Is.EqualTo(
+                "!foo { a: 100, b: 300 }"
+            ));
+        }
+
+        [Test]
         public void ComplexStructure()
         {
             var emitter = CreateEmitter();
