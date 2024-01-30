@@ -152,7 +152,7 @@ namespace VYaml.Tests.Emitter
                 "  Mark McGwire's\n" +
                 "  year was crippled\n" +
                 "  by a knee injury.\n"
-                ));
+            ));
         }
 
         [Test]
@@ -293,6 +293,15 @@ namespace VYaml.Tests.Emitter
         }
 
         [Test]
+        public void WritePrimitive_WithTag()
+        {
+            var emitter = CreateEmitter();
+            emitter.Tag("!foo");
+            emitter.WriteString("hoge");
+            Assert.That(ToString(in emitter), Is.EqualTo("!foo hoge"));
+        }
+
+        [Test]
         public void BlockSequence()
         {
             var emitter = CreateEmitter();
@@ -306,7 +315,7 @@ namespace VYaml.Tests.Emitter
                 "- 100\n" +
                 "- 200\n" +
                 "- 300\n"
-                ));
+            ));
         }
 
         [Test]
@@ -596,7 +605,7 @@ namespace VYaml.Tests.Emitter
             Assert.That(ToString(in emitter), Is.EqualTo(
                 "1: 100\n" +
                 "2: 200\n"
-                ));
+            ));
         }
 
         [Test]
@@ -912,7 +921,7 @@ namespace VYaml.Tests.Emitter
             Assert.That(ToString(in emitter), Is.EqualTo(
                 "!impl1\n" +
                 "key1: value1\n"
-                ));
+            ));
         }
 
         [Test]
@@ -1014,7 +1023,25 @@ namespace VYaml.Tests.Emitter
 
             Assert.That(ToString(in emitter), Is.EqualTo(
                 "[100, 200, 300]"
-                ));
+            ));
+        }
+
+        [Test]
+        public void FlowSequence_WithTag()
+        {
+            var emitter = CreateEmitter();
+            emitter.Tag("!foo");
+            emitter.BeginSequence(SequenceStyle.Flow);
+            {
+                emitter.WriteInt32(100);
+                emitter.WriteInt32(200);
+                emitter.WriteInt32(300);
+            }
+            emitter.EndSequence();
+
+            Assert.That(ToString(in emitter), Is.EqualTo(
+                "!foo [100, 200, 300]"
+            ));
         }
 
         [Test]
@@ -1036,6 +1063,138 @@ namespace VYaml.Tests.Emitter
 
             Assert.That(ToString(in emitter), Is.EqualTo(
                 "[100, [200], 300]"
+            ));
+        }
+
+        [Test]
+        public void FlowSequence_Nested2()
+        {
+            var emitter = CreateEmitter();
+            emitter.BeginMapping(MappingStyle.Block);
+            {
+                emitter.WriteString("a");
+                emitter.BeginSequence(SequenceStyle.Flow);
+                {
+                    emitter.WriteInt32(200);
+                }
+                emitter.EndSequence();
+
+                emitter.WriteString("b");
+                emitter.BeginMapping(MappingStyle.Flow);
+                {
+                    emitter.WriteString("c");
+                    emitter.BeginSequence(SequenceStyle.Flow);
+                    {
+                        emitter.WriteInt32(300);
+                    }
+                    emitter.EndSequence();
+                }
+                emitter.EndMapping();
+            }
+            emitter.EndMapping();
+
+            Assert.That(ToString(in emitter), Is.EqualTo(
+                "a: [200]\n" +
+                "b: { c: [300] }\n"
+            ));
+        }
+
+        [Test]
+        public void FlowMapping()
+        {
+            var emitter = CreateEmitter();
+            emitter.BeginMapping(MappingStyle.Flow);
+            {
+                emitter.WriteString("a");
+                emitter.WriteInt32(100);
+                emitter.WriteString("b");
+                emitter.WriteInt32(300);
+            }
+            emitter.EndMapping();
+
+            Assert.That(ToString(in emitter), Is.EqualTo(
+                "{ a: 100, b: 300 }"
+            ));
+        }
+
+        [Test]
+        public void FlowMapping_Empty()
+        {
+            var emitter = CreateEmitter();
+            emitter.BeginMapping(MappingStyle.Flow);
+            emitter.EndMapping();
+
+            Assert.That(ToString(in emitter), Is.EqualTo("{}"));
+        }
+
+        [Test]
+        public void FlowMapping_Nested1()
+        {
+            var emitter = CreateEmitter();
+            emitter.BeginMapping(MappingStyle.Flow);
+            {
+                emitter.WriteString("a");
+                emitter.BeginMapping(MappingStyle.Flow);
+                {
+                    emitter.WriteString("b");
+                    emitter.WriteInt32(200);
+                }
+                emitter.EndMapping();
+
+                emitter.WriteString("c");
+                emitter.WriteInt32(300);
+            }
+            emitter.EndMapping();
+
+            Assert.That(ToString(in emitter), Is.EqualTo(
+                "{ a: { b: 200 }, c: 300 }"
+            ));
+        }
+
+        [Test]
+        public void FlowMapping_Nested2()
+        {
+            var emitter = CreateEmitter();
+            emitter.BeginSequence(SequenceStyle.Block);
+            {
+                emitter.BeginMapping(MappingStyle.Flow);
+                emitter.WriteString("a");
+                emitter.WriteInt32(200);
+                emitter.EndMapping();
+
+                emitter.BeginSequence(SequenceStyle.Flow);
+                {
+                    emitter.BeginMapping(MappingStyle.Flow);
+                    emitter.WriteString("b");
+                    emitter.WriteInt32(300);
+                    emitter.EndMapping();
+                }
+                emitter.EndSequence();
+            }
+            emitter.EndSequence();
+
+            Assert.That(ToString(in emitter), Is.EqualTo(
+                "- { a: 200 }\n" +
+                "- [{ b: 300 }]\n"
+            ));
+        }
+
+        [Test]
+        public void FlowMapping_WithTag()
+        {
+            var emitter = CreateEmitter();
+            emitter.Tag("!foo");
+            emitter.BeginMapping(MappingStyle.Flow);
+            {
+                emitter.WriteString("a");
+                emitter.WriteInt32(100);
+                emitter.WriteString("b");
+                emitter.WriteInt32(300);
+            }
+            emitter.EndMapping();
+
+            Assert.That(ToString(in emitter), Is.EqualTo(
+                "!foo { a: 100, b: 300 }"
             ));
         }
 
