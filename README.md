@@ -825,7 +825,7 @@ Following is the results of the [test](https://github.com/hadashiA/VYaml/blob/ma
 - 7.1. Alias Nodes
   - :white_check_mark: Example 7.1 Alias Nodes
 - 7.2. Empty Nodes
-  - :x: Example 7.2 Empty Content
+  - :white_check_mark: Example 7.2 Empty Content
   - :white_check_mark: Example 7.3 Completely Empty Flow Nodes
 - 7.3. Flow Scalar Styles
   - :white_check_mark: Example 7.4 Double Quoted Implicit Keys

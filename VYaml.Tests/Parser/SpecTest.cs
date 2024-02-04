@@ -1378,7 +1378,6 @@ namespace VYaml.Tests.Parser
         }
 
         [Test]
-        [Ignore("Not Supported")]
         public void Ex7_02_EmptyNodes()
         {
             AssertParseEvents(SpecExamples.Ex7_2, new []
