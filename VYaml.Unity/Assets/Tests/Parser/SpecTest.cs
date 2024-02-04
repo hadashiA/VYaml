@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using NUnit.Framework;
 using VYaml.Internal;
 using VYaml.Parser;
@@ -2293,7 +2294,7 @@ namespace VYaml.Tests.Parser
             {
                 return new TestParseResult(type, Scalar.Null);
             }
-            var bytes = StringEncoding.Utf8.GetBytes(scalarValue.ToString()!);
+            var bytes = StringEncoding.Utf8.GetBytes(scalarValue is IFormattable formattable ? formattable.ToString(null, CultureInfo.InvariantCulture) : scalarValue.ToString()!);
             return new TestParseResult(type, new Scalar(bytes), typeof(TScalar));
         }
 
