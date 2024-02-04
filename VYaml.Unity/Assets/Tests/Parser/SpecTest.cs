@@ -435,7 +435,6 @@ namespace VYaml.Tests.Parser
         }
 
         [Test]
-        [Ignore("base 8 integer is not supported")]
         public void Ex2_19_Integers()
         {
             AssertParseEvents(SpecExamples.Ex2_19, new []
@@ -448,7 +447,7 @@ namespace VYaml.Tests.Parser
                 Expect(ParseEventType.Scalar, "decimal"),
                 Expect(ParseEventType.Scalar, +12345),
                 Expect(ParseEventType.Scalar, "octal"),
-                Expect(ParseEventType.Scalar, 12), // 0x12
+                Expect(ParseEventType.Scalar, 12), // 0o14
                 Expect(ParseEventType.Scalar, "hexadecimal"),
                 Expect(ParseEventType.Scalar, 0xC),
                 Expect(ParseEventType.MappingEnd),

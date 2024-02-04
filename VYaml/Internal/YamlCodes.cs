@@ -61,6 +61,8 @@ namespace VYaml.Internal
         public static readonly byte[] HexPrefix = { (byte)'0', (byte)'x' };
         public static readonly byte[] HexPrefixNegative = { (byte)'-', (byte)'0', (byte)'x' };
 
+        public static readonly byte[] OctalPrefix = { (byte)'0', (byte)'o' };
+
         public static readonly byte[] UnityStrippedSymbol =
         {
             (byte)'s', (byte)'t', (byte)'r', (byte)'i', (byte)'p', (byte)'p', (byte)'e', (byte)'d'
