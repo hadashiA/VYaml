@@ -957,7 +957,6 @@ namespace VYaml.Parser
 
                 scalar.Write(lineBreaksBufferStatic.AsSpan());
                 leadingBlank = YamlCodes.IsBlank(currentCode);
-                leadingBreak = LineBreakState.None;
                 lineBreaksBufferStatic.Clear();
 
                 while (!reader.End && !YamlCodes.IsLineBreak(currentCode))
@@ -966,7 +965,12 @@ namespace VYaml.Parser
                     Advance(1);
                 }
                 // break on EOF
-                if (reader.End) break;
+                if (reader.End)
+                {
+                    // treat EOF as LF for chomping
+                    leadingBreak = LineBreakState.Lf;
+                    break;
+                }
 
                 leadingBreak = ConsumeLineBreaks();
                 // Eat the following indentation spaces and line breaks.

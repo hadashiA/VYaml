@@ -333,7 +333,7 @@ namespace VYaml.Tests.Parser
             {
                 Expect(ParseEventType.StreamStart),
                 Expect(ParseEventType.DocumentStart),
-                Expect(ParseEventType.Scalar, "\\//||\\/||\n// ||  ||__"),
+                Expect(ParseEventType.Scalar, "\\//||\\/||\n// ||  ||__\n"),
                 Expect(ParseEventType.DocumentEnd),
                 Expect(ParseEventType.StreamEnd),
             });
@@ -346,7 +346,7 @@ namespace VYaml.Tests.Parser
             {
                 Expect(ParseEventType.StreamStart),
                 Expect(ParseEventType.DocumentStart),
-                Expect(ParseEventType.Scalar, "Mark McGwire's year was crippled by a knee injury."),
+                Expect(ParseEventType.Scalar, "Mark McGwire's year was crippled by a knee injury.\n"),
                 Expect(ParseEventType.DocumentEnd),
                 Expect(ParseEventType.StreamEnd),
             });
@@ -364,7 +364,7 @@ namespace VYaml.Tests.Parser
                                               "  63 Home Runs\n" +
                                               "  0.288 Batting Average\n" +
                                               "\n" +
-                                              "What a year!"),
+                                              "What a year!\n"),
                 Expect(ParseEventType.DocumentEnd),
                 Expect(ParseEventType.StreamEnd),
             });
@@ -543,7 +543,7 @@ namespace VYaml.Tests.Parser
                 Expect(ParseEventType.Scalar, "application specific tag"),
                 Expect(ParseEventType.Scalar, "The semantics of the tag\n" +
                                               "above may be different for\n" +
-                                              "different documents."),
+                                              "different documents.\n"),
                 Expect(ParseEventType.MappingEnd),
                 Expect(ParseEventType.DocumentEnd),
                 Expect(ParseEventType.StreamEnd),
@@ -901,7 +901,7 @@ namespace VYaml.Tests.Parser
                 Expect(ParseEventType.Scalar, "block"),
                 Expect(ParseEventType.Scalar, "void main() {\n" +
                                               "\tprintf(\"Hello, world!\\n\");\n" +
-                                              "}"),
+                                              "}\n"),
                 Expect(ParseEventType.MappingEnd),
                 Expect(ParseEventType.DocumentEnd),
                 Expect(ParseEventType.StreamEnd),
@@ -2215,7 +2215,7 @@ namespace VYaml.Tests.Parser
                 Expect(ParseEventType.Scalar, "literal"),
                 Expect(ParseEventType.Scalar, "value\n"),
                 Expect(ParseEventType.Scalar, "folded"),
-                Expect(ParseEventType.Scalar, "value"),
+                Expect(ParseEventType.Scalar, "value\n"),
                 Expect(ParseEventType.MappingEnd),
                 Expect(ParseEventType.DocumentEnd),
                 Expect(ParseEventType.StreamEnd),
