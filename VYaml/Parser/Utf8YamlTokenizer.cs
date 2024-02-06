@@ -296,6 +296,33 @@ namespace VYaml.Parser
             tokens.Enqueue(new Token(TokenType.StreamEnd));
         }
 
+        void ConsumeBom()
+        {
+            if (reader.IsNext(YamlCodes.Utf8Bom))
+            {
+                bool isStreamStart = mark.Position == 0;
+                Advance(YamlCodes.Utf8Bom.Length);
+                // should BOM count towards col?
+                mark.Col = 0;
+                if (!isStreamStart)
+                {
+                    if (CurrentTokenType == TokenType.DocumentEnd ||
+                        tokens.Count > 0 && tokens.Peek().Type == TokenType.DocumentEnd)
+                    {
+                        // explicitly ended document, fine
+                    }
+                    else if (reader.IsNext(YamlCodes.DocStart))
+                    {
+                        // fine, next is explicit directive-end/doc-start
+                    }
+                    else
+                    {
+                        throw new YamlTokenizerException(CurrentMark, "BOM must be at the beginning of the stream or document.");
+                    }
+                }
+            }
+        }
+
         void ConsumeDirective()
         {
             UnrollIndent(-1);
@@ -1450,8 +1477,8 @@ namespace VYaml.Parser
                             Advance(1);
                         }
                         break;
-                    case 0xFE when reader.IsNext(YamlCodes.Bom):
-                        Advance(YamlCodes.Bom.Length);
+                    case 0xEF:
+                        ConsumeBom();
                         break;
                     default:
                         return;

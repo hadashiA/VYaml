@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
 using VYaml.Internal;
 using VYaml.Parser;
@@ -766,6 +767,30 @@ namespace VYaml.Tests.Parser
                 Expect(ParseEventType.DocumentEnd),
                 Expect(ParseEventType.StreamEnd),
             });
+        }
+
+        [Test]
+        public void Ex5_01_ByteOrderMarkNoContent()
+        {
+            AssertParseEvents(SpecExamples.Ex5_1, new []
+            {
+                Expect(ParseEventType.StreamStart),
+                Expect(ParseEventType.StreamEnd),
+            });
+        }
+
+        [Test]
+        public void Ex5_02_InvalidByteOrderMarkInContent()
+        {
+            AssertParseEventsThenThrows<YamlTokenizerException>(SpecExamples.Ex5_2, new []
+            {
+                Expect(ParseEventType.StreamStart),
+                Expect(ParseEventType.DocumentStart),
+                Expect(ParseEventType.SequenceStart),
+                // TODO should probably throw after this token:
+                // Expect(ParseEventType.Scalar, "Invalid use of BOM"),
+            },
+            exceptionLike: "^BOM must be at the beginning of the stream");
         }
 
         [Test]
@@ -2297,9 +2322,46 @@ namespace VYaml.Tests.Parser
             return new TestParseResult(type, new Scalar(bytes), typeof(TScalar));
         }
 
+        static void AssertParseEventsThenThrows<TException>(string yaml, IReadOnlyList<TestParseResult> expects, string exceptionLike)
+            where TException : Exception
+        {
+            var ex = Assert.Throws<TException>(
+                code: () =>
+                {
+                    var parser = YamlParser.FromBytes(StringEncoding.Utf8.GetBytes(yaml));
+                    try
+                    {
+                        AssertParseResults(ref parser, expects);
+                    }
+                    catch (TException e)
+                    {
+                        throw new InvalidOperationException("Unexpected exception when parsing.", e);
+                    }
+
+                    parser.Read();
+                },
+                message: $"Final parser.Read() has not thrown exception, but expected {typeof(TException).Name} with message like '{exceptionLike}'");
+            if (!Regex.IsMatch(ex?.Message ?? "", exceptionLike))
+            {
+                Assert.Fail($"Expected exception message pattern: '{exceptionLike}'\n" +
+                            $"But was: '{ex?.Message}'");
+            }
+        }
+
         static void AssertParseEvents(string yaml, IReadOnlyList<TestParseResult> expects)
         {
             var parser = YamlParser.FromBytes(StringEncoding.Utf8.GetBytes(yaml));
+
+            AssertParseResults(ref parser, expects);
+
+            if (parser.Read())
+            {
+                Assert.Fail($"Extra event happened: {parser.CurrentEventType} `{parser.GetScalarAsString()}`");
+            }
+        }
+
+        static void AssertParseResults(ref YamlParser parser, IReadOnlyList<TestParseResult> expects)
+        {
             for (var i = 0; i < expects.Count; i++)
             {
                 var expect = expects[i];
@@ -2359,11 +2421,6 @@ namespace VYaml.Tests.Parser
                         }
                     }
                 }
-            }
-
-            if (parser.Read())
-            {
-                Assert.Fail($"Extra event happened: {parser.CurrentEventType} `{parser.GetScalarAsString()}`");
             }
         }
     }

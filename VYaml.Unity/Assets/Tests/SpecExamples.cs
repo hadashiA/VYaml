@@ -292,7 +292,15 @@ namespace VYaml.Tests
             "    code: |-\n" +
             "      foo = bar";
 
-        // TODO: 5.1 - 5.2 BOM
+        public const string Ex5_1 =
+            // FE FF is a UTF-16 BOM
+            "\uFEFF# Comment only.";
+
+        public const string Ex5_2 =
+            // FE FF is a UTF-16 BOM
+            "- Invalid use of BOM\n" +
+            "\uFEFF\n" +
+            "- Inside a document.";
 
         public const string Ex5_3 =
             "sequence:\n" +
