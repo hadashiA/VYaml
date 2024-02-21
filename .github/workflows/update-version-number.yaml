@@ -72,7 +72,7 @@ jobs:
 
       - name: Update Directory.Build.props  ${{ steps.configure.outputs.git-tag }}
         run: |
-          ruby -i -pe 'gsub(%r{(<PackageVersion>)[\d\.]+(</PackageVersion>)}, %q{\1${{ steps.configure.outputs.git-tag }}\2})' Directory.Build.props
+          ruby -i -pe 'gsub(%r{(<PackageVersion>)([\d\.]+)(</PackageVersion>)}, %q{\1${{ steps.configure.outputs.git-tag }}\3})' Directory.Build.props
 
       - name: Update README.md  ${{ steps.configure.outputs.git-tag }}
         run: |

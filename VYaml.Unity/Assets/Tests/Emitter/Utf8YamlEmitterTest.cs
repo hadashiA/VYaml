@@ -357,6 +357,113 @@ namespace VYaml.Tests.Emitter
         }
 
         [Test]
+        public void BlockSequence_Nested2()
+        {
+            var emitter = CreateEmitter();
+            emitter.BeginMapping(MappingStyle.Block);
+            {
+                emitter.WriteString("matrix");
+                emitter.BeginSequence(SequenceStyle.Block);
+                {
+                    emitter.BeginSequence(SequenceStyle.Flow);
+                    {
+                        emitter.WriteInt32(100);
+                        emitter.WriteInt32(200);
+                    }
+                    emitter.EndSequence();
+
+                    emitter.BeginSequence(SequenceStyle.Flow);
+                    {
+                        emitter.WriteInt32(300);
+                        emitter.WriteInt32(400);
+                    }
+                    emitter.EndSequence();
+                }
+                emitter.EndSequence();
+            }
+            emitter.EndMapping();
+
+            Assert.That(ToString(in emitter), Is.EqualTo(
+                "matrix: \n" +
+                "- [100, 200]\n" +
+                "- [300, 400]\n"
+            ));
+        }
+
+        [Test]
+        public void BlockSequence_Nested3()
+        {
+            var emitter = CreateEmitter();
+            emitter.BeginMapping(MappingStyle.Block);
+            {
+                emitter.WriteString("key1");
+                emitter.BeginMapping(MappingStyle.Block);
+                {
+                    emitter.WriteString("matrix");
+                    emitter.BeginSequence(SequenceStyle.Block);
+                    {
+                        emitter.BeginSequence(SequenceStyle.Flow);
+                        {
+                            emitter.WriteInt32(100);
+                            emitter.WriteInt32(200);
+                        }
+                        emitter.EndSequence();
+
+                        emitter.BeginSequence(SequenceStyle.Flow);
+                        {
+                            emitter.WriteInt32(300);
+                            emitter.WriteInt32(400);
+                        }
+                        emitter.EndSequence();
+                    }
+                    emitter.EndSequence();
+                }
+                emitter.EndMapping();
+            }
+            emitter.EndMapping();
+
+            Assert.That(ToString(in emitter), Is.EqualTo(
+                "key1: \n" +
+                "  matrix: \n" +
+                "  - [100, 200]\n" +
+                "  - [300, 400]\n"
+            ));
+        }
+
+        [Test]
+        public void BlockSequence_Nested4()
+        {
+            var emitter = CreateEmitter();
+            emitter.BeginSequence(SequenceStyle.Block);
+            {
+                emitter.BeginSequence(SequenceStyle.Block);
+                {
+                    emitter.BeginSequence(SequenceStyle.Flow);
+                    {
+                        emitter.WriteInt32(100);
+                        emitter.WriteInt32(200);
+                    }
+                    emitter.EndSequence();
+
+                    emitter.BeginSequence(SequenceStyle.Flow);
+                    {
+                        emitter.WriteInt32(300);
+                        emitter.WriteInt32(400);
+                    }
+                    emitter.EndSequence();
+                }
+                emitter.EndSequence();
+            }
+            emitter.EndSequence();
+
+            Assert.That(ToString(in emitter), Is.EqualTo(
+                "- \n" +
+                "  - [100, 200]\n" +
+                "  - [300, 400]\n"
+            ));
+        }
+
+        [Test]
         public void BlockSequence_NestedDeeply()
         {
             var emitter = CreateEmitter();
