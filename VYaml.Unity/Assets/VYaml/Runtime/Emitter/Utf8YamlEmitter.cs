@@ -142,9 +142,7 @@ namespace VYaml.Emitter
                         {
                             var output = writer.GetSpan(currentIndentLevel * options.IndentWidth + BlockSequenceEntryHeader.Length + 1);
                             var offset = 0;
-                            WriteIndent(output, ref offset);
-                            BlockSequenceEntryHeader.CopyTo(output[offset..]);
-                            offset += BlockSequenceEntryHeader.Length;
+                            WriteBlockSequenceEntryHeader(output, ref offset);
                             output[offset++] = YamlCodes.FlowSequenceStart;
                             writer.Advance(offset);
                             break;
@@ -299,9 +297,7 @@ namespace VYaml.Emitter
                         {
                             var output = writer.GetSpan(currentIndentLevel * options.IndentWidth + BlockSequenceEntryHeader.Length + FlowMappingHeader.Length + GetTagLength() + 1);
                             var offset = 0;
-                            WriteIndent(output, ref offset);
-                            BlockSequenceEntryHeader.CopyTo(output[offset..]);
-                            offset += BlockSequenceEntryHeader.Length;
+                            WriteBlockSequenceEntryHeader(output, ref offset);
                             if (TryWriteTag(output, ref offset))
                             {
                                 output[offset++] = YamlCodes.Space;
@@ -699,20 +695,31 @@ namespace VYaml.Emitter
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void WriteBlockSequenceEntryHeader()
         {
+            var output = writer.GetSpan(BlockSequenceEntryHeader.Length + currentIndentLevel * options.IndentWidth + 2);
+            var offset = 0;
+            WriteBlockSequenceEntryHeader(output, ref offset);
+            writer.Advance(offset);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        void WriteBlockSequenceEntryHeader(Span<byte> output, ref int offset)
+        {
             if (IsFirstElement)
             {
                 switch (PreviousState)
                 {
                     case EmitState.BlockSequenceEntry:
-                        WriteRaw1(YamlCodes.Lf);
+                        output[offset++] = YamlCodes.Lf;
                         IncreaseIndent();
                         break;
                     case EmitState.BlockMappingValue:
-                        WriteRaw1(YamlCodes.Lf);
+                        output[offset++] = YamlCodes.Lf;
                         break;
                 }
             }
-            WriteRaw(BlockSequenceEntryHeader, true, false);
+            WriteIndent(output, ref offset);
+            BlockSequenceEntryHeader.CopyTo(output[offset..]);
+            offset += BlockSequenceEntryHeader.Length;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -751,23 +758,7 @@ namespace VYaml.Emitter
             {
                 case EmitState.BlockSequenceEntry:
                 {
-                    // first nested element
-                    if (IsFirstElement)
-                    {
-                        switch (PreviousState)
-                        {
-                            case EmitState.BlockSequenceEntry:
-                                IncreaseIndent();
-                                output[offset++] = YamlCodes.Lf;
-                                break;
-                            case EmitState.BlockMappingValue:
-                                output[offset++] = YamlCodes.Lf;
-                                break;
-                        }
-                    }
-                    WriteIndent(output, ref offset);
-                    BlockSequenceEntryHeader.CopyTo(output[offset..]);
-                    offset += BlockSequenceEntryHeader.Length;
+                    WriteBlockSequenceEntryHeader(output, ref offset);
 
                     if (TryWriteTag(output, ref offset))
                     {
