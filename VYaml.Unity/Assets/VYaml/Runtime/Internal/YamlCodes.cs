@@ -9,7 +9,7 @@ namespace VYaml.Internal
         public static readonly byte[] YamlDirectiveName = { (byte)'Y', (byte)'A', (byte)'M', (byte)'L' };
         public static readonly byte[] TagDirectiveName = { (byte)'T', (byte)'A', (byte)'G' };
 
-        public static readonly byte[] Bom = { 0xFE, 0xFE };
+        public static readonly byte[] Utf8Bom = { 0xEF, 0xBB, 0xBF };
         public static readonly byte[] StreamStart = { (byte)'-', (byte)'-', (byte)'-' };
         public static readonly byte[] DocStart = { (byte)'.', (byte)'.', (byte)'.' };
         public static readonly byte[] CrLf = { Cr, Lf };
@@ -61,6 +61,8 @@ namespace VYaml.Internal
         public static readonly byte[] HexPrefix = { (byte)'0', (byte)'x' };
         public static readonly byte[] HexPrefixNegative = { (byte)'-', (byte)'0', (byte)'x' };
 
+        public static readonly byte[] OctalPrefix = { (byte)'0', (byte)'o' };
+
         public static readonly byte[] UnityStrippedSymbol =
         {
             (byte)'s', (byte)'t', (byte)'r', (byte)'i', (byte)'p', (byte)'p', (byte)'e', (byte)'d'
@@ -96,6 +98,73 @@ namespace VYaml.Internal
             (byte)'_' or
             (byte)'-';
 
+        // Spec: https://yaml.org/spec/1.2.2/#rule-ns-word-char
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsWordChar(byte code) => code is
+            >= (byte)'0' and <= (byte)'9' or
+            >= (byte)'A' and <= (byte)'Z' or
+            >= (byte)'a' and <= (byte)'z' or
+            (byte)'-';
+
+        // Spec: https://yaml.org/spec/1.2.2/#rule-ns-uri-char
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsUriChar(byte code) => code is
+            >= (byte)'0' and <= (byte)'9' or
+            >= (byte)'A' and <= (byte)'Z' or
+            >= (byte)'a' and <= (byte)'z' or
+            (byte)'-' or
+            (byte)'#' or
+            (byte)';' or
+            (byte)'/' or
+            (byte)'?' or
+            (byte)':' or
+            (byte)'@' or
+            (byte)'&' or
+            (byte)'=' or
+            (byte)'+' or
+            (byte)'$' or
+            (byte)',' or
+            (byte)'_' or
+            (byte)'.' or
+            (byte)'!' or
+            (byte)'~' or
+            (byte)'*' or
+            (byte)'\'' or
+            (byte)'(' or
+            (byte)')' or
+            (byte)'[' or
+            (byte)']';
+
+        // Spec: https://yaml.org/spec/1.2.2/#rule-ns-tag-char
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsTagChar(byte code) => code is
+            >= (byte)'0' and <= (byte)'9' or
+            >= (byte)'A' and <= (byte)'Z' or
+            >= (byte)'a' and <= (byte)'z' or
+            (byte)'-' or
+            (byte)'#' or
+            (byte)';' or
+            (byte)'/' or
+            (byte)'?' or
+            (byte)':' or
+            (byte)'@' or
+            (byte)'&' or
+            (byte)'=' or
+            (byte)'+' or
+            (byte)'$' or
+            // (byte)',' or
+            (byte)'_' or
+            (byte)'.' or
+            // (byte)'!' or
+            (byte)'~' or
+            (byte)'*' or
+            (byte)'\'' // or
+            // (byte)'(' or
+            // (byte)')' or
+            // (byte)'[' or
+            // (byte)']'
+            ;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsAscii(byte code) => code <= '\x7F';
 
@@ -122,6 +191,7 @@ namespace VYaml.Internal
             >= (byte)'A' and <= (byte)'F' or
             >= (byte)'a' and <= (byte)'f';
 
+        // Spec: https://yaml.org/spec/1.2.2/#rule-c-flow-indicator
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsAnyFlowSymbol(byte code) => code is
             (byte)',' or (byte)'[' or (byte)']' or (byte)'{' or (byte)'}';

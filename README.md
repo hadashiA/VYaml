@@ -724,7 +724,7 @@ https://yaml.org/spec/1.2.2/#103-core-schema
 | :white_check_mark: | `/* Empty */` | null |
 | :white_check_mark: | `true \| True \| TRUE \| false \| False \| FALSE` | boolean |
 | :white_check_mark: | `[-+]? [0-9]+` | int  (Base 10) |
-| :x: | `0o [0-7]+` | int (Base 8) |
+| :white_check_mark: | `0o [0-7]+` | int (Base 8) |
 | :white_check_mark: | `0x [0-9a-fA-F]+` | int (Base 16) |
 | :white_check_mark: | `[-+]? ( \. [0-9]+ \| [0-9]+ ( \. [0-9]* )? ) ( [eE] [-+]? [0-9]+ )?` | float |
 | :white_check_mark: | `[-+]? ( \.inf \| \.Inf \| \.INF )` | float (Infinity) |
@@ -756,7 +756,7 @@ Following is the results of the [test](https://github.com/hadashiA/VYaml/blob/ma
   - :white_check_mark: Example 2.17 Quoted Scalars
   - :white_check_mark: Example 2.18 Multi-line Flow Scalars
 - 2.4. Tags
-  - :warning: Example 2.19 Integers
+  - :white_check_mark: Example 2.19 Integers
   - :white_check_mark: Example 2.20 Floating Point
   - :white_check_mark: Example 2.21 Miscellaneous
   - :white_check_mark: Example 2.22 Timestamps
@@ -825,7 +825,7 @@ Following is the results of the [test](https://github.com/hadashiA/VYaml/blob/ma
 - 7.1. Alias Nodes
   - :white_check_mark: Example 7.1 Alias Nodes
 - 7.2. Empty Nodes
-  - :x: Example 7.2 Empty Content
+  - :white_check_mark: Example 7.2 Empty Content
   - :white_check_mark: Example 7.3 Completely Empty Flow Nodes
 - 7.3. Flow Scalar Styles
   - :white_check_mark: Example 7.4 Double Quoted Implicit Keys

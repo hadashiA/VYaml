@@ -193,6 +193,11 @@ namespace VYaml.Parser
                 value *= -1;
                 return true;
             }
+            if (TryParseOctal(span, out var octalUlong) && octalUlong <= int.MaxValue)
+            {
+                value = (int)octalUlong;
+                return true;
+            }
             return false;
         }
 
@@ -220,6 +225,11 @@ namespace VYaml.Parser
                     return true;
                 }
             }
+            if (TryParseOctal(span, out var octalUlong) && octalUlong <= long.MaxValue)
+            {
+                value = (long)octalUlong;
+                return true;
+            }
             return false;
         }
 
@@ -238,6 +248,11 @@ namespace VYaml.Parser
                 return Utf8Parser.TryParse(hexNumber, out value, out bytesConsumed, 'x') &&
                        bytesConsumed == hexNumber.Length;
             }
+            if (TryParseOctal(span, out var octalUlong) && octalUlong <= uint.MaxValue)
+            {
+                value = (uint)octalUlong;
+                return true;
+            }
             return false;
         }
 
@@ -255,6 +270,10 @@ namespace VYaml.Parser
             {
                 return Utf8Parser.TryParse(hexNumber, out value, out bytesConsumed, 'x') &&
                        bytesConsumed == hexNumber.Length;
+            }
+            if (TryParseOctal(span, out value))
+            {
+                return true;
             }
             return false;
         }
@@ -407,6 +426,60 @@ namespace VYaml.Parser
 
             slice = default;
             return false;
+        }
+
+        static bool TryParseOctal(ReadOnlySpan<byte> span, out ulong value)
+        {
+            if (span.Length <= YamlCodes.OctalPrefix.Length ||
+                !span.StartsWith(YamlCodes.OctalPrefix))
+            {
+                value = default;
+                return false;
+            }
+            // we have more characters after the prefix
+            var toSkip = YamlCodes.OctalPrefix.Length;
+            while (toSkip < span.Length && span[toSkip] == (byte)'0')
+            {
+                toSkip++;
+            }
+            if (toSkip >= span.Length)
+            {
+                // if we skipped at least one zero and consumed all bytes,
+                // then it's a valid octal 0
+                value = 0;
+                return toSkip == span.Length;
+            }
+            var octalSpan = span[toSkip..];
+            // read first digit here, so all next digits run in a loop with bit shift
+            var nextChar = octalSpan[0];
+            var nextDigit = nextChar - (byte)'0';
+            if (nextDigit is < 0 or > 7 ||
+                nextDigit > 1 && octalSpan.Length == 22 ||
+                octalSpan.Length > 22)
+            {
+                // there are at most 22 octal digits in a 64-bit unsigned number:
+                // 21 * 3 + 1 = 64 // 21 digits of 7 and 1 digit of 1
+                // if there are 22, the highest must only be 1 or 0 (and we skipped leading zeros)
+                // we will overflow the ulong if we continue
+                value = default;
+                return false;
+            }
+            value = (ulong)nextDigit;
+            for (int index = 1; index < octalSpan.Length; index++)
+            {
+                nextChar = octalSpan[index];
+                nextDigit = nextChar - (byte)'0';
+                if (nextDigit is < 0 or > 7)
+                {
+                    value = default;
+                    return false;
+                }
+                else
+                {
+                    value = (value << 3) + (uint)nextDigit;
+                }
+            }
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

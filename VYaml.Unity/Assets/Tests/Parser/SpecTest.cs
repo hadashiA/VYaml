@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Text.RegularExpressions;
 using NUnit.Framework;
 using VYaml.Internal;
 using VYaml.Parser;
@@ -332,7 +334,7 @@ namespace VYaml.Tests.Parser
             {
                 Expect(ParseEventType.StreamStart),
                 Expect(ParseEventType.DocumentStart),
-                Expect(ParseEventType.Scalar, "\\//||\\/||\n// ||  ||__"),
+                Expect(ParseEventType.Scalar, "\\//||\\/||\n// ||  ||__\n"),
                 Expect(ParseEventType.DocumentEnd),
                 Expect(ParseEventType.StreamEnd),
             });
@@ -345,7 +347,7 @@ namespace VYaml.Tests.Parser
             {
                 Expect(ParseEventType.StreamStart),
                 Expect(ParseEventType.DocumentStart),
-                Expect(ParseEventType.Scalar, "Mark McGwire's year was crippled by a knee injury."),
+                Expect(ParseEventType.Scalar, "Mark McGwire's year was crippled by a knee injury.\n"),
                 Expect(ParseEventType.DocumentEnd),
                 Expect(ParseEventType.StreamEnd),
             });
@@ -363,7 +365,7 @@ namespace VYaml.Tests.Parser
                                               "  63 Home Runs\n" +
                                               "  0.288 Batting Average\n" +
                                               "\n" +
-                                              "What a year!"),
+                                              "What a year!\n"),
                 Expect(ParseEventType.DocumentEnd),
                 Expect(ParseEventType.StreamEnd),
             });
@@ -434,7 +436,6 @@ namespace VYaml.Tests.Parser
         }
 
         [Test]
-        [Ignore("base 8 integer is not supported")]
         public void Ex2_19_Integers()
         {
             AssertParseEvents(SpecExamples.Ex2_19, new []
@@ -447,7 +448,7 @@ namespace VYaml.Tests.Parser
                 Expect(ParseEventType.Scalar, "decimal"),
                 Expect(ParseEventType.Scalar, +12345),
                 Expect(ParseEventType.Scalar, "octal"),
-                Expect(ParseEventType.Scalar, 12), // 0x12
+                Expect(ParseEventType.Scalar, 12), // 0o14
                 Expect(ParseEventType.Scalar, "hexadecimal"),
                 Expect(ParseEventType.Scalar, 0xC),
                 Expect(ParseEventType.MappingEnd),
@@ -471,9 +472,9 @@ namespace VYaml.Tests.Parser
                 Expect(ParseEventType.Scalar, "fixed"),
                 Expect(ParseEventType.Scalar, 1230.15),
                 Expect(ParseEventType.Scalar, "negative infinity"),
-                Expect(ParseEventType.Scalar),
+                Expect(ParseEventType.Scalar, double.NegativeInfinity),
                 Expect(ParseEventType.Scalar, "not a number"),
-                Expect(ParseEventType.Scalar),
+                Expect(ParseEventType.Scalar, double.NaN),
                 Expect(ParseEventType.MappingEnd),
                 Expect(ParseEventType.DocumentEnd),
                 Expect(ParseEventType.StreamEnd),
@@ -543,7 +544,7 @@ namespace VYaml.Tests.Parser
                 Expect(ParseEventType.Scalar, "application specific tag"),
                 Expect(ParseEventType.Scalar, "The semantics of the tag\n" +
                                               "above may be different for\n" +
-                                              "different documents."),
+                                              "different documents.\n"),
                 Expect(ParseEventType.MappingEnd),
                 Expect(ParseEventType.DocumentEnd),
                 Expect(ParseEventType.StreamEnd),
@@ -769,6 +770,30 @@ namespace VYaml.Tests.Parser
         }
 
         [Test]
+        public void Ex5_01_ByteOrderMarkNoContent()
+        {
+            AssertParseEvents(SpecExamples.Ex5_1, new []
+            {
+                Expect(ParseEventType.StreamStart),
+                Expect(ParseEventType.StreamEnd),
+            });
+        }
+
+        [Test]
+        public void Ex5_02_InvalidByteOrderMarkInContent()
+        {
+            AssertParseEventsThenThrows<YamlTokenizerException>(SpecExamples.Ex5_2, new []
+            {
+                Expect(ParseEventType.StreamStart),
+                Expect(ParseEventType.DocumentStart),
+                Expect(ParseEventType.SequenceStart),
+                // TODO should probably throw after this token:
+                // Expect(ParseEventType.Scalar, "Invalid use of BOM"),
+            },
+            exceptionLike: "^BOM must be at the beginning of the stream");
+        }
+
+        [Test]
         public void Ex5_03_BlockStructureIndicators()
         {
             AssertParseEvents(SpecExamples.Ex5_3, new []
@@ -901,7 +926,7 @@ namespace VYaml.Tests.Parser
                 Expect(ParseEventType.Scalar, "block"),
                 Expect(ParseEventType.Scalar, "void main() {\n" +
                                               "\tprintf(\"Hello, world!\\n\");\n" +
-                                              "}"),
+                                              "}\n"),
                 Expect(ParseEventType.MappingEnd),
                 Expect(ParseEventType.DocumentEnd),
                 Expect(ParseEventType.StreamEnd),
@@ -1378,7 +1403,6 @@ namespace VYaml.Tests.Parser
         }
 
         [Test]
-        [Ignore("Not Supported")]
         public void Ex7_02_EmptyNodes()
         {
             AssertParseEvents(SpecExamples.Ex7_2, new []
@@ -2216,7 +2240,7 @@ namespace VYaml.Tests.Parser
                 Expect(ParseEventType.Scalar, "literal"),
                 Expect(ParseEventType.Scalar, "value\n"),
                 Expect(ParseEventType.Scalar, "folded"),
-                Expect(ParseEventType.Scalar, "value"),
+                Expect(ParseEventType.Scalar, "value\n"),
                 Expect(ParseEventType.MappingEnd),
                 Expect(ParseEventType.DocumentEnd),
                 Expect(ParseEventType.StreamEnd),
@@ -2294,13 +2318,50 @@ namespace VYaml.Tests.Parser
             {
                 return new TestParseResult(type, Scalar.Null);
             }
-            var bytes = StringEncoding.Utf8.GetBytes(scalarValue.ToString()!);
+            var bytes = StringEncoding.Utf8.GetBytes(scalarValue is IFormattable formattable ? formattable.ToString(null, CultureInfo.InvariantCulture) : scalarValue.ToString()!);
             return new TestParseResult(type, new Scalar(bytes), typeof(TScalar));
+        }
+
+        static void AssertParseEventsThenThrows<TException>(string yaml, IReadOnlyList<TestParseResult> expects, string exceptionLike)
+            where TException : Exception
+        {
+            var ex = Assert.Throws<TException>(
+                code: () =>
+                {
+                    var parser = YamlParser.FromBytes(StringEncoding.Utf8.GetBytes(yaml));
+                    try
+                    {
+                        AssertParseResults(ref parser, expects);
+                    }
+                    catch (TException e)
+                    {
+                        throw new InvalidOperationException("Unexpected exception when parsing.", e);
+                    }
+
+                    parser.Read();
+                },
+                message: $"Final parser.Read() has not thrown exception, but expected {typeof(TException).Name} with message like '{exceptionLike}'");
+            if (!Regex.IsMatch(ex?.Message ?? "", exceptionLike))
+            {
+                Assert.Fail($"Expected exception message pattern: '{exceptionLike}'\n" +
+                            $"But was: '{ex?.Message}'");
+            }
         }
 
         static void AssertParseEvents(string yaml, IReadOnlyList<TestParseResult> expects)
         {
             var parser = YamlParser.FromBytes(StringEncoding.Utf8.GetBytes(yaml));
+
+            AssertParseResults(ref parser, expects);
+
+            if (parser.Read())
+            {
+                Assert.Fail($"Extra event happened: {parser.CurrentEventType} `{parser.GetScalarAsString()}`");
+            }
+        }
+
+        static void AssertParseResults(ref YamlParser parser, IReadOnlyList<TestParseResult> expects)
+        {
             for (var i = 0; i < expects.Count; i++)
             {
                 var expect = expects[i];
@@ -2360,11 +2421,6 @@ namespace VYaml.Tests.Parser
                         }
                     }
                 }
-            }
-
-            if (parser.Read())
-            {
-                Assert.Fail($"Extra event happened: {parser.CurrentEventType} `{parser.GetScalarAsString()}`");
             }
         }
     }

@@ -296,6 +296,33 @@ namespace VYaml.Parser
             tokens.Enqueue(new Token(TokenType.StreamEnd));
         }
 
+        void ConsumeBom()
+        {
+            if (reader.IsNext(YamlCodes.Utf8Bom))
+            {
+                bool isStreamStart = mark.Position == 0;
+                Advance(YamlCodes.Utf8Bom.Length);
+                // should BOM count towards col?
+                mark.Col = 0;
+                if (!isStreamStart)
+                {
+                    if (CurrentTokenType == TokenType.DocumentEnd ||
+                        tokens.Count > 0 && tokens.Peek().Type == TokenType.DocumentEnd)
+                    {
+                        // explicitly ended document, fine
+                    }
+                    else if (reader.IsNext(YamlCodes.DocStart))
+                    {
+                        // fine, next is explicit directive-end/doc-start
+                    }
+                    else
+                    {
+                        throw new YamlTokenizerException(CurrentMark, "BOM must be at the beginning of the stream or document.");
+                    }
+                }
+            }
+        }
+
         void ConsumeDirective()
         {
             UnrollIndent(-1);
@@ -428,7 +455,7 @@ namespace VYaml.Parser
         void ConsumeTagDirectiveValue()
         {
             var handle = ScalarPool.Shared.Rent();
-            var suffix = ScalarPool.Shared.Rent();
+            var prefix = ScalarPool.Shared.Rent();
             try
             {
                 // Eat whitespaces.
@@ -440,16 +467,21 @@ namespace VYaml.Parser
                 ConsumeTagHandle(true, handle);
 
                 // Eat whitespaces
+                if (!YamlCodes.IsBlank(currentCode))
+                {
+                    throw new YamlTokenizerException(CurrentMark,
+                        "While scanning a TAG directive, did not find expected whitespace after tag handle.");
+                }
                 while (YamlCodes.IsBlank(currentCode))
                 {
                     Advance(1);
                 }
 
-                ConsumeTagUri(true, null, suffix);
+                ConsumeTagPrefix(prefix);
 
                 if (YamlCodes.IsEmpty(currentCode) || reader.End)
                 {
-                    tokens.Enqueue(new Token(TokenType.TagDirective, new Tag(handle.ToString(), suffix.ToString())));
+                    tokens.Enqueue(new Token(TokenType.TagDirective, new Tag(handle.ToString(), prefix.ToString())));
                 }
                 else
                 {
@@ -460,7 +492,7 @@ namespace VYaml.Parser
             finally
             {
                 ScalarPool.Shared.Return(handle);
-                ScalarPool.Shared.Return(suffix);
+                ScalarPool.Shared.Return(prefix);
             }
         }
 
@@ -623,48 +655,65 @@ namespace VYaml.Parser
 
             try
             {
+                // Tag spec: https://yaml.org/spec/1.2.2/#rule-c-ns-tag-property
                 // Check if the tag is in the canonical form (verbatim).
                 if (TryPeek(1, out var nextCode) && nextCode == '<')
                 {
+                    // Spec: https://yaml.org/spec/1.2.2/#rule-c-verbatim-tag
                     // Eat '!<'
                     Advance(2);
-                    ConsumeTagUri(false, null, suffix);
 
+                    while (TryConsumeUriChar(suffix)) { }
+
+                    if (suffix.Length <= 0)
+                    {
+                        throw new YamlTokenizerException(mark, "While scanning a verbatim tag, did not find valid characters.");
+                    }
                     if (currentCode != '>')
                     {
                         throw new YamlTokenizerException(mark, "While scanning a tag, did not find the expected '>'");
                     }
 
+                    // Eat '>'
                     Advance(1);
                 }
                 else
                 {
                     // The tag has either the '!suffix' or the '!handle!suffix'
                     ConsumeTagHandle(false, handle);
-
-                    // Check if it is, indeed, handle.
-                    var handleSpan = handle.AsSpan();
-                    if (handleSpan.Length >= 2 && handleSpan[0] == '!' && handleSpan[^1] == '!')
+                    if (handle.Length >= 2 && handle.AsSpan()[^1] == '!')
                     {
-                        ConsumeTagUri(false, null, suffix);
+                        // Spec: https://yaml.org/spec/1.2.2/#rule-c-ns-shorthand-tag
+                        // if the handle is at least 2 long and ends with '!':
+                        // it's either a Named Tag Handle or if '!!' - a Secondary Tag Handle
+                        // There has to be a non-zero length suffix.
+                        while (TryConsumeTagChar(suffix)) { }
+                        if (suffix.Length <= 0)
+                        {
+                            throw new YamlTokenizerException(mark, "While scanning a tag, did not find any tag-shorthand suffix.");
+                        }
                     }
                     else
                     {
-                        ConsumeTagUri(false, handle, suffix);
+                        // Spec: https://yaml.org/spec/1.2.2/#rule-c-ns-shorthand-tag
+                        // It's either a Primary Tag Handle with Suffix, or a Non-Specific Tag '!'.
+                        // Rewrite the handle into suffix except initial '!'
+                        suffix.Write(handle.AsSpan(1, handle.Length - 1));
                         handle.Clear();
                         handle.Write((byte)'!');
-                        // A special case: the '!' tag.  Set the handle to '' and the
-                        // suffix to '!'.
+                        // Now append any remaining suffix-valid characters to the suffix.
+                        while (TryConsumeTagChar(suffix)) { }
                         if (suffix.Length <= 0)
                         {
-                            handle.Clear();
-                            suffix.Clear();
-                            suffix.Write((byte)'!');
+                            // Spec: https://yaml.org/spec/1.2.2/#rule-c-non-specific-tag
+                            // A special case: the '!' tag.  Set the handle to '' and the
+                            // suffix to '!'.
+                            (handle, suffix) = (suffix, handle);
                         }
                     }
                 }
 
-                if (YamlCodes.IsEmpty(currentCode) || reader.End)
+                if (YamlCodes.IsEmpty(currentCode) || reader.End || YamlCodes.IsAnyFlowSymbol(currentCode))
                 {
                     // ex 7.2, an empty scalar can follow a secondary tag
                     tokens.Enqueue(new Token(TokenType.Tag, new Tag(handle.ToString(), suffix.ToString())));
@@ -672,7 +721,7 @@ namespace VYaml.Parser
                 else
                 {
                     throw new YamlTokenizerException(mark,
-                        "While scanning a tag, did not find expected whitespace or line break");
+                        "While scanning a tag, did not find expected whitespace or line break or flow");
                 }
             }
             finally
@@ -693,7 +742,7 @@ namespace VYaml.Parser
             buf.Write(currentCode);
             Advance(1);
 
-            while (YamlCodes.IsAlphaNumericDashOrUnderscore(currentCode))
+            while (YamlCodes.IsWordChar(currentCode))
             {
                 buf.Write(currentCode);
                 Advance(1);
@@ -717,40 +766,67 @@ namespace VYaml.Parser
             }
         }
 
-        void ConsumeTagUri(bool directive, Scalar? head, Scalar uri)
+        void ConsumeTagPrefix(Scalar prefix)
         {
-            // Copy the head if needed.
-            // Note that we don't copy the leading '!' character.
-            var length = head?.Length ?? 0;
-            if (length > 1)
+            // Spec: https://yaml.org/spec/1.2.2/#rule-ns-tag-prefix
+            if (currentCode == YamlCodes.Tag)
             {
-                 uri.Write(head!.AsSpan(1, length - 1));
+                // https://yaml.org/spec/1.2.2/#rule-c-ns-local-tag-prefix
+                prefix.Write(currentCode);
+                Advance(1);
+
+                while (TryConsumeUriChar(prefix)) { }
             }
-
-            // The set of characters that may appear in URI is as follows:
-            while (currentCode is
-                       (byte)';' or (byte)'/' or (byte)'?' or (byte)':' or (byte)':' or (byte)'@' or (byte)'&' or
-                       (byte)'=' or (byte)'+' or (byte)'$' or (byte)',' or (byte)'.' or (byte)'!' or (byte)'!' or
-                       (byte)'~' or (byte)'*' or (byte)'\'' or (byte)'(' or (byte)')' or (byte)'[' or (byte)']' or
-                       (byte)'%' ||
-                   YamlCodes.IsAlphaNumericDashOrUnderscore(currentCode))
+            else if (YamlCodes.IsTagChar(currentCode))
             {
-                if (currentCode == '%')
-                {
-                    uri.WriteUnicodeCodepoint(ConsumeUriEscapes(directive));
-                }
-                else
-                {
-                    uri.Write(currentCode);
-                    Advance(1);
-                }
+                // https://yaml.org/spec/1.2.2/#rule-ns-global-tag-prefix
+                prefix.Write(currentCode);
+                Advance(1);
 
-                length++;
+                while (TryConsumeUriChar(prefix)) { }
+            }
+            else
+            {
+                throw new YamlTokenizerException(mark, "While parsing a tag, did not find expected tag prefix");
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        bool TryConsumeUriChar(Scalar scalar)
+        {
+            if (currentCode == '%')
+            {
+                scalar.WriteUnicodeCodepoint(ConsumeUriEscapes());
+                return true;
+            }
+            else if (YamlCodes.IsUriChar(currentCode))
+            {
+                scalar.Write(currentCode);
+                Advance(1);
+                return true;
+            }
+            return false;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        bool TryConsumeTagChar(Scalar scalar)
+        {
+            if (currentCode == '%')
+            {
+                scalar.WriteUnicodeCodepoint(ConsumeUriEscapes());
+                return true;
+            }
+            else if (YamlCodes.IsTagChar(currentCode))
+            {
+                scalar.Write(currentCode);
+                Advance(1);
+                return true;
+            }
+            return false;
+        }
+
         // TODO: Use Uri
-        int ConsumeUriEscapes(bool directive)
+        int ConsumeUriEscapes()
         {
             var width = 0;
             var codepoint = 0;
@@ -767,7 +843,8 @@ namespace VYaml.Parser
                 var octet = (YamlCodes.AsHex(hexcode0) << 4) + YamlCodes.AsHex(hexcode1);
                 if (width == 0)
                 {
-                    width = octet switch {
+                    width = octet switch
+                    {
                         _ when (octet & 0b1000_0000) == 0b0000_0000 => 1,
                         _ when (octet & 0b1110_0000) == 0b1100_0000 => 2,
                         _ when (octet & 0b1111_0000) == 0b1110_0000 => 3,
@@ -907,7 +984,6 @@ namespace VYaml.Parser
 
                 scalar.Write(lineBreaksBufferStatic.AsSpan());
                 leadingBlank = YamlCodes.IsBlank(currentCode);
-                leadingBreak = LineBreakState.None;
                 lineBreaksBufferStatic.Clear();
 
                 while (!reader.End && !YamlCodes.IsLineBreak(currentCode))
@@ -916,7 +992,12 @@ namespace VYaml.Parser
                     Advance(1);
                 }
                 // break on EOF
-                if (reader.End) break;
+                if (reader.End)
+                {
+                    // treat EOF as LF for chomping
+                    leadingBreak = LineBreakState.Lf;
+                    break;
+                }
 
                 leadingBreak = ConsumeLineBreaks();
                 // Eat the following indentation spaces and line breaks.
@@ -1217,8 +1298,8 @@ namespace VYaml.Parser
                 }
             }
 
-            // Eat the right quote
-            LOOPEND:
+        // Eat the right quote
+        LOOPEND:
             Advance(1);
             simpleKeyAllowed = isLeadingBlanks;
 
@@ -1396,8 +1477,8 @@ namespace VYaml.Parser
                             Advance(1);
                         }
                         break;
-                    case 0xFE when reader.IsNext(YamlCodes.Bom):
-                        Advance(YamlCodes.Bom.Length);
+                    case 0xEF:
+                        ConsumeBom();
                         break;
                     default:
                         return;

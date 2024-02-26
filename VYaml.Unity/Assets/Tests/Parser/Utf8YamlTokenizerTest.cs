@@ -715,6 +715,26 @@ namespace VYaml.Tests
         }
 
         [Test]
+        [TestCase("! x", "!")]
+        [TestCase("!a%21b x", "!a!b")]
+        [TestCase("!!str x", "!!str")]
+        [TestCase("!a!str- x", "!a!str-")]
+        [TestCase("!!str, x", "!!str")]
+        [TestCase("[!!str], x", "!!str")]
+        [TestCase("{!!str}, x", "!!str")]
+        [TestCase("[!!map{}, x]", "!!map")]
+        [TestCase("[!!seq[], x]", "!!seq")]
+        public void Tag(string input, string value)
+        {
+            CreateTokenizer(input, out var reader);
+
+            while (reader.Read() && reader.CurrentTokenType != TokenType.Tag) {}
+
+            Assert.That(reader.CurrentTokenType, Is.EqualTo(TokenType.Tag));
+            Assert.That(reader.TakeCurrentTokenContent<Tag>().ToString(), Is.EqualTo(value));
+        }
+
+        [Test]
         [TestCase("null", ExpectedResult = true)]
         [TestCase("Null", ExpectedResult = true)]
         [TestCase("NULL", ExpectedResult = true)]

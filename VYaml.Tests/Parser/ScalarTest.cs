@@ -37,11 +37,24 @@ namespace VYaml.Tests.Parser
         [TestCase("-123", ExpectedResult = -123)]
         [TestCase("0xC", ExpectedResult = 12)]
         [TestCase("-0xC", ExpectedResult = -12)]
+        [TestCase("0o7", ExpectedResult = 7)]
+        [TestCase("0o10", ExpectedResult = 8)]
+        [TestCase("0o17777777777", ExpectedResult = int.MaxValue)]
+        [TestCase("0o00000000000000000000000", ExpectedResult = 0)]
         public int Integer(string input)
         {
             var parsed = FromString(input).TryGetInt32(out var value);
             Assert.That(parsed, Is.True);
             return value;
+        }
+
+        [Test]
+        [TestCase("0o2000000000000000000000")]
+        [TestCase("0o10000000000000000000000")]
+        public void IntegerOverflow(string input)
+        {
+            var parsed = FromString(input).TryGetUInt64(out _);
+            Assert.That(parsed, Is.False);
         }
 
         [Test]
