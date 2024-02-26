@@ -82,7 +82,7 @@ comments: |-
   Late afternoon is best.
   Backup contact is Nancy
   Billsmer @ 338-4338.
-".ReplaceLineEndings("\n")));
+"));
         }
 
         [Test]
