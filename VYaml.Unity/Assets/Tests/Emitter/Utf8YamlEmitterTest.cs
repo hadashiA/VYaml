@@ -1151,6 +1151,42 @@ namespace VYaml.Tests.Emitter
         }
 
         [Test]
+        public void FlowSequence_Nested_WithTag()
+        {
+            var emitter = CreateEmitter();
+            emitter.BeginMapping();
+            {
+                emitter.WriteString("A1");
+                emitter.Tag("!a1");
+                emitter.WriteFloat(float.Pi); // !a1 is skipped and written later
+
+                emitter.WriteString("NoTag1");
+                emitter.BeginSequence(SequenceStyle.Flow); // !a1 is written here instead of after A1:
+                {
+                    emitter.Tag("!a2"); // This tag is ignored unless the sequence style is Block
+                    emitter.WriteString("A2");
+                }
+                emitter.EndSequence();
+
+                emitter.WriteString("NoTag2");
+                emitter.BeginSequence(SequenceStyle.Block); // !a2 is not written here like it was for !a1 (because of the SequenceStyle)
+                {
+                    emitter.Tag("!a3"); // This tag is written, but it breaks the sequence
+                    emitter.WriteString("A3"); // This is written outside of the sequence
+                }
+                emitter.EndSequence();
+            }
+            emitter.EndMapping();
+
+            Assert.That(ToString(in emitter), Is.EqualTo(
+                "A1: !a1 3.1415927\n" +
+                "NoTag1: [!a2 A2]\n" +
+                "NoTag2: \n" +
+                "- !a3 A3\n"
+                ));
+        }
+
+        [Test]
         public void FlowSequence_Nested1()
         {
             var emitter = CreateEmitter();
