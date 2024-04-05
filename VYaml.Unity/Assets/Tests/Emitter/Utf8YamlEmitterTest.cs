@@ -1158,7 +1158,7 @@ namespace VYaml.Tests.Emitter
             {
                 emitter.WriteString("A1");
                 emitter.Tag("!a1");
-                emitter.WriteFloat(float.Pi); // !a1 is skipped and written later
+                emitter.WriteFloat(3.1415f); // !a1 is skipped and written later
 
                 emitter.WriteString("NoTag1");
                 emitter.BeginSequence(SequenceStyle.Flow); // !a1 is written here instead of after A1:
@@ -1179,7 +1179,7 @@ namespace VYaml.Tests.Emitter
             emitter.EndMapping();
 
             Assert.That(ToString(in emitter), Is.EqualTo(
-                "A1: !a1 3.1415927\n" +
+                "A1: !a1 3.1415\n" +
                 "NoTag1: [!a2 A2]\n" +
                 "NoTag2: \n" +
                 "- !a3 A3\n"
