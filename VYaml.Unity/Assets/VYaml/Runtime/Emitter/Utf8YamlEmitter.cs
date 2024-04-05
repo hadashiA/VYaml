@@ -762,8 +762,7 @@ namespace VYaml.Emitter
 
                     if (TryWriteTag(output, ref offset))
                     {
-                        output[offset++] = YamlCodes.Lf;
-                        WriteIndent(output, ref offset);
+                        output[offset++] = YamlCodes.Space;
                     }
                     break;
                 }
@@ -817,6 +816,10 @@ namespace VYaml.Emitter
                     break;
                 }
                 case EmitState.BlockMappingValue:
+                    if (TryWriteTag(output, ref offset))
+                    {
+                        output[offset++] = YamlCodes.Space;
+                    }
                     break;
 
                 case EmitState.FlowSequenceEntry:
@@ -824,6 +827,10 @@ namespace VYaml.Emitter
                     {
                         FlowSequenceSeparator.CopyTo(output[offset..]);
                         offset += FlowSequenceSeparator.Length;
+                    }
+                    if (TryWriteTag(output, ref offset))
+                    {
+                        output[offset++] = YamlCodes.Space;
                     }
                     break;
                 case EmitState.FlowMappingKey:
