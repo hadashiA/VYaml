@@ -4,26 +4,30 @@ using VYaml.Parser;
 
 namespace VYaml.Serialization
 {
-    public class ArrayFormatter<T> : IYamlFormatter<T[]?>
+    public class StackFormatter<T> : IYamlFormatter<Stack<T>?>
     {
-        public void Serialize(ref Utf8YamlEmitter emitter, T[]? value, YamlSerializationContext context)
+        public void Serialize(ref Utf8YamlEmitter emitter, Stack<T>? value, YamlSerializationContext context)
         {
             if (value is null)
             {
                 emitter.WriteNull();
-                return;
             }
-
-            var elementFormatter = context.Resolver.GetFormatterWithVerify<T>();
-            emitter.BeginSequence();
-            foreach (var x in value)
+            else
             {
-                elementFormatter.Serialize(ref emitter, x, context);
+                emitter.BeginSequence();
+                if (value.Count > 0)
+                {
+                    var elementFormatter = context.Resolver.GetFormatterWithVerify<T>();
+                    foreach (var x in value)
+                    {
+                        elementFormatter.Serialize(ref emitter, x, context);
+                    }
+                }
+                emitter.EndSequence();
             }
-            emitter.EndSequence();
         }
 
-        public T[]? Deserialize(ref YamlParser parser, YamlDeserializationContext context)
+        public Stack<T>? Deserialize(ref YamlParser parser, YamlDeserializationContext context)
         {
             if (parser.IsNullScalar())
             {
@@ -42,7 +46,12 @@ namespace VYaml.Serialization
             }
 
             parser.ReadWithVerify(ParseEventType.SequenceEnd);
-            return list.ToArray();
+            var stack = new Stack<T>(list.Count);
+            for (var i = list.Count - 1; i >= 0; i--)
+            {
+                stack.Push(list[i]);
+            }
+            return stack;
         }
     }
 }
