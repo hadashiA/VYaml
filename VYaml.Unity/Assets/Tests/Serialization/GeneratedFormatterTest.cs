@@ -335,5 +335,14 @@ namespace VYaml.Tests.Serialization
             Assert.That(result.Bar, Is.EqualTo("aaa"));
             Assert.That(result.Hoge, Is.EqualTo("bbb"));
         }
+
+        [Test]
+        public void Deserialize_CustomCOnstructorWithDefaultValue()
+        {
+            var result = Deserialize<WithCustomConstructor3>("{}");
+            Assert.That(result.X, Is.EqualTo(100));
+            Assert.That(result.Y, Is.EqualTo(222m));
+            Assert.That(result.Z, Is.EqualTo(true));
+        }
     }
 }
