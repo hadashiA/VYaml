@@ -427,26 +427,7 @@ public class VYamlSourceGenerator : ISourceGenerator
         codeWriter.AppendLine();
         foreach (var memberMeta in typeMeta.MemberMetas)
         {
-            codeWriter.Append($"var __{memberMeta.Name}__ = ");
-            if (memberMeta.HasExplicitDefaultValueFromConstructor)
-            {
-                switch (memberMeta.ExplicitDefaultValueFromConstructor)
-                {
-                    case null:
-                        codeWriter.AppendLine("null;", false);
-                        break;
-                    case string stringValue:
-                        codeWriter.AppendLine($"\"{stringValue}\";", false);
-                        break;
-                    case {} anyValue:
-                        codeWriter.AppendLine($"{anyValue};", false);
-                        break;
-                }
-            }
-            else
-            {
-                codeWriter.AppendLine($"default({memberMeta.FullTypeName});", false);
-            }
+            codeWriter.Append($"var __{memberMeta.Name}__ = {memberMeta.EmitDefaultValue()};");
         }
 
         using (codeWriter.BeginBlockScope("while (!parser.End && parser.CurrentEventType != ParseEventType.MappingEnd)"))
@@ -505,12 +486,7 @@ public class VYamlSourceGenerator : ISourceGenerator
             {
                 if (x.HasExplicitDefaultValueFromConstructor)
                 {
-                    return x.ExplicitDefaultValueFromConstructor switch
-                    {
-                        null => $"__{x.Name}__ = null",
-                        string stringValue => $"__{x.Name}__ = \"{stringValue}\"",
-                        { } anyValue => $"__{x.Name}__ = {anyValue}"
-                    };
+                    return $"__{x.Name}__ = {x.EmitDefaultValue()}";
                 }
                 return $"__{x.Name}__";
             }));
