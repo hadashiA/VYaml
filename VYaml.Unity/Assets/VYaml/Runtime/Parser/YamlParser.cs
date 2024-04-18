@@ -264,6 +264,17 @@ namespace VYaml.Parser
             Read();
         }
 
+        public void SkipHeader()
+        {
+            while (CurrentEventType is ParseEventType.StreamStart or ParseEventType.DocumentStart or ParseEventType.Nothing)
+            {
+                if (!Read())
+                {
+                    break;
+                }
+            }
+        }
+
         public void SkipAfter(ParseEventType eventType)
         {
             while (CurrentEventType != eventType)
