@@ -158,13 +158,13 @@ These types can be serialized by default:
 
 - .NET primitives (`byte`, `int`, `bool`, `char`, `double`, etc.)
 - Any enum (Currently, only simple string representation)
-- `string`, `decimal`, `Half`
+- `string`, `decimal`, `Half`, `BigInteger`, `Complex`
 - `TimeSpan`, `DateTime`, `DateTimeOffset`
-- `Guid`, `Uri`
+- `Guid`, `Uri`, `Version`, `Type`
 - `byte[]` as base64 string
-- `T[]`
+- `T[]`, `T[,]`, `T[,,]`, `T[,,]`, `BitArray`
 - `Nullable<>`, `KeyValuePair<,>`, `Tuple<,...>`, `ValueTuple<,...>`
-- `List<>`
+- `List<>`, `Stack<>`, `Queue<>`, `LinkedList<>`
 - `Dictionary<,>`
 - `IEnumerable<>`, `ICollection<>`, `IList<>`, `IReadOnlyCollection<>`, `IReadOnlyList<>`
 - `IDictionary<,>`, `IReadOnlyDictionary<,>`
