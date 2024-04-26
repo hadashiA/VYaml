@@ -1,6 +1,8 @@
 #nullable enable
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Text;
 
 namespace VYaml.Serialization
 {
@@ -74,10 +76,9 @@ namespace VYaml.Serialization
             { typeof(Guid), GuidFormatter.Instance },
             { typeof(Guid?), new StaticNullableFormatter<Guid>(GuidFormatter.Instance) },
             { typeof(Uri), UriFormatter.Instance },
-            // { typeof(Version), VersionFormatter.Instance },
-            // { typeof(StringBuilder), StringBuilderFormatter.Instance },
-            // { typeof(BitArray), BitArrayFormatter.Instance },
-            // { typeof(Type), TypeFormatter<Type>.Instance },
+            { typeof(Version), VersionFormatter.Instance },
+            { typeof(BitArray), BitArrayFormatter.Instance },
+            { typeof(Type), TypeFormatter.Instance },
 
             // well known collections
             { typeof(List<Int16>), new ListFormatter<Int16>() },
@@ -142,9 +143,9 @@ namespace VYaml.Serialization
             // { typeof(ReadOnlySequence<>), typeof(ReadOnlySequenceFormatter<>) },
 
             { typeof(List<>), typeof(ListFormatter<>) },
-            // { typeof(Stack<>), typeof(StackFormatter<>) },
-            // { typeof(Queue<>), typeof(QueueFormatter<>) },
-            // { typeof(LinkedList<>), typeof(LinkedListFormatter<>) },
+            { typeof(Stack<>), typeof(StackFormatter<>) },
+            { typeof(Queue<>), typeof(QueueFormatter<>) },
+            { typeof(LinkedList<>), typeof(LinkedListFormatter<>) },
             // { typeof(HashSet<>), typeof(HashSetFormatter<>) },
             // { typeof(SortedSet<>), typeof(SortedSetFormatter<>) },
 
@@ -193,17 +194,18 @@ namespace VYaml.Serialization
                     var rank = type.GetArrayRank();
                     switch (rank)
                     {
-                        // case 2:
-                        //     formatterType = typeof(TwoDimensionalArrayFormatter<>).MakeGenericType(type.GetElementType()!);
-                        //     break;
-                        // case 3:
-                        //     formatterType = typeof(ThreeDimensionalArrayFormatter<>).MakeGenericType(type.GetElementType()!);
-                        //     break;
-                        // case 4:
-                        //     formatterType = typeof(FourDimensionalArrayFormatter<>).MakeGenericType(type.GetElementType()!);
-                        //     break;
-                        // default:
-                        //     break; // not supported
+                        case 2:
+
+                            formatterType = typeof(TwoDimensionalArrayFormatter<>).MakeGenericType(type.GetElementType()!);
+                            break;
+                        case 3:
+                            formatterType = typeof(ThreeDimensionalArrayFormatter<>).MakeGenericType(type.GetElementType()!);
+                            break;
+                        case 4:
+                            formatterType = typeof(FourDimensionalArrayFormatter<>).MakeGenericType(type.GetElementType()!);
+                            break;
+                        default:
+                            break; // not supported
                     }
                 }
             }

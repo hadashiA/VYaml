@@ -1,5 +1,6 @@
-#nullable enable
 using System;
+using System.Buffers;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace VYaml.Serialization
@@ -74,10 +75,9 @@ namespace VYaml.Serialization
             { typeof(Guid), GuidFormatter.Instance },
             { typeof(Guid?), new StaticNullableFormatter<Guid>(GuidFormatter.Instance) },
             { typeof(Uri), UriFormatter.Instance },
-            // { typeof(Version), VersionFormatter.Instance },
-            // { typeof(StringBuilder), StringBuilderFormatter.Instance },
-            // { typeof(BitArray), BitArrayFormatter.Instance },
-            // { typeof(Type), TypeFormatter<Type>.Instance },
+            { typeof(Version), VersionFormatter.Instance },
+            { typeof(BitArray), BitArrayFormatter.Instance },
+            { typeof(Type), TypeFormatter.Instance },
 
             // well known collections
             { typeof(List<Int16>), new ListFormatter<Int16>() },
@@ -98,19 +98,19 @@ namespace VYaml.Serialization
             { typeof(object[]), new ArrayFormatter<object>() },
             { typeof(List<object>), new ListFormatter<object>() },
 
-            // { typeof(Memory<byte>), ByteMemoryFormatter.Instance },
-            // { typeof(Memory<byte>?), new StaticNullableFormatter<Memory<byte>>(ByteMemoryFormatter.Instance) },
-            // { typeof(ReadOnlyMemory<byte>), ByteReadOnlyMemoryFormatter.Instance },
-            // { typeof(ReadOnlyMemory<byte>?), new StaticNullableFormatter<ReadOnlyMemory<byte>>(ByteReadOnlyMemoryFormatter.Instance) },
-            // { typeof(ReadOnlySequence<byte>), ByteReadOnlySequenceFormatter.Instance },
-            // { typeof(ReadOnlySequence<byte>?), new StaticNullableFormatter<ReadOnlySequence<byte>>(ByteReadOnlySequenceFormatter.Instance) },
-            // { typeof(ArraySegment<byte>), ByteArraySegmentFormatter.Instance },
-            // { typeof(ArraySegment<byte>?), new StaticNullableFormatter<ArraySegment<byte>>(ByteArraySegmentFormatter.Instance) },
+            { typeof(Memory<byte>), ByteMemoryFormatter.Instance },
+            { typeof(Memory<byte>?), new StaticNullableFormatter<Memory<byte>>(ByteMemoryFormatter.Instance) },
+            { typeof(ReadOnlyMemory<byte>), ByteReadOnlyMemoryFormatter.Instance },
+            { typeof(ReadOnlyMemory<byte>?), new StaticNullableFormatter<ReadOnlyMemory<byte>>(ByteReadOnlyMemoryFormatter.Instance) },
+            { typeof(ReadOnlySequence<byte>), ByteReadOnlySequenceFormatter.Instance },
+            { typeof(ReadOnlySequence<byte>?), new StaticNullableFormatter<ReadOnlySequence<byte>>(ByteReadOnlySequenceFormatter.Instance) },
+            { typeof(ArraySegment<byte>), ByteArraySegmentFormatter.Instance },
+            { typeof(ArraySegment<byte>?), new StaticNullableFormatter<ArraySegment<byte>>(ByteArraySegmentFormatter.Instance) },
 
-            // { typeof(System.Numerics.BigInteger), BigIntegerFormatter.Instance },
-            // { typeof(System.Numerics.BigInteger?), new StaticNullableFormatter<System.Numerics.BigInteger>(BigIntegerFormatter.Instance) },
-            // { typeof(System.Numerics.Complex), ComplexFormatter.Instance },
-            // { typeof(System.Numerics.Complex?), new StaticNullableFormatter<System.Numerics.Complex>(ComplexFormatter.Instance) },
+            { typeof(System.Numerics.BigInteger), BigIntegerFormatter.Instance },
+            { typeof(System.Numerics.BigInteger?), new StaticNullableFormatter<System.Numerics.BigInteger>(BigIntegerFormatter.Instance) },
+            { typeof(System.Numerics.Complex), ComplexFormatter.Instance },
+            { typeof(System.Numerics.Complex?), new StaticNullableFormatter<System.Numerics.Complex>(ComplexFormatter.Instance) },
         };
 
         public static readonly Dictionary<Type, Type> KnownGenericTypes = new()
@@ -142,9 +142,9 @@ namespace VYaml.Serialization
             // { typeof(ReadOnlySequence<>), typeof(ReadOnlySequenceFormatter<>) },
 
             { typeof(List<>), typeof(ListFormatter<>) },
-            // { typeof(Stack<>), typeof(StackFormatter<>) },
-            // { typeof(Queue<>), typeof(QueueFormatter<>) },
-            // { typeof(LinkedList<>), typeof(LinkedListFormatter<>) },
+            { typeof(Stack<>), typeof(StackFormatter<>) },
+            { typeof(Queue<>), typeof(QueueFormatter<>) },
+            { typeof(LinkedList<>), typeof(LinkedListFormatter<>) },
             // { typeof(HashSet<>), typeof(HashSetFormatter<>) },
             // { typeof(SortedSet<>), typeof(SortedSetFormatter<>) },
 
@@ -193,17 +193,18 @@ namespace VYaml.Serialization
                     var rank = type.GetArrayRank();
                     switch (rank)
                     {
-                        // case 2:
-                        //     formatterType = typeof(TwoDimensionalArrayFormatter<>).MakeGenericType(type.GetElementType()!);
-                        //     break;
-                        // case 3:
-                        //     formatterType = typeof(ThreeDimensionalArrayFormatter<>).MakeGenericType(type.GetElementType()!);
-                        //     break;
-                        // case 4:
-                        //     formatterType = typeof(FourDimensionalArrayFormatter<>).MakeGenericType(type.GetElementType()!);
-                        //     break;
-                        // default:
-                        //     break; // not supported
+                        case 2:
+
+                            formatterType = typeof(TwoDimensionalArrayFormatter<>).MakeGenericType(type.GetElementType()!);
+                            break;
+                        case 3:
+                            formatterType = typeof(ThreeDimensionalArrayFormatter<>).MakeGenericType(type.GetElementType()!);
+                            break;
+                        case 4:
+                            formatterType = typeof(FourDimensionalArrayFormatter<>).MakeGenericType(type.GetElementType()!);
+                            break;
+                        default:
+                            break; // not supported
                     }
                 }
             }
