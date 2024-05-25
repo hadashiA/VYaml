@@ -603,6 +603,7 @@ namespace VYaml.Emitter
             writer.Advance(offset);
         }
 
+        public void WriteString(string value, ScalarStyle style = ScalarStyle.Any) => WriteString(value.AsSpan(), style);
         public void WriteString(ReadOnlySpan<char> value, ScalarStyle style = ScalarStyle.Any)
         {
             if (style == ScalarStyle.Any)
