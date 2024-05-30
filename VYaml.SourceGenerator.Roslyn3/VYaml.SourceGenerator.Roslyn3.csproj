@@ -17,6 +17,11 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Compile Include="../VYaml.SourceGenerator/**/*.cs"
+                 Exclude="**/obj/**;**/VYamlIncrementalSourceGenerator.cs;**/Shims/**" />
+    </ItemGroup>
+
+    <ItemGroup>
         <!-- Mainly used for Unity, Unity 2021.3 has Roslyn 3.9.0(see: Editor\Data\DotNetSdkRoslyn\ -->
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.9.0" PrivateAssets="all" />
         <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.3">

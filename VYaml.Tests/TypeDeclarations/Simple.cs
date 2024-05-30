@@ -235,6 +235,21 @@ namespace VYaml.Tests.TypeDeclarations
         }
     }
 
+    [YamlObject]
+    public partial record WithCustomConstructor3
+    {
+        public int X { get; }
+        public decimal Y { get; }
+        public bool Z { get; }
+
+        [YamlConstructor]
+        public WithCustomConstructor3(int x = 100, decimal y = 222m, bool z = true)
+        {
+            X = x;
+            Y = y;
+            Z = z;
+        }
+    }
 
     [YamlObject]
     public partial class WithCustomConstructorAndOtherProps

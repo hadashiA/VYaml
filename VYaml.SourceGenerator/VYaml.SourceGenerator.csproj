@@ -30,7 +30,7 @@
     </PropertyGroup>
     <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="$(Configuration) == 'Release'">
         <Copy SourceFiles="$(TargetPath)"
-              DestinationFiles="$(UnityAssetsRoot)\Plugins\$(TargetFileName)"
+              DestinationFiles="$(UnityAssetsRoot)\$(TargetFileName)"
               SkipUnchangedFiles="true" />
     </Target>
 </Project>

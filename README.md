@@ -68,7 +68,7 @@ Require Unity 2021.3 or later.
 If you are using a version of Unity newer than 2022.2, you can install as the Unity package manager at the following git URL;
 
 ```
-https://github.com/hadashiA/VYaml.git?path=VYaml.Unity/Assets/VYaml#0.25.1
+https://github.com/hadashiA/VYaml.git?path=VYaml.Unity/Assets/VYaml#0.26.0
 ```
 
 > [!IMPORTANT]  
@@ -158,13 +158,13 @@ These types can be serialized by default:
 
 - .NET primitives (`byte`, `int`, `bool`, `char`, `double`, etc.)
 - Any enum (Currently, only simple string representation)
-- `string`, `decimal`, `Half`
+- `string`, `decimal`, `Half`, `BigInteger`, `Complex`
 - `TimeSpan`, `DateTime`, `DateTimeOffset`
-- `Guid`, `Uri`
+- `Guid`, `Uri`, `Version`, `Type`
 - `byte[]` as base64 string
-- `T[]`
+- `T[]`, `T[,]`, `T[,,]`, `T[,,]`, `BitArray`
 - `Nullable<>`, `KeyValuePair<,>`, `Tuple<,...>`, `ValueTuple<,...>`
-- `List<>`
+- `List<>`, `Stack<>`, `Queue<>`, `LinkedList<>`
 - `Dictionary<,>`
 - `IEnumerable<>`, `ICollection<>`, `IList<>`, `IReadOnlyCollection<>`, `IReadOnlyList<>`
 - `IDictionary<,>`, `IReadOnlyDictionary<,>`

@@ -78,4 +78,23 @@ class MemberMeta
         var location = Symbol.Locations.FirstOrDefault() ?? fallback.Identifier.GetLocation();
         return location;
     }
+
+    public string EmitDefaultValue()
+    {
+        if (!HasExplicitDefaultValueFromConstructor)
+        {
+            return $"default({FullTypeName})";
+        }
+
+        return ExplicitDefaultValueFromConstructor switch
+        {
+            null => $"default({FullTypeName})",
+            string x => $"\"{x}\"",
+            float x => $"{x}f",
+            double x => $"{x}d",
+            decimal x => $"{x}m",
+            bool x => x ? "true" : "false",
+            _ => ExplicitDefaultValueFromConstructor.ToString()
+        };
+    }
 }

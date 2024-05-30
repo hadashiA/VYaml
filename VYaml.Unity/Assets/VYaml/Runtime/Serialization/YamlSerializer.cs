@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -130,7 +129,7 @@ namespace VYaml.Serialization
             var contextLocal = GetThreadLocalDeserializationContext(options);
             contextLocal.Reset();
 
-            parser.SkipAfter(ParseEventType.DocumentStart);
+            parser.SkipHeader();
 
             var formatter = options.Resolver.GetFormatterWithVerify<T>();
             return contextLocal.DeserializeWithAlias(formatter, ref parser);
