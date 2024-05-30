@@ -122,6 +122,18 @@ namespace VYaml.Tests.Emitter
         }
 
         [Test]
+        [TestCase("0001", ExpectedResult = "\"0001\"")]
+        [TestCase("0001a", ExpectedResult = "0001a")]
+        [TestCase("a1000", ExpectedResult = "a1000")]
+        [TestCase("10000000000000000000000000000000000000000", ExpectedResult = "\"10000000000000000000000000000000000000000\"")]
+        public string WriteString_NumaricAutoScalar(string value)
+        {
+            var emitter = CreateEmitter();
+            emitter.WriteString(value);
+            return ToString(in emitter);
+        }
+
+        [Test]
         [TestCase("aaa\nbbb", ExpectedResult = "'aaa\\nbbb'")]
         [TestCase("aaa\tbbb", ExpectedResult = "'aaa\\tbbb'")]
         [TestCase("aaa'bbb", ExpectedResult = "'aaa\\'bbb'")]
