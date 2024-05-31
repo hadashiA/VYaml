@@ -1,9 +1,9 @@
-#nullable enable
 using System;
 using System.Buffers;
 using System.Buffers.Text;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using VYaml.Internal;
 
 namespace VYaml.Parser
@@ -12,21 +12,33 @@ namespace VYaml.Parser
     {
         public static readonly ScalarPool Shared = new();
 
-        readonly ConcurrentQueue<Scalar> queue = new();
+        readonly ConcurrentQueue<Scalar> items = new();
+        Scalar? fastItem;
 
         public Scalar Rent()
         {
-            if (queue.TryDequeue(out var value))
+            var value = fastItem;
+            if (value != null &&
+                Interlocked.CompareExchange(ref fastItem, null, value) == value)
+            {
+                return value;
+            }
+            if (items.TryDequeue(out value))
             {
                 return value;
             }
             return new Scalar(256);
         }
 
-        public void Return(Scalar scalar)
+        public void Return(Scalar value)
         {
-            scalar.Clear();
-            queue.Enqueue(scalar);
+            value.Clear();
+
+            if (fastItem != null ||
+                Interlocked.CompareExchange(ref fastItem, value, null) != null)
+            {
+                items.Enqueue(value);
+            }
         }
     }
 
