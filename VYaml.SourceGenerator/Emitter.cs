@@ -387,7 +387,7 @@ static class Emitter
         codeWriter.AppendLine();
         foreach (var memberMeta in typeMeta.MemberMetas)
         {
-            codeWriter.Append($"var __{memberMeta.Name}__ = {memberMeta.EmitDefaultValue()};");
+            codeWriter.AppendLine($"var __{memberMeta.Name}__ = {memberMeta.EmitDefaultValue()};");
         }
 
         using (codeWriter.BeginBlockScope("while (!parser.End && parser.CurrentEventType != ParseEventType.MappingEnd)"))
