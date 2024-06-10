@@ -83,7 +83,9 @@ class MemberMeta
     {
         if (!HasExplicitDefaultValueFromConstructor)
         {
-            return $"default({FullTypeName})";
+            return (MemberType is { IsReferenceType: true, NullableAnnotation: NullableAnnotation.Annotated })
+                ? $"default({FullTypeName})!"
+                : $"default({FullTypeName})";
         }
 
         return ExplicitDefaultValueFromConstructor switch

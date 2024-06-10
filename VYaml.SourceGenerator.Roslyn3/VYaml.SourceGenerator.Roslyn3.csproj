@@ -5,6 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <RootNamespace>VYaml.SourceGenerator</RootNamespace>
+        <DefineConstants>ROSLYN3</DefineConstants>
 
         <AnalyzerLanguage>cs</AnalyzerLanguage>
         <IncludeBuildOutput>false</IncludeBuildOutput>
