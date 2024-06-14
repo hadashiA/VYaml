@@ -1,61 +1,20 @@
-﻿using Microsoft.CodeAnalysis;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Microsoft.CodeAnalysis;
+#if ROSLYN3
+using SourceProductionContext = Microsoft.CodeAnalysis.GeneratorExecutionContext;
+#endif
 
 namespace VYaml.SourceGenerator;
 
-[Generator(LanguageNames.CSharp)]
-public class VYamlSourceGenerator : ISourceGenerator
+static class Emitter
 {
-    public void Initialize(GeneratorInitializationContext context)
-    {
-        context.RegisterForSyntaxNotifications(() => new SyntaxContextReceiver());
-    }
-
-    public void Execute(GeneratorExecutionContext context)
-    {
-        try
-        {
-            var references = ReferenceSymbols.Create(context.Compilation);
-            if (references is null) return;
-
-            var codeWriter = new CodeWriter();
-            if (context.SyntaxContextReceiver! is not SyntaxContextReceiver syntaxCollector) return;
-
-            foreach (var workItem in syntaxCollector.GetWorkItems())
-            {
-                if (context.CancellationToken.IsCancellationRequested)
-                {
-                    return;
-                }
-
-                var typeMeta = workItem.Analyze(in context, references);
-                if (typeMeta is null) continue;
-
-                if (TryEmit(typeMeta, codeWriter, references, in context))
-                {
-                    var fullType = typeMeta.FullTypeName
-                        .Replace("global::", "")
-                        .Replace("<", "_")
-                        .Replace(">", "_");
-
-                    context.AddSource($"{fullType}.YamlFormatter.g.cs", codeWriter.ToString());
-                }
-                codeWriter.Clear();
-            }
-        }
-        catch (Exception ex)
-        {
-            context.ReportDiagnostic(Diagnostic.Create(
-                DiagnosticDescriptors.UnexpectedErrorDescriptor,
-                Location.None,
-                ex.ToString().Replace(Environment.NewLine, " ")));
-        }
-    }
-
-    static bool TryEmit(
+    public static bool TryEmit(
         TypeMeta typeMeta,
         CodeWriter codeWriter,
         ReferenceSymbols references,
-        in GeneratorExecutionContext context)
+        in SourceProductionContext context)
     {
         try
         {
@@ -176,6 +135,7 @@ public class VYamlSourceGenerator : ISourceGenerator
             codeWriter.AppendLine("#pragma warning disable CS8601 // Possible null reference assignment");
             codeWriter.AppendLine("#pragma warning disable CS8602 // Possible null return");
             codeWriter.AppendLine("#pragma warning disable CS8604 // Possible null reference argument for parameter");
+            codeWriter.AppendLine("#pragma warning disable CS8619 // Possible null reference assignment fix");
             codeWriter.AppendLine("#pragma warning disable CS8631 // The type cannot be used as type parameter in the generic type or method");
             codeWriter.AppendLine();
             codeWriter.AppendLine("using System;");
@@ -238,7 +198,7 @@ public class VYamlSourceGenerator : ISourceGenerator
             context.ReportDiagnostic(Diagnostic.Create(
                 DiagnosticDescriptors.UnexpectedErrorDescriptor,
                 Location.None,
-                ex.ToString().Replace(Environment.NewLine, " ")));
+                ex.ToString()));
             return false;
         }
     }
@@ -249,7 +209,7 @@ public class VYamlSourceGenerator : ISourceGenerator
         codeWriter.AppendLine($"__RegisterVYamlFormatter();");
     }
 
-    static bool TryEmitRegisterMethod(TypeMeta typeMeta, CodeWriter codeWriter, in GeneratorExecutionContext context)
+    static bool TryEmitRegisterMethod(TypeMeta typeMeta, CodeWriter codeWriter, in SourceProductionContext context)
     {
         codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
         using var _ = codeWriter.BeginBlockScope("public static void __RegisterVYamlFormatter()");
@@ -261,7 +221,7 @@ public class VYamlSourceGenerator : ISourceGenerator
         TypeMeta typeMeta,
         CodeWriter codeWriter,
         ReferenceSymbols references,
-        in GeneratorExecutionContext context)
+        in SourceProductionContext context)
     {
         var returnType = typeMeta.Symbol.IsValueType
             ? typeMeta.FullTypeName
@@ -290,7 +250,7 @@ public class VYamlSourceGenerator : ISourceGenerator
                TryEmitDeserializeMethod(typeMeta, codeWriter, references, in context);
     }
 
-    static bool TryEmitSerializeMethod(TypeMeta typeMeta, CodeWriter codeWriter, in GeneratorExecutionContext context)
+    static bool TryEmitSerializeMethod(TypeMeta typeMeta, CodeWriter codeWriter, in SourceProductionContext context)
     {
         var memberMetas = typeMeta.MemberMetas;
         var returnType = typeMeta.Symbol.IsValueType
@@ -328,7 +288,7 @@ public class VYamlSourceGenerator : ISourceGenerator
         return true;
     }
 
-    static bool TryEmitSerializeMethodUnion(TypeMeta typeMeta, CodeWriter codeWriter, in GeneratorExecutionContext context)
+    static bool TryEmitSerializeMethodUnion(TypeMeta typeMeta, CodeWriter codeWriter, in SourceProductionContext context)
     {
         var returnType = typeMeta.Symbol.IsValueType
             ? typeMeta.FullTypeName
@@ -364,7 +324,7 @@ public class VYamlSourceGenerator : ISourceGenerator
         TypeMeta typeMeta,
         CodeWriter codeWriter,
         ReferenceSymbols references,
-        in GeneratorExecutionContext context)
+        in SourceProductionContext context)
     {
         if (!TryGetConstructor(typeMeta, references, in context,
                 out var selectedConstructor,
@@ -427,7 +387,7 @@ public class VYamlSourceGenerator : ISourceGenerator
         codeWriter.AppendLine();
         foreach (var memberMeta in typeMeta.MemberMetas)
         {
-            codeWriter.Append($"var __{memberMeta.Name}__ = {memberMeta.EmitDefaultValue()};");
+            codeWriter.AppendLine($"var __{memberMeta.Name}__ = {memberMeta.EmitDefaultValue()};");
         }
 
         using (codeWriter.BeginBlockScope("while (!parser.End && parser.CurrentEventType != ParseEventType.MappingEnd)"))
@@ -514,7 +474,7 @@ public class VYamlSourceGenerator : ISourceGenerator
         return true;
     }
 
-    static bool TryEmitDeserializeMethodUnion(TypeMeta typeMeta, CodeWriter codeWriter, in GeneratorExecutionContext context)
+    static bool TryEmitDeserializeMethodUnion(TypeMeta typeMeta, CodeWriter codeWriter, in SourceProductionContext context)
     {
         var returnType = typeMeta.Symbol.IsValueType
             ? typeMeta.FullTypeName
@@ -556,7 +516,7 @@ public class VYamlSourceGenerator : ISourceGenerator
     static bool TryGetConstructor(
         TypeMeta typeMeta,
         ReferenceSymbols reference,
-        in GeneratorExecutionContext context,
+        in SourceProductionContext context,
         out IMethodSymbol? selectedConstructor,
         out IReadOnlyList<MemberMeta> constructedMembers)
     {
