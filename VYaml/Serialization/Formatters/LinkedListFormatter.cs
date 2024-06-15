@@ -1,51 +1,22 @@
 using System.Collections.Generic;
-using VYaml.Emitter;
-using VYaml.Parser;
 
 namespace VYaml.Serialization
 {
-    public class LinkedListFormatter<T> : IYamlFormatter<LinkedList<T>?>
+    public class LinkedListFormatter<T> : CollectionFormatterBase<T, LinkedList<T>, LinkedList<T>>
     {
-        public void Serialize(ref Utf8YamlEmitter emitter, LinkedList<T>? value, YamlSerializationContext context)
+        protected override LinkedList<T> Create(YamlSerializerOptions options)
         {
-            if (value is null)
-            {
-                emitter.WriteNull();
-            }
-            else
-            {
-                emitter.BeginSequence();
-                if (value.Count > 0)
-                {
-                    var elementFormatter = context.Resolver.GetFormatterWithVerify<T>();
-                    foreach (var x in value)
-                    {
-                        elementFormatter.Serialize(ref emitter, x, context);
-                    }
-                }
-                emitter.EndSequence();
-            }
+            return new LinkedList<T>();
         }
 
-        public LinkedList<T>? Deserialize(ref YamlParser parser, YamlDeserializationContext context)
+        protected override void Add(LinkedList<T> collection, T value, YamlSerializerOptions options)
         {
-            if (parser.IsNullScalar())
-            {
-                parser.Read();
-                return default;
-            }
+            collection.AddLast(value);
+        }
 
-            parser.ReadWithVerify(ParseEventType.SequenceStart);
-
-            var result = new LinkedList<T>();
-            var elementFormatter = context.Resolver.GetFormatterWithVerify<T>();
-            while (!parser.End && parser.CurrentEventType != ParseEventType.SequenceEnd)
-            {
-                var value = context.DeserializeWithAlias(elementFormatter, ref parser);
-                result.AddLast(value);
-            }
-            parser.ReadWithVerify(ParseEventType.SequenceEnd);
-            return result;
+        protected override LinkedList<T> Complete(LinkedList<T> intermediateCollection)
+        {
+            return intermediateCollection;
         }
     }
 }

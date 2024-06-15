@@ -1,7 +1,9 @@
 using System;
 using System.Buffers;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace VYaml.Serialization
 {
@@ -145,21 +147,21 @@ namespace VYaml.Serialization
             { typeof(Stack<>), typeof(StackFormatter<>) },
             { typeof(Queue<>), typeof(QueueFormatter<>) },
             { typeof(LinkedList<>), typeof(LinkedListFormatter<>) },
-            // { typeof(HashSet<>), typeof(HashSetFormatter<>) },
-            // { typeof(SortedSet<>), typeof(SortedSetFormatter<>) },
+            { typeof(HashSet<>), typeof(HashSetFormatter<>) },
+            { typeof(SortedSet<>), typeof(SortedSetFormatter<>) },
 
             // { typeof(ObservableCollection<>), typeof(ObservableCollectionFormatter<>) },
             // { typeof(Collection<>), typeof(CollectionFormatter<>) },
-            // { typeof(ConcurrentQueue<>), typeof(ConcurrentQueueFormatter<>) },
-            // { typeof(ConcurrentStack<>), typeof(ConcurrentStackFormatter<>) },
-            // { typeof(ConcurrentBag<>), typeof(ConcurrentBagFormatter<>) },
+            { typeof(BlockingCollection<>), typeof(BlockingCollectionFormatter<>) },
+            { typeof(ConcurrentQueue<>), typeof(ConcurrentQueueFormatter<>) },
+            { typeof(ConcurrentStack<>), typeof(ConcurrentStackFormatter<>) },
+            { typeof(ConcurrentBag<>), typeof(ConcurrentBagFormatter<>) },
             { typeof(Dictionary<,>), typeof(DictionaryFormatter<,>) },
             // { typeof(SortedDictionary<,>), typeof(SortedDictionaryFormatter<,>) },
             // { typeof(SortedList<,>), typeof(SortedListFormatter<,>) },
             // { typeof(ConcurrentDictionary<,>), typeof(ConcurrentDictionaryFormatter<,>) },
             // { typeof(ReadOnlyCollection<>), typeof(ReadOnlyCollectionFormatter<>) },
             // { typeof(ReadOnlyObservableCollection<>), typeof(ReadOnlyObservableCollectionFormatter<>) },
-            // { typeof(BlockingCollection<>), typeof(BlockingCollectionFormatter<>) },
 
             { typeof(IEnumerable<>), typeof(InterfaceEnumerableFormatter<>) },
             { typeof(ICollection<>), typeof(InterfaceCollectionFormatter<>) },
@@ -168,9 +170,9 @@ namespace VYaml.Serialization
             { typeof(IReadOnlyList<>), typeof(InterfaceReadOnlyListFormatter<>) },
             { typeof(IDictionary<,>), typeof(InterfaceDictionaryFormatter<,>) },
             { typeof(IReadOnlyDictionary<,>), typeof(InterfaceReadOnlyDictionaryFormatter<,>) },
+            { typeof(ISet<>), typeof(InterfaceSetFormatter<>) },
             // { typeof(ILookup<,>), typeof(InterfaceLookupFormatter<,>) },
             // { typeof(IGrouping<,>), typeof(InterfaceGroupingFormatter<,>) },
-            // { typeof(ISet<>), typeof(InterfaceSetFormatter<>) },
         };
 
         public IYamlFormatter<T>? GetFormatter<T>()
