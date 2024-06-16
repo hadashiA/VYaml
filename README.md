@@ -164,9 +164,9 @@ These types can be serialized by default:
 - `byte[]` as base64 string
 - `T[]`, `T[,]`, `T[,,]`, `T[,,]`, `BitArray`
 - `Nullable<>`, `KeyValuePair<,>`, `Tuple<,...>`, `ValueTuple<,...>`
-- `List<>`, `Stack<>`, `Queue<>`, `LinkedList<>`
+- `List<>`, `Stack<>`, `Queue<>`, `LinkedList<>`, `HashSet<>`, `SortedSet<>`,  `BlockingCollection<>`, `ConcurrentQueue<>`, `ConcurrentStack<>`, `ConcurrentBag<>`
 - `Dictionary<,>`
-- `IEnumerable<>`, `ICollection<>`, `IList<>`, `IReadOnlyCollection<>`, `IReadOnlyList<>`
+- `IEnumerable<>`, `ICollection<>`, `IList<>`, `IReadOnlyCollection<>`, `IReadOnlyList<>`, `ISet<>`
 - `IDictionary<,>`, `IReadOnlyDictionary<,>`
 
 TODO: We plan add more.
