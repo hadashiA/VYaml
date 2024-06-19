@@ -53,7 +53,7 @@ namespace VYaml.Serialization
             foreach (var item in type.GetFields().Where(x => x.FieldType == type))
             {
                 var value = item.GetValue(null);
-                values.Add(value);
+                values.Add(value!);
 
                 var attributes = item.GetCustomAttributes(true);
                 if (attributes.OfType<EnumMemberAttribute>().FirstOrDefault() is { Value: { } enumMemberValue })
@@ -66,8 +66,8 @@ namespace VYaml.Serialization
                 }
                 else
                 {
-                    var name = Enum.GetName(type, value)!;
-                    names.Add(KeyNameMutator.Mutate(name, namingConvention));
+                    var name = Enum.GetName(type, value!);
+                    names.Add(KeyNameMutator.Mutate(name!, namingConvention));
                 }
             }
 

@@ -167,13 +167,13 @@ namespace VYaml.Serialization
                     break;
                 case ParseEventType.MappingStart:
                 {
-                    var dict = new Dictionary<object?, object?>();
+                    var dict = new Dictionary<object, object?>();
                     parser.Read();
                     while (!parser.End && parser.CurrentEventType != ParseEventType.MappingEnd)
                     {
                         var key = context.DeserializeWithAlias(this, ref parser);
                         var value = context.DeserializeWithAlias(this, ref parser);
-                        dict.Add(key, value);
+                        dict.Add(key!, value);
                     }
                     parser.ReadWithVerify(ParseEventType.MappingEnd);
                     result = dict;

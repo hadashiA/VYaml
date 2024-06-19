@@ -56,7 +56,7 @@ namespace Microsoft.CodeAnalysis.DotnetRuntime.Extensions
             }
             else
             {
-                targets.Append(container);
+                targets.Append(container!);
             }
         }
 
