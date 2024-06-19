@@ -6,6 +6,7 @@ namespace VYaml.Serialization
 {
     public abstract class CollectionFormatterBase<TElement, TIntermediate, TCollection>
         : IYamlFormatter<TCollection?>
+        where TIntermediate : new()
         where TCollection : IEnumerable<TElement>
     {
         public void Serialize(ref Utf8YamlEmitter emitter, TCollection? value, YamlSerializationContext context)
@@ -40,7 +41,7 @@ namespace VYaml.Serialization
 
             parser.ReadWithVerify(ParseEventType.SequenceStart);
 
-            var list = Create(context.Options);
+            var list = new TIntermediate();
             var elementFormatter = context.Resolver.GetFormatterWithVerify<TElement>();
             while (!parser.End && parser.CurrentEventType != ParseEventType.SequenceEnd)
             {
@@ -67,9 +68,7 @@ namespace VYaml.Serialization
             return null;
         }
 
-
         // abstraction for deserialize
-        protected abstract TIntermediate Create(YamlSerializerOptions options);
         protected abstract void Add(TIntermediate collection, TElement value, YamlSerializerOptions options);
         protected abstract TCollection Complete(TIntermediate intermediateCollection);
     }

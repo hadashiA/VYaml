@@ -5,11 +5,6 @@ namespace VYaml.Serialization
 {
     public class ConcurrentStackFormatter<T> : CollectionFormatterBase<T, List<T>, ConcurrentStack<T>>
     {
-        protected override List<T> Create(YamlSerializerOptions options)
-        {
-            return new List<T>();
-        }
-
         protected override void Add(List<T> collection, T value, YamlSerializerOptions options)
         {
             collection.Add(value);

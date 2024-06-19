@@ -5,11 +5,6 @@ namespace VYaml.Serialization
 {
     public class ConcurrentQueueFormatter<T> : CollectionFormatterBase<T, Queue<T>, ConcurrentQueue<T>>
     {
-        protected override Queue<T> Create(YamlSerializerOptions options)
-        {
-            return new Queue<T>();
-        }
-
         protected override void Add(Queue<T> collection, T value, YamlSerializerOptions options)
         {
             collection.Enqueue(value);

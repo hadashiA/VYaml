@@ -1,36 +1,38 @@
 #nullable enable
+using System;
 using System.Collections.Generic;
 using VYaml.Emitter;
 using VYaml.Parser;
 
 namespace VYaml.Serialization
 {
-    public class DictionaryFormatter<TKey, TValue> : IYamlFormatter<Dictionary<TKey, TValue>?> where TKey : notnull
+    public class DictionaryFormatter<TKey, TValue> : 
+        IYamlFormatter<IDictionary<TKey, TValue>?>
+        where TKey : notnull
     {
-        public void Serialize(ref Utf8YamlEmitter emitter, Dictionary<TKey, TValue>? value, YamlSerializationContext context)
+        public void Serialize(ref Utf8YamlEmitter emitter, IDictionary<TKey, TValue>? value, YamlSerializationContext context)
         {
-            if (value == null)
+            if (value is null)
             {
                 emitter.WriteNull();
+                return;
             }
-            else
+
+            emitter.BeginMapping();
+            if (value.Count > 0)
             {
                 var keyFormatter = context.Resolver.GetFormatterWithVerify<TKey>();
                 var valueFormatter = context.Resolver.GetFormatterWithVerify<TValue>();
-
-                emitter.BeginMapping();
+                foreach (var x in value)
                 {
-                    foreach (var x in value)
-                    {
-                        keyFormatter.Serialize(ref emitter, x.Key, context);
-                        valueFormatter.Serialize(ref emitter, x.Value, context);
-                    }
+                    keyFormatter.Serialize(ref emitter, x.Key, context);
+                    valueFormatter.Serialize(ref emitter, x.Value, context);
                 }
-                emitter.EndMapping();
             }
+            emitter.EndMapping();
         }
 
-        public Dictionary<TKey, TValue>? Deserialize(ref YamlParser parser, YamlDeserializationContext context)
+        public IDictionary<TKey, TValue>? Deserialize(ref YamlParser parser, YamlDeserializationContext context)
         {
             if (parser.IsNullScalar())
             {
@@ -44,6 +46,7 @@ namespace VYaml.Serialization
             var keyFormatter = context.Resolver.GetFormatterWithVerify<TKey>();
             var valueFormatter = context.Resolver.GetFormatterWithVerify<TValue>();
 
+            Console.WriteLine("empty " + parser.End + " " + parser.CurrentEventType);
             while (!parser.End && parser.CurrentEventType != ParseEventType.MappingEnd)
             {
                 var key = context.DeserializeWithAlias(keyFormatter, ref parser);

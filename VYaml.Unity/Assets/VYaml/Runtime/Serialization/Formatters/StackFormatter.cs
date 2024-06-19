@@ -4,11 +4,6 @@ namespace VYaml.Serialization
 {
     public class StackFormatter<T> : CollectionFormatterBase<T, List<T>, Stack<T>>
     {
-        protected override List<T> Create(YamlSerializerOptions options)
-        {
-            return new List<T>();
-        }
-
         protected override void Add(List<T> collection, T value, YamlSerializerOptions options)
         {
             collection.Add(value);
