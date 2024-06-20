@@ -1,8 +1,9 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 namespace VYaml.Serialization
 {
-    public class StackFormatter<T> : CollectionFormatterBase<T, List<T>, Stack<T>>
+    public class ConcurrentStackFormatter<T> : CollectionFormatterBase<T, List<T>, ConcurrentStack<T>>
     {
         protected override List<T> Create(YamlSerializerOptions options)
         {
@@ -14,9 +15,9 @@ namespace VYaml.Serialization
             collection.Add(value);
         }
 
-        protected override Stack<T> Complete(List<T> intermediateCollection)
+        protected override ConcurrentStack<T> Complete(List<T> intermediateCollection)
         {
-            var stack = new Stack<T>();
+            var stack = new ConcurrentStack<T>();
             for (var i = intermediateCollection.Count - 1; i >= 0; i--)
             {
                 stack.Push(intermediateCollection[i]);

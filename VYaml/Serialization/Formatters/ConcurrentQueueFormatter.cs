@@ -1,8 +1,9 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 namespace VYaml.Serialization
 {
-    public class QueueFormatter<T> : CollectionFormatterBase<T, Queue<T>, Queue<T>>
+    public class ConcurrentQueueFormatter<T> : CollectionFormatterBase<T, Queue<T>, ConcurrentQueue<T>>
     {
         protected override Queue<T> Create(YamlSerializerOptions options)
         {
@@ -14,9 +15,9 @@ namespace VYaml.Serialization
             collection.Enqueue(value);
         }
 
-        protected override Queue<T> Complete(Queue<T> intermediateCollection)
+        protected override ConcurrentQueue<T> Complete(Queue<T> intermediateCollection)
         {
-            return intermediateCollection;
+            return new ConcurrentQueue<T>(intermediateCollection);
         }
     }
 }

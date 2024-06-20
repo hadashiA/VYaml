@@ -1,55 +1,25 @@
 using System.Collections.Generic;
-using VYaml.Emitter;
-using VYaml.Parser;
 
 namespace VYaml.Serialization
 {
-    public class StackFormatter<T> : IYamlFormatter<Stack<T>?>
+    public class StackFormatter<T> : CollectionFormatterBase<T, List<T>, Stack<T>>
     {
-        public void Serialize(ref Utf8YamlEmitter emitter, Stack<T>? value, YamlSerializationContext context)
+        protected override List<T> Create(YamlSerializerOptions options)
         {
-            if (value is null)
-            {
-                emitter.WriteNull();
-            }
-            else
-            {
-                emitter.BeginSequence();
-                if (value.Count > 0)
-                {
-                    var elementFormatter = context.Resolver.GetFormatterWithVerify<T>();
-                    foreach (var x in value)
-                    {
-                        elementFormatter.Serialize(ref emitter, x, context);
-                    }
-                }
-                emitter.EndSequence();
-            }
+            return new List<T>();
         }
 
-        public Stack<T>? Deserialize(ref YamlParser parser, YamlDeserializationContext context)
+        protected override void Add(List<T> collection, T value, YamlSerializerOptions options)
         {
-            if (parser.IsNullScalar())
-            {
-                parser.Read();
-                return default;
-            }
+            collection.Add(value);
+        }
 
-            parser.ReadWithVerify(ParseEventType.SequenceStart);
-
-            var list = new List<T>();
-            var elementFormatter = context.Resolver.GetFormatterWithVerify<T>();
-            while (!parser.End && parser.CurrentEventType != ParseEventType.SequenceEnd)
+        protected override Stack<T> Complete(List<T> intermediateCollection)
+        {
+            var stack = new Stack<T>();
+            for (var i = intermediateCollection.Count - 1; i >= 0; i--)
             {
-                var value = context.DeserializeWithAlias(elementFormatter, ref parser);
-                list.Add(value);
-            }
-
-            parser.ReadWithVerify(ParseEventType.SequenceEnd);
-            var stack = new Stack<T>(list.Count);
-            for (var i = list.Count - 1; i >= 0; i--)
-            {
-                stack.Push(list[i]);
+                stack.Push(intermediateCollection[i]);
             }
             return stack;
         }
