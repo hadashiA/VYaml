@@ -43,15 +43,14 @@ namespace VYaml.Internal
             ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
         };
 
-        public static EmitStringInfo Analyze(string value)
+        public static EmitStringInfo Analyze(ReadOnlySpan<char> chars)
         {
-            var chars = value.AsSpan();
             if (chars.Length <= 0)
             {
                 return new EmitStringInfo(0, true, false);
             }
 
-            var isReservedWord = IsReservedWord(value);
+            var isReservedWord = IsReservedWord(chars);
 
             var first = chars[0];
             var last = chars[^1];
@@ -272,7 +271,7 @@ namespace VYaml.Internal
             return stringBuilder;
         }
 
-        static bool IsReservedWord(string value)
+        static bool IsReservedWord(ReadOnlySpan<char> value)
         {
             var b = new StringBuilder();
             b.Append('\n');

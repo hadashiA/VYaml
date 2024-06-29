@@ -603,7 +603,7 @@ namespace VYaml.Emitter
             writer.Advance(offset);
         }
 
-        public void WriteString(string value, ScalarStyle style = ScalarStyle.Any)
+        public void WriteString(ReadOnlySpan<char> value, ScalarStyle style = ScalarStyle.Any)
         {
             if (style == ScalarStyle.Any)
             {
@@ -637,7 +637,7 @@ namespace VYaml.Emitter
             }
         }
 
-        void WritePlainScalar(string value)
+        void WritePlainScalar(ReadOnlySpan<char> value)
         {
             var stringMaxByteCount = StringEncoding.Utf8.GetMaxByteCount(value.Length);
             var output = writer.GetSpan(CalculateMaxScalarBufferLength(stringMaxByteCount));
@@ -648,7 +648,7 @@ namespace VYaml.Emitter
             writer.Advance(offset);
         }
 
-        void WriteLiteralScalar(string value)
+        void WriteLiteralScalar(ReadOnlySpan<char> value)
         {
             var indentCharCount = (currentIndentLevel + 1) * options.IndentWidth;
             var scalarStringBuilt = EmitStringAnalyzer.BuildLiteralScalar(value, indentCharCount);
@@ -669,7 +669,7 @@ namespace VYaml.Emitter
             writer.Advance(offset);
         }
 
-        void WriteQuotedScalar(string value, bool doubleQuote = true)
+        void WriteQuotedScalar(ReadOnlySpan<char> value, bool doubleQuote = true)
         {
             var scalarStringBuilt = EmitStringAnalyzer.BuildQuotedScalar(value, doubleQuote);
             var scalarChars = stringBuffer.AsSpan(scalarStringBuilt.Length);

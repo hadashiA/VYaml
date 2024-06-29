@@ -3,7 +3,7 @@
         <TargetFrameworks>netstandard2.1;net6.0;net8.0</TargetFrameworks>
         <ImplicitUsings>disable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <LangVersion>9</LangVersion>
+        <LangVersion>11</LangVersion>
 
         <NoWarn>$(NoWarn);NU5128</NoWarn>
         <PackageTags>yaml,serialization</PackageTags>
