@@ -221,6 +221,24 @@ namespace VYaml.Tests.Parser
             Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.DocumentEnd));
         }
 
+        [Test]
+        public void QuotedNumberMustNotBeAnInteger()
+        {
+            YamlParser parser = CreateParser(new [] {
+                "- '012345'",
+                "- 012345",
+            });
+
+            parser.SkipAfter(ParseEventType.SequenceStart);
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.Scalar));
+            Assert.That(parser.TryReadScalarAsInt32(out _), Is.EqualTo(false));
+            Assert.That(parser.ReadScalarAsString(), Is.EqualTo("012345"));
+
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.Scalar));
+            Assert.That(parser.TryReadScalarAsInt32(out int value), Is.EqualTo(true));
+            Assert.That(value, Is.EqualTo(012345));
+        }
+
         static YamlParser CreateParser(IEnumerable<string> lines)
         {
             var yaml = string.Join('\n', lines);

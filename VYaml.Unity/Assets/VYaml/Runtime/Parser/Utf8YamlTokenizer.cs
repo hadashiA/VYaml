@@ -125,6 +125,10 @@ namespace VYaml.Parser
         internal T TakeCurrentTokenContent<T>() where T : ITokenContent
         {
             var result = currentToken;
+            if (result.Content is Scalar scalar) {
+                scalar.Type = currentToken.Type;
+            }
+
             currentToken = default;
             return (T)result.Content!;
         }
