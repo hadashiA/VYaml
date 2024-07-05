@@ -49,10 +49,10 @@ namespace VYaml.Emitter
         static ExpandBuffer<EmitState>? stateBufferStatic;
 
         [ThreadStatic]
-        static ExpandBuffer<int>? elementCountBufferSTatic;
+        static ExpandBuffer<int>? elementCountBufferStatic;
 
-        [ThreadStatic]
-        static ExpandBuffer<string>? tagBufferStatic;
+        // [ThreadStatic]
+        // static ExpandBuffer<string>? tagBufferStatic;
 
         EmitState CurrentState
         {
@@ -96,7 +96,7 @@ namespace VYaml.Emitter
             stateStack = stateBufferStatic ??= new ExpandBuffer<EmitState>(16);
             stateStack.Clear();
 
-            elementCountStack = elementCountBufferSTatic ??= new ExpandBuffer<int>(16);
+            elementCountStack = elementCountBufferStatic ??= new ExpandBuffer<int>(16);
             elementCountStack.Clear();
 
             stateStack.Add(EmitState.None);
@@ -605,6 +605,11 @@ namespace VYaml.Emitter
 
         public void WriteString(string value, ScalarStyle style = ScalarStyle.Any)
         {
+            WriteString(value.AsSpan(), style);
+        }
+
+        public void WriteString(ReadOnlySpan<char> value, ScalarStyle style = ScalarStyle.Any)
+        {
             if (style == ScalarStyle.Any)
             {
                 var analyzeInfo = EmitStringAnalyzer.Analyze(value);
@@ -637,7 +642,7 @@ namespace VYaml.Emitter
             }
         }
 
-        void WritePlainScalar(string value)
+        void WritePlainScalar(ReadOnlySpan<char> value)
         {
             var stringMaxByteCount = StringEncoding.Utf8.GetMaxByteCount(value.Length);
             var output = writer.GetSpan(CalculateMaxScalarBufferLength(stringMaxByteCount));
@@ -648,7 +653,7 @@ namespace VYaml.Emitter
             writer.Advance(offset);
         }
 
-        void WriteLiteralScalar(string value)
+        void WriteLiteralScalar(ReadOnlySpan<char> value)
         {
             var indentCharCount = (currentIndentLevel + 1) * options.IndentWidth;
             var scalarStringBuilt = EmitStringAnalyzer.BuildLiteralScalar(value, indentCharCount);
@@ -669,7 +674,7 @@ namespace VYaml.Emitter
             writer.Advance(offset);
         }
 
-        void WriteQuotedScalar(string value, bool doubleQuote = true)
+        void WriteQuotedScalar(ReadOnlySpan<char> value, bool doubleQuote = true)
         {
             var scalarStringBuilt = EmitStringAnalyzer.BuildQuotedScalar(value, doubleQuote);
             var scalarChars = stringBuffer.AsSpan(scalarStringBuilt.Length);
