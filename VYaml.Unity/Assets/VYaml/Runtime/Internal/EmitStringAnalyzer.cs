@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -43,18 +42,17 @@ namespace VYaml.Internal
             ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
         };
 
-        public static EmitStringInfo Analyze(string value)
+        public static EmitStringInfo Analyze(ReadOnlySpan<char> value)
         {
-            var chars = value.AsSpan();
-            if (chars.Length <= 0)
+            if (value.Length <= 0)
             {
                 return new EmitStringInfo(0, true, false);
             }
 
             var isReservedWord = IsReservedWord(value);
 
-            var first = chars[0];
-            var last = chars[^1];
+            var first = value[0];
+            var last = value[^1];
 
             var needsQuotes = isReservedWord ||
                               first == YamlCodes.Space ||
@@ -62,7 +60,7 @@ namespace VYaml.Internal
                               first is '&' or '*' or '?' or '|' or '-' or '<' or '>' or '=' or '!' or '%' or '@' or '.';
 
             var lines = 1;
-            foreach (var ch in chars)
+            foreach (var ch in value)
             {
                 switch (ch)
                 {
@@ -272,7 +270,7 @@ namespace VYaml.Internal
             return stringBuilder;
         }
 
-        static bool IsReservedWord(string value)
+        static bool IsReservedWord(ReadOnlySpan<char> value)
         {
             var b = new StringBuilder();
             b.Append('\n');
@@ -285,13 +283,21 @@ namespace VYaml.Internal
                     }
                     break;
                 case 4:
-                    if (value is "null" or "Null" or "NULL" or "true" or "True" or "TRUE")
+                    if (value.SequenceEqual("null") ||
+                        value.SequenceEqual("null") ||
+                        value.SequenceEqual("Null") ||
+                        value.SequenceEqual("NULL") ||
+                        value.SequenceEqual("true") ||
+                        value.SequenceEqual("True") ||
+                        value.SequenceEqual("TRUE"))
                     {
                         return true;
                     }
                     break;
                 case 5:
-                    if (value is "false" or "False" or "FALSE")
+                    if (value.SequenceEqual("false") ||
+                        value.SequenceEqual("False") ||
+                        value.SequenceEqual("FALSE"))
                     {
                         return true;
                     }
