@@ -135,6 +135,11 @@ namespace VYaml.Serialization
             return contextLocal.DeserializeWithAlias(formatter, ref parser);
         }
 
+        public static T Deserialize<T>(ref YamlParser parser, YamlDeserializationContext context)
+        {
+            return context.Resolver.GetFormatterWithVerify<T>().Deserialize(ref parser, context);
+        }
+
         public static async ValueTask<IEnumerable<T>> DeserializeMultipleDocumentsAsync<T>(Stream stream, YamlSerializerOptions? options = null)
         {
             var byteSequenceBuilder = await StreamHelper.ReadAsSequenceAsync(stream);
