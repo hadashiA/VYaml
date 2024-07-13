@@ -22,7 +22,7 @@ public class VYamlIncrementalSourceGenerator : IIncrementalGenerator
                         or RecordDeclarationSyntax
                         or InterfaceDeclarationSyntax;
                 },
-                static (context, cancellation) => { return context; })
+                static (context, cancellation) => context)
             .Combine(context.CompilationProvider)
             .WithComparer(Comparer.Instance);
 
