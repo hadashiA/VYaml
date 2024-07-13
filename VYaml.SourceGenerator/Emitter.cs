@@ -442,14 +442,7 @@ static class Emitter
         codeWriter.Append("return new ");
         if (selectedConstructor != null)
         {
-            var parameters = string.Join(",", constructedMembers.Select(x =>
-            {
-                if (x.HasExplicitDefaultValueFromConstructor)
-                {
-                    return $"__{x.Name}__ = {x.EmitDefaultValue()}";
-                }
-                return $"__{x.Name}__";
-            }));
+            var parameters = string.Join(",", constructedMembers.Select(x => $"__{x.Name}__"));
             codeWriter.Append($"{typeMeta.TypeName}({parameters})", false);
         }
         else
