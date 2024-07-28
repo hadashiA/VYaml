@@ -420,12 +420,7 @@ static class Emitter
                             }
                             branching = "else if";
                         }
-                        using (codeWriter.BeginBlockScope("else"))
-                        {
-                            codeWriter.AppendLine("parser.Read(); // skip key");
-                            codeWriter.AppendLine("parser.SkipCurrentNode(); // skip value");
-                        }
-                        codeWriter.AppendLine("continue;");
+                        codeWriter.AppendLine("goto default;");
                     }
                 }
 
