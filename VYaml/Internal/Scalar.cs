@@ -50,6 +50,8 @@ namespace VYaml.Parser
         public static readonly Scalar Null = new(0);
 
         public int Length { get; private set; }
+        public TokenType Type { get; set; }
+
         byte[] buffer;
 
         public Scalar(int capacity)
@@ -142,6 +144,11 @@ namespace VYaml.Parser
         /// </remarks>
         public bool IsNull()
         {
+            if (IsStringScalar())
+            {
+                return false;
+            }
+
             var span = AsSpan();
             switch (span.Length)
             {
@@ -163,6 +170,12 @@ namespace VYaml.Parser
         /// </remarks>
         public bool TryGetBool(out bool value)
         {
+            if (IsStringScalar())
+            {
+                value = default;
+                return false;
+            }
+
             var span = AsSpan();
             switch (span.Length)
             {
@@ -184,6 +197,12 @@ namespace VYaml.Parser
 
         public bool TryGetInt32(out int value)
         {
+            if (IsStringScalar())
+            {
+                value = default;
+                return false;
+            }
+
             var span = AsSpan();
 
             if (Utf8Parser.TryParse(span, out value, out var bytesConsumed) &&
@@ -215,6 +234,12 @@ namespace VYaml.Parser
 
         public bool TryGetInt64(out long value)
         {
+            if (IsStringScalar())
+            {
+                value = default;
+                return false;
+            }
+
             var span = AsSpan();
             if (Utf8Parser.TryParse(span, out value, out var bytesConsumed) &&
                 bytesConsumed == span.Length)
@@ -247,6 +272,12 @@ namespace VYaml.Parser
 
         public bool TryGetUInt32(out uint value)
         {
+            if (IsStringScalar())
+            {
+                value = default;
+                return false;
+            }
+
             var span = AsSpan();
 
             if (Utf8Parser.TryParse(span, out value, out var bytesConsumed) &&
@@ -270,6 +301,12 @@ namespace VYaml.Parser
 
         public bool TryGetUInt64(out ulong value)
         {
+            if (IsStringScalar())
+            {
+                value = default;
+                return false;
+            }
+
             var span = AsSpan();
 
             if (Utf8Parser.TryParse(span, out value, out var bytesConsumed) &&
@@ -292,6 +329,12 @@ namespace VYaml.Parser
 
         public bool TryGetFloat(out float value)
         {
+            if (IsStringScalar())
+            {
+                value = default;
+                return false;
+            }
+
             var span = AsSpan();
             if (Utf8Parser.TryParse(span, out value, out var bytesConsumed) &&
                 bytesConsumed == span.Length)
@@ -340,6 +383,12 @@ namespace VYaml.Parser
 
         public bool TryGetDouble(out double value)
         {
+            if (IsStringScalar())
+            {
+                value = default;
+                return false;
+            }
+
             var span = AsSpan();
             if (Utf8Parser.TryParse(span, out value, out var bytesConsumed) &&
                 bytesConsumed == span.Length)
@@ -514,6 +563,12 @@ namespace VYaml.Parser
             Array.Copy(buffer, 0, newBuffer, 0, Length);
             ArrayPool<byte>.Shared.Return(buffer);
             buffer = newBuffer;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool IsStringScalar()
+        {
+            return Type is TokenType.DoubleQuotedScaler or TokenType.SingleQuotedScaler;
         }
     }
 }
