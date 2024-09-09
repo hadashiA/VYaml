@@ -2,6 +2,8 @@ using System;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using VYaml.Annotations;
+using VYaml.Serialization;
 
 namespace VYaml.SourceGenerator;
 
@@ -31,7 +33,7 @@ class MemberMeta
         Symbol = symbol;
         Name = symbol.Name;
         Order = sequentialOrder;
-        KeyName = KeyNameMutator.Mutate(Name, namingConvention);
+        KeyName = NamingConventionMutator.Mutate(Name, namingConvention);
 
         var memberAttribute = symbol.GetAttribute(references.YamlMemberAttribute);
         if (memberAttribute != null)

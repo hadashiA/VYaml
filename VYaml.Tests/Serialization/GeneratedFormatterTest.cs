@@ -1,5 +1,7 @@
 using System;
 using NUnit.Framework;
+using VYaml.Annotations;
+using VYaml.Serialization;
 using VYaml.Tests.TypeDeclarations;
 
 namespace VYaml.Tests.Serialization
@@ -32,12 +34,28 @@ namespace VYaml.Tests.Serialization
         }
 
         [Test]
+        public void Serialize_NamingConventionOptions()
+        {
+            var result = Serialize(new SimpleTypeTwo
+            {
+                One = 111,
+                Two = 222
+            }, new YamlSerializerOptions
+            {
+                Resolver = StandardResolver.Instance,
+                NamingConvention = NamingConvention.UpperCamelCase
+            });
+
+            Assert.That(result, Is.EqualTo("One: 111\nTwo: 222\n"));
+        }
+
+        [Test]
         public void Serialize_Struct()
         {
             var result1 = Serialize(new SimpleUnmanagedStruct { MyProperty = 100 });
             Assert.That(result1, Is.EqualTo("myProperty: 100\n"));
 
-            var result2 = Serialize(new SimpleStruct() { MyProperty = "あいうえお" });
+            var result2 = Serialize(new SimpleStruct { MyProperty = "あいうえお" });
             Assert.That(result2, Is.EqualTo("myProperty: あいうえお\n"));
         }
 
@@ -89,6 +107,44 @@ namespace VYaml.Tests.Serialization
                     "a: 100\n" +
                     "b-alias: 200\n" +
                     "c: 300\n"
+                ));
+            }
+            {
+                var result = Serialize(new WithRenamedMember
+                {
+                    A = 100,
+                    B = 200,
+                    C = 300
+                }, new YamlSerializerOptions { NamingConvention = NamingConvention.UpperCamelCase });
+                Assert.That(result, Is.EqualTo(
+                    "A: 100\n" +
+                    "b-alias: 200\n" +
+                    "C: 300\n"
+                ));
+            }
+        }
+
+        [Test]
+        public void Serialize_NamingConvention()
+        {
+            {
+                var result = Serialize(new WithCustomNamingConvention
+                {
+                    HogeFuga = 123
+                });
+
+                Assert.That(result, Is.EqualTo(
+                    "hoge_fuga: 123\n"
+                ));
+            }
+            {
+                var result = Serialize(new WithCustomNamingConvention
+                {
+                    HogeFuga = 123,
+                }, new YamlSerializerOptions { NamingConvention = NamingConvention.UpperCamelCase });
+
+                Assert.That(result, Is.EqualTo(
+                    "hoge_fuga: 123\b"
                 ));
             }
         }
@@ -337,12 +393,50 @@ namespace VYaml.Tests.Serialization
         }
 
         [Test]
-        public void Deserialize_CustomCOnstructorWithDefaultValue()
+        public void Deserialize_CustomConstructorWithDefaultValue()
         {
             var result = Deserialize<WithCustomConstructor3>("{}");
             Assert.That(result.X, Is.EqualTo(100));
             Assert.That(result.Y, Is.EqualTo(222m));
             Assert.That(result.Z, Is.EqualTo(true));
+        }
+
+        [Test]
+        public void Deserialize_CustomNamingConvention()
+        {
+            var result1 = Deserialize<WithCustomNamingConvention>("{ hoge_fuga: 123 }");
+            Assert.That(result1.HogeFuga, Is.EqualTo(123));
+
+            var result2 = Deserialize<WithCustomNamingConvention>("{ hoge_fuga: 123 }",
+                new YamlSerializerOptions { NamingConvention = NamingConvention.UpperCamelCase });
+            Assert.That(result2.HogeFuga, Is.EqualTo(123));
+        }
+
+        [Test]
+        public void Deserialize_NamingConventionOptions()
+        {
+            var result1 = Deserialize<SimpleTypeTwo>("{ One: 123, Two: 456 }", new YamlSerializerOptions
+            {
+                Resolver = StandardResolver.Instance,
+                NamingConvention = NamingConvention.UpperCamelCase
+            });
+            Assert.That(result1.One, Is.EqualTo(123));
+            Assert.That(result1.Two, Is.EqualTo(456));
+
+            var result2 = Deserialize<WithCustomNamingConvention>("{ hoge_fuga: 123 }",
+                new YamlSerializerOptions { NamingConvention = NamingConvention.UpperCamelCase });
+            Assert.That(result2.HogeFuga, Is.EqualTo(123));
+        }
+
+        [Test]
+        public void Deserialize_RenamedMember()
+        {
+            var result1 = Deserialize<WithRenamedMember>("{ \"b-alias\": 123 }");
+            Assert.That(result1.B, Is.EqualTo(123));
+
+            var result2 = Deserialize<WithRenamedMember>("{ \"b-alias\": 123 }",
+                new YamlSerializerOptions { NamingConvention = NamingConvention.UpperCamelCase });
+            Assert.That(result2.B, Is.EqualTo(123));
         }
     }
 }
