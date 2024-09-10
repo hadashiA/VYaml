@@ -42,6 +42,7 @@ namespace VYaml.Serialization
         {
             options ??= DefaultOptions;
             var contextLocal = deserializationContext ??= new YamlDeserializationContext(options);
+            contextLocal.Options = options;
             contextLocal.Resolver = options.Resolver;
             return contextLocal;
         }

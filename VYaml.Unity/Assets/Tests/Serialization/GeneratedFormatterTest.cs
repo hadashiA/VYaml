@@ -144,7 +144,7 @@ namespace VYaml.Tests.Serialization
                 }, new YamlSerializerOptions { NamingConvention = NamingConvention.UpperCamelCase });
 
                 Assert.That(result, Is.EqualTo(
-                    "hoge_fuga: 123\b"
+                    "hoge_fuga: 123\n"
                 ));
             }
         }

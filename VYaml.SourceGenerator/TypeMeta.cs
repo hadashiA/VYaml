@@ -3,9 +3,16 @@ using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using VYaml.Annotations;
 
 namespace VYaml.SourceGenerator;
+
+public enum NamingConvention
+{
+    LowerCamelCase,
+    UpperCamelCase,
+    SnakeCase,
+    KebabCase,
+}
 
 class UnionMeta
 {
