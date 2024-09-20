@@ -1444,6 +1444,34 @@ namespace VYaml.Tests.Emitter
             ));
         }
 
+        [Test]
+        public void SingleQuotedEmitterSettings()
+        {
+            var emitter = CreateEmitter(new YamlEmitOptions { StringQuoteStyle = ScalarStyle.SingleQuoted });
+            emitter.BeginSequence();
+            {
+                emitter.WriteString("aaa\nbbb");
+                emitter.WriteString("aaa\tbbb");
+                emitter.WriteString("aaa'bbb");
+                emitter.WriteString("\0");
+                emitter.WriteString("\x8");
+                emitter.WriteString("\xA0");
+                emitter.WriteString("\x2028");
+                emitter.WriteString("\x1F");
+            }
+            emitter.EndSequence();
+            Assert.That(ToString(in emitter), Is.EqualTo(
+                "- 'aaa\nbbb'\n" +
+                "- 'aaa\tbbb'\n" +
+                "- 'aaa''bbb'\n" +
+                "- '\\0'\n" +
+                "- '\\b'\n" +
+                "- '\\_'\n" +
+                "- '\\L'\n" +
+                "- '\\u001f'\n"
+            ));
+        }
+
         static Utf8YamlEmitter CreateEmitter(YamlEmitOptions? options = null)
         {
             var bufferWriter = new ArrayBufferWriter<byte>(256);

@@ -19,13 +19,13 @@ namespace VYaml.Internal
             IsReservedWord = isReservedWord;
         }
 
-        public ScalarStyle SuggestScalarStyle()
+        public ScalarStyle SuggestScalarStyle(YamlEmitOptions options)
         {
-            if (Lines <= 1)
-            {
-                return NeedsQuotes ? ScalarStyle.DoubleQuoted : ScalarStyle.Plain;
-            }
-            return ScalarStyle.Literal;
+            return Lines <= 1
+                ? NeedsQuotes
+                    ? options.StringQuoteStyle
+                    : ScalarStyle.Plain
+                : ScalarStyle.Literal;
         }
     }
 
@@ -99,7 +99,7 @@ namespace VYaml.Internal
             {
                 lines--;
             }
-            return new EmitStringInfo(lines, needsQuotes || numbers == chars.Length, isReservedWord);
+            return new EmitStringInfo(lines, needsQuotes || numbers == value.Length, isReservedWord);
         }
 
         internal static StringBuilder BuildLiteralScalar(ReadOnlySpan<char> originalValue, int indentCharCount)
