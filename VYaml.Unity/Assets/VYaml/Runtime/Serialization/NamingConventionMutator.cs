@@ -9,12 +9,64 @@ namespace VYaml.Serialization
         bool TryMutate(ReadOnlySpan<byte> sourceUtf8, Span<byte> destinationUtf8, out int written);
     }
 
-    static class NamingConventionMutator
+    public static class NamingConventionMutator
     {
         public static readonly INamingConventionMutator UpperCamelCase = new UpperCamelCaseMutator();
         public static readonly INamingConventionMutator LowerCamelCase = new LowerCamelCaseMutator();
         public static readonly INamingConventionMutator SnakeCase = new NotationCaseMutator('_');
         public static readonly INamingConventionMutator KebabCase = new NotationCaseMutator('-');
+
+        [ThreadStatic]
+        static char[]? ThreadStaticBuffer;
+
+        [ThreadStatic]
+        static byte[]? ThreadStaticBufferUtf8;
+
+        static byte[] GetThreadStaticBufferUtf8(int sizeHint)
+        {
+            if (ThreadStaticBufferUtf8 == null || ThreadStaticBufferUtf8.Length < sizeHint)
+            {
+                ThreadStaticBufferUtf8 = new byte[Math.Max(64, sizeHint)];
+            }
+            return ThreadStaticBufferUtf8;
+        }
+
+        static char[] GetThreadStaticBuffer(int sizeHint)
+        {
+            if (ThreadStaticBuffer == null || ThreadStaticBuffer.Length < sizeHint)
+            {
+                ThreadStaticBuffer = new char[Math.Max(64, sizeHint)];
+            }
+            return ThreadStaticBuffer;
+        }
+
+        public static void MutateToThreadStaticBuffer(
+            ReadOnlySpan<char> source,
+            NamingConvention convention,
+            out char[] threadStaticBuffer, out int written)
+        {
+            var mutator = Of(convention);
+            threadStaticBuffer = GetThreadStaticBuffer(source.Length * 2);
+            while (!mutator.TryMutate(source, threadStaticBuffer, out written))
+            {
+                // ReSharper disable once StackAllocInsideLoop
+                threadStaticBuffer = GetThreadStaticBuffer(threadStaticBuffer.Length * 2);
+            }
+        }
+
+        public static void MutateToThreadStaticBufferUtf8(
+            ReadOnlySpan<byte> sourceUtf8,
+            NamingConvention convention,
+            out byte[] threadStaticBuffer, out int written)
+        {
+            var mutator = Of(convention);
+            threadStaticBuffer = GetThreadStaticBufferUtf8(sourceUtf8.Length * 2);
+            while (!mutator.TryMutate(sourceUtf8, threadStaticBuffer, out written))
+            {
+                // ReSharper disable once StackAllocInsideLoop
+                threadStaticBuffer = GetThreadStaticBufferUtf8(threadStaticBuffer.Length * 2);
+            }
+        }
 
         public static string Mutate(string source, NamingConvention namingConvention)
         {

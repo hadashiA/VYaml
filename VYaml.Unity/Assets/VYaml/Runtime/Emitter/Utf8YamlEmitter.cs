@@ -608,6 +608,12 @@ namespace VYaml.Emitter
             WriteString(value.AsSpan(), style);
         }
 
+        public unsafe void WriteString(char* value, int length, ScalarStyle style = ScalarStyle.Any)
+        {
+            var span = new ReadOnlySpan<char>(value, length);
+            WriteString(span, style);
+        }
+
         public void WriteString(ReadOnlySpan<char> value, ScalarStyle style = ScalarStyle.Any)
         {
             if (style == ScalarStyle.Any)

@@ -279,7 +279,15 @@ static class Emitter
             }
             else
             {
-                codeWriter.AppendLine($"emitter.WriteString(\"{memberMeta.KeyName}\", ScalarStyle.Plain);");
+                using (codeWriter.BeginBlockScope($"if (context.Options.NamingConvention == global::VYaml.Annotations.NamingConvention.{memberMeta.RuntimeNamingConvention})"))
+                {
+                    codeWriter.AppendLine($"emitter.WriteString(\"{memberMeta.KeyName}\", ScalarStyle.Plain);");
+                }
+                using (codeWriter.BeginBlockScope("else"))
+                {
+                    codeWriter.AppendLine($"NamingConventionMutator.MutateToThreadStaticBuffer(\"{memberMeta.KeyName}\", global::VYaml.Annotations.NamingConvention.{memberMeta.RuntimeNamingConvention}, out var mutated, out var written);");
+                    codeWriter.AppendLine("emitter.WriteString(mutated.AsSpan(0, written), ScalarStyle.Plain);");
+                }
             }
             codeWriter.AppendLine($"context.Serialize(ref emitter, value.{memberMeta.Name});");
         }

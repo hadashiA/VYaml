@@ -1,14 +1,40 @@
 using System;
 using System.Collections.Generic;
 using NUnit.Framework;
+using VYaml.Annotations;
 using VYaml.Internal;
 using VYaml.Serialization;
+using VYaml.Tests.TypeDeclarations;
 
 namespace VYaml.Tests.Serialization
 {
     [TestFixture]
     public class PrimitiveObjectFormatterTest : FormatterTestBase
     {
+        [Test]
+        public void Serialize_Enum()
+        {
+            var options = new YamlSerializerOptions
+            {
+                NamingConvention = NamingConvention.UpperCamelCase
+            };
+            Assert.That(Serialize<dynamic>(SimpleEnum.A, options), Is.EqualTo("A"));
+            Assert.That(Serialize<dynamic>(NamingConventionEnum.HogeFuga, options), Is.EqualTo("hoge_fuga"));
+            Assert.That(Serialize<dynamic>(DataMemberLabeledEnum.C, options), Is.EqualTo("c-alias"));
+        }
+
+        [Test]
+        public void Deserialize_NamingConventionOptions()
+        {
+            var options = new YamlSerializerOptions
+            {
+                NamingConvention = NamingConvention.UpperCamelCase
+            };
+            Assert.That(Deserialize<dynamic>("A", options), Is.EqualTo(SimpleEnum.A));
+            Assert.That(Deserialize<dynamic>("hoge_fuga", options), Is.EqualTo(NamingConventionEnum.HogeFuga));
+            Assert.That(Deserialize<dynamic>("c-alias", options), Is.EqualTo(DataMemberLabeledEnum.C));
+        }
+
         [Test]
         public void Serialize_dynamic()
         {

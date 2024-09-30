@@ -117,5 +117,6 @@ class CodeWriter
     public void Clear()
     {
         buffer.Clear();
+        indentLevel = 0;
     }
 }

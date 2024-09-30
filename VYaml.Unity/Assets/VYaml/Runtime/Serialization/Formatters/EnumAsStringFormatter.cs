@@ -118,7 +118,6 @@ namespace VYaml.Serialization
             }
 
             var (stringValue, alias) = t;
-            System.Console.WriteLine($"!!!!!!! {typeof(T).Name} {alias} {NamingConventionByType} {context.Options.NamingConvention}");
             if (alias || context.Options.NamingConvention == (NamingConventionByType ?? YamlSerializerOptions.DefaultNamingConvention))
             {
                 emitter.WriteString(stringValue);
@@ -126,7 +125,6 @@ namespace VYaml.Serialization
             }
 
             var mutator = NamingConventionMutator.Of(NamingConventionByType ?? context.Options.NamingConvention);
-            System.Console.WriteLine($"!!!!!!! {typeof(T).Name} {mutator.GetType().Name}");
             Span<char> buffer = stackalloc char[stringValue.Length];
 
             int bytesWritten;
@@ -136,8 +134,13 @@ namespace VYaml.Serialization
                 buffer = stackalloc char[buffer.Length * 2];
             }
 
-            buffer = buffer[..bytesWritten];
-            emitter.WriteString(buffer.ToString()); // TODO:
+            unsafe
+            {
+                fixed (char* ptr = buffer)
+                {
+                    emitter.WriteString(ptr, bytesWritten);
+                }
+            }
         }
 
         public T Deserialize(ref YamlParser parser, YamlDeserializationContext context)

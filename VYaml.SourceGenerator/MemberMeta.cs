@@ -18,6 +18,8 @@ class MemberMeta
     public bool HasExplicitOrder { get; }
     public bool HasKeyNameAlias { get; }
     public string KeyName { get; }
+    public NamingConvention? NamingConventionByType { get; }
+    public NamingConvention RuntimeNamingConvention => NamingConventionByType ?? NamingConvention.LowerCamelCase;
 
     public bool IsConstructorParameter { get; set; }
     public bool HasExplicitDefaultValueFromConstructor { get; set; }
@@ -26,12 +28,13 @@ class MemberMeta
     public byte[] KeyNameUtf8Bytes => keyNameUtf8Bytes ??= System.Text.Encoding.UTF8.GetBytes(KeyName);
     byte[]? keyNameUtf8Bytes;
 
-    public MemberMeta(ISymbol symbol, ReferenceSymbols references, NamingConvention namingConvention, int sequentialOrder)
+    public MemberMeta(ISymbol symbol, ReferenceSymbols references, int sequentialOrder, NamingConvention? namingConventionByType = null)
     {
         Symbol = symbol;
         Name = symbol.Name;
         Order = sequentialOrder;
-        KeyName = NamingConventionMutator.Mutate(Name, namingConvention);
+        NamingConventionByType = namingConventionByType;
+        KeyName = NamingConventionMutator.Mutate(Name, RuntimeNamingConvention);
 
         var memberAttribute = symbol.GetAttribute(references.YamlMemberAttribute);
         if (memberAttribute != null)
@@ -83,7 +86,7 @@ class MemberMeta
     {
         if (!HasExplicitDefaultValueFromConstructor)
         {
-            return (MemberType is { IsReferenceType: true, NullableAnnotation: NullableAnnotation.Annotated })
+            return (MemberType is { IsReferenceType: true, NullableAnnotation: NullableAnnotation.Annotated or NullableAnnotation.None })
                 ? $"default({FullTypeName})!"
                 : $"default({FullTypeName})";
         }

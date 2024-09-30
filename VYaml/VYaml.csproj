@@ -4,6 +4,7 @@
         <ImplicitUsings>disable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <LangVersion>9</LangVersion>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
         <NoWarn>$(NoWarn);NU5128</NoWarn>
         <PackageTags>yaml,serialization</PackageTags>

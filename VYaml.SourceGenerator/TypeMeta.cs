@@ -37,7 +37,7 @@ class TypeMeta
     public string FullTypeName { get; }
     public IReadOnlyList<IMethodSymbol> Constructors { get; }
     public IReadOnlyList<UnionMeta> UnionMetas { get; }
-    public NamingConvention NamingConvention { get; }
+    public NamingConvention? NamingConventionByType { get; }
 
     public IReadOnlyList<MemberMeta> MemberMetas => memberMetas ??= GetSerializeMembers();
     public bool IsUnion => UnionMetas.Count > 0;
@@ -62,11 +62,9 @@ class TypeMeta
 
         foreach (var arg in YamlObjectAttribute.ConstructorArguments)
         {
-            if (SymbolEqualityComparer.Default.Equals(arg.Type, references.NamingConventionEnum))
+            if (arg is { Kind: TypedConstantKind.Enum, Value: not null })
             {
-                NamingConvention = arg.Value != null
-                    ? (NamingConvention)arg.Value
-                    : NamingConvention.LowerCamelCase;
+                NamingConventionByType = (NamingConvention)arg.Value;
                 break;
             }
         }
@@ -116,7 +114,7 @@ class TypeMeta
                     }
                     return true;
                 })
-                .Select((x, i) => new MemberMeta(x, references, NamingConvention, i))
+                .Select((x, i) => new MemberMeta(x, references, i, NamingConventionByType))
                 .OrderBy(x => x.Order)
                 .ToArray();
         }
