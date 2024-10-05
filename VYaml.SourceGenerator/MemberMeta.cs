@@ -18,8 +18,7 @@ class MemberMeta
     public bool HasExplicitOrder { get; }
     public bool HasKeyNameAlias { get; }
     public string KeyName { get; }
-    public NamingConvention? NamingConventionByType { get; }
-    public NamingConvention RuntimeNamingConvention => NamingConventionByType ?? NamingConvention.LowerCamelCase;
+    public NamingConvention NamingConventionByType { get; }
 
     public bool IsConstructorParameter { get; set; }
     public bool HasExplicitDefaultValueFromConstructor { get; set; }
@@ -28,13 +27,13 @@ class MemberMeta
     public byte[] KeyNameUtf8Bytes => keyNameUtf8Bytes ??= System.Text.Encoding.UTF8.GetBytes(KeyName);
     byte[]? keyNameUtf8Bytes;
 
-    public MemberMeta(ISymbol symbol, ReferenceSymbols references, int sequentialOrder, NamingConvention? namingConventionByType = null)
+    public MemberMeta(ISymbol symbol, ReferenceSymbols references, int sequentialOrder, NamingConvention namingConventionByType = default)
     {
         Symbol = symbol;
         Name = symbol.Name;
         Order = sequentialOrder;
         NamingConventionByType = namingConventionByType;
-        KeyName = NamingConventionMutator.Mutate(Name, RuntimeNamingConvention);
+        KeyName = NamingConventionMutator.Mutate(Name, NamingConventionByType);
 
         var memberAttribute = symbol.GetAttribute(references.YamlMemberAttribute);
         if (memberAttribute != null)
@@ -71,7 +70,7 @@ class MemberMeta
         }
         else
         {
-            throw new Exception("member is not field or property.");
+            throw new InvalidOperationException("member is not field or property.");
         }
         FullTypeName = MemberType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
     }

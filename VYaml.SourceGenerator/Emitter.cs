@@ -273,13 +273,13 @@ static class Emitter
         codeWriter.AppendLine("emitter.BeginMapping();");
         foreach (var memberMeta in memberMetas)
         {
-            if (memberMeta.HasKeyNameAlias)
+            if (memberMeta.HasKeyNameAlias || typeMeta.NamingConventionByType != NamingConvention.LowerCamelCase)
             {
                 codeWriter.AppendLine($"emitter.WriteString(\"{memberMeta.KeyName}\");");
             }
             else
             {
-                using (codeWriter.BeginBlockScope($"if (context.Options.NamingConvention == global::VYaml.Annotations.NamingConvention.{memberMeta.RuntimeNamingConvention})"))
+                using (codeWriter.BeginBlockScope($"if (context.Options.NamingConvention == global::VYaml.Annotations.NamingConvention.{memberMeta.NamingConventionByType})"))
                 {
                     codeWriter.AppendLine($"emitter.WriteString(\"{memberMeta.KeyName}\", ScalarStyle.Plain);");
                 }
@@ -411,9 +411,9 @@ static class Emitter
             }
             codeWriter.AppendLine();
 
-            using (codeWriter.BeginBlockScope($"if (context.Options.NamingConvention != global::VYaml.Annotations.NamingConvention.{typeMeta.RuntimeNamingConvention})"))
+            using (codeWriter.BeginBlockScope($"if (context.Options.NamingConvention != global::VYaml.Annotations.NamingConvention.{typeMeta.NamingConventionByType})"))
             {
-                codeWriter.AppendLine($"global::VYaml.Serialization.NamingConventionMutator.MutateToThreadStaticBufferUtf8(key, global::VYaml.Annotations.NamingConvention.{typeMeta.RuntimeNamingConvention}, out var mutated, out var written);");
+                codeWriter.AppendLine($"global::VYaml.Serialization.NamingConventionMutator.MutateToThreadStaticBufferUtf8(key, global::VYaml.Annotations.NamingConvention.{typeMeta.NamingConventionByType}, out var mutated, out var written);");
                 codeWriter.AppendLine("key = mutated.AsSpan(0, written);");
             }
 
@@ -430,8 +430,8 @@ static class Emitter
                             using (codeWriter.BeginBlockScope($"{branching} (key.SequenceEqual({memberMeta.Name}KeyUtf8Bytes))"))
                             {
                                 codeWriter.AppendLine("parser.Read(); // skip key");
-                                codeWriter.AppendLine(
-                                    $"__{memberMeta.Name}__ = context.DeserializeWithAlias<{memberMeta.FullTypeName}>(ref parser);");
+                                codeWriter.AppendLine($"__{memberMeta.Name}__ = context.DeserializeWithAlias<{memberMeta.FullTypeName}>(ref parser);");
+                                codeWriter.AppendLine("continue;");
                             }
                             branching = "else if";
                         }
