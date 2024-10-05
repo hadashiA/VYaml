@@ -281,12 +281,12 @@ static class Emitter
             {
                 using (codeWriter.BeginBlockScope($"if (context.Options.NamingConvention == global::VYaml.Annotations.NamingConvention.{memberMeta.NamingConventionByType})"))
                 {
-                    codeWriter.AppendLine($"emitter.WriteString(\"{memberMeta.KeyName}\", ScalarStyle.Plain);");
+                    codeWriter.AppendLine($"emitter.WriteScalar({memberMeta.Name}KeyUtf8Bytes);");
                 }
                 using (codeWriter.BeginBlockScope("else"))
                 {
-                    codeWriter.AppendLine($"global::VYaml.Serialization.NamingConventionMutator.MutateToThreadStaticBuffer(\"{memberMeta.KeyName}\", context.Options.NamingConvention, out var mutated, out var written);");
-                    codeWriter.AppendLine("emitter.WriteString(mutated.AsSpan(0, written), ScalarStyle.Plain);");
+                    codeWriter.AppendLine($"global::VYaml.Serialization.NamingConventionMutator.MutateToThreadStaticBufferUtf8({memberMeta.Name}KeyUtf8Bytes, context.Options.NamingConvention, out var mutated, out var written);");
+                    codeWriter.AppendLine("emitter.WriteScalar(mutated.AsSpan(0, written));");
                 }
             }
             codeWriter.AppendLine($"context.Serialize(ref emitter, value.{memberMeta.Name});");
