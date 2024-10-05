@@ -28,6 +28,22 @@ namespace VYaml.Emitter
         public static readonly YamlEmitOptions Default = new();
 
         public int IndentWidth { get; set; } = 2;
+
+        private ScalarStyle stringQuoteStyle = ScalarStyle.DoubleQuoted;
+
+        public ScalarStyle StringQuoteStyle
+        {
+            get => stringQuoteStyle;
+            set
+            {
+                if (value != ScalarStyle.SingleQuoted &&
+                    value != ScalarStyle.DoubleQuoted)
+                {
+                    throw new System.InvalidOperationException("Invalid scalar style");
+                }
+
+                stringQuoteStyle = value;
+            }
+        }
     }
 }
-

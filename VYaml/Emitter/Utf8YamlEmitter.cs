@@ -613,7 +613,7 @@ namespace VYaml.Emitter
             if (style == ScalarStyle.Any)
             {
                 var analyzeInfo = EmitStringAnalyzer.Analyze(value);
-                style = analyzeInfo.SuggestScalarStyle();
+                style = analyzeInfo.SuggestScalarStyle(options);
             }
 
             switch (style)
