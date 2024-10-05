@@ -34,9 +34,9 @@ namespace VYaml.Serialization
             var name = Enum.GetName(type, value)!;
             var namingConvention = GetNamingConventionByType(type) ?? context.Options.NamingConvention;
             var mutator = NamingConventionMutator.Of(namingConvention);
-            Span<char> destination = stackalloc char[name.Length];
+            Span<char> destination = stackalloc char[name.Length * 2];
             int written;
-            while (!mutator.TryMutate(aliasStringValue.AsSpan(), destination, out written))
+            while (!mutator.TryMutate(name.AsSpan(), destination, out written))
             {
                 // ReSharper disable once StackAllocInsideLoop
                 destination = stackalloc char[destination.Length * 2];

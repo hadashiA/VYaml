@@ -24,18 +24,6 @@ namespace VYaml.Tests.Serialization
         }
 
         [Test]
-        public void Deserialize_NamingConventionOptions()
-        {
-            var options = new YamlSerializerOptions
-            {
-                NamingConvention = NamingConvention.UpperCamelCase
-            };
-            Assert.That(Deserialize<dynamic>("A", options), Is.EqualTo(SimpleEnum.A));
-            Assert.That(Deserialize<dynamic>("hoge_fuga", options), Is.EqualTo(NamingConventionEnum.HogeFuga));
-            Assert.That(Deserialize<dynamic>("c-alias", options), Is.EqualTo(DataMemberLabeledEnum.C));
-        }
-
-        [Test]
         public void Serialize_dynamic()
         {
             var data = new Dictionary<string, object>

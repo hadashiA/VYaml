@@ -285,7 +285,7 @@ static class Emitter
                 }
                 using (codeWriter.BeginBlockScope("else"))
                 {
-                    codeWriter.AppendLine($"NamingConventionMutator.MutateToThreadStaticBuffer(\"{memberMeta.KeyName}\", global::VYaml.Annotations.NamingConvention.{memberMeta.RuntimeNamingConvention}, out var mutated, out var written);");
+                    codeWriter.AppendLine($"global::VYaml.Serialization.NamingConventionMutator.MutateToThreadStaticBuffer(\"{memberMeta.KeyName}\", context.Options.NamingConvention, out var mutated, out var written);");
                     codeWriter.AppendLine("emitter.WriteString(mutated.AsSpan(0, written), ScalarStyle.Plain);");
                 }
             }
@@ -410,6 +410,13 @@ static class Emitter
                 codeWriter.AppendLine("throw new YamlSerializerException(parser.CurrentMark, \"Custom type deserialization supports only string key\");");
             }
             codeWriter.AppendLine();
+
+            using (codeWriter.BeginBlockScope($"if (context.Options.NamingConvention != global::VYaml.Annotations.NamingConvention.{typeMeta.RuntimeNamingConvention})"))
+            {
+                codeWriter.AppendLine($"global::VYaml.Serialization.NamingConventionMutator.MutateToThreadStaticBufferUtf8(key, global::VYaml.Annotations.NamingConvention.{typeMeta.RuntimeNamingConvention}, out var mutated, out var written);");
+                codeWriter.AppendLine("key = mutated.AsSpan(0, written);");
+            }
+
             using (codeWriter.BeginBlockScope("switch (key.Length)"))
             {
                 var membersByNameLength = typeMeta.MemberMetas.GroupBy(x => x.KeyNameUtf8Bytes.Length);

@@ -38,6 +38,7 @@ class TypeMeta
     public IReadOnlyList<IMethodSymbol> Constructors { get; }
     public IReadOnlyList<UnionMeta> UnionMetas { get; }
     public NamingConvention? NamingConventionByType { get; }
+    public NamingConvention RuntimeNamingConvention => NamingConventionByType ?? NamingConvention.LowerCamelCase;
 
     public IReadOnlyList<MemberMeta> MemberMetas => memberMetas ??= GetSerializeMembers();
     public bool IsUnion => UnionMetas.Count > 0;
