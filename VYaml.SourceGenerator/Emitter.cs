@@ -273,13 +273,21 @@ static class Emitter
         codeWriter.AppendLine("emitter.BeginMapping();");
         foreach (var memberMeta in memberMetas)
         {
-            if (memberMeta.HasKeyNameAlias)
+            if (memberMeta.HasKeyNameAlias || typeMeta.NamingConventionByType != NamingConvention.LowerCamelCase)
             {
                 codeWriter.AppendLine($"emitter.WriteString(\"{memberMeta.KeyName}\");");
             }
             else
             {
-                codeWriter.AppendLine($"emitter.WriteString(\"{memberMeta.KeyName}\", ScalarStyle.Plain);");
+                using (codeWriter.BeginBlockScope($"if (context.Options.NamingConvention == global::VYaml.Annotations.NamingConvention.{memberMeta.NamingConventionByType})"))
+                {
+                    codeWriter.AppendLine($"emitter.WriteScalar({memberMeta.Name}KeyUtf8Bytes);");
+                }
+                using (codeWriter.BeginBlockScope("else"))
+                {
+                    codeWriter.AppendLine($"global::VYaml.Serialization.NamingConventionMutator.MutateToThreadStaticBufferUtf8({memberMeta.Name}KeyUtf8Bytes, context.Options.NamingConvention, out var mutated, out var written);");
+                    codeWriter.AppendLine("emitter.WriteScalar(mutated.AsSpan(0, written));");
+                }
             }
             codeWriter.AppendLine($"context.Serialize(ref emitter, value.{memberMeta.Name});");
         }
@@ -402,6 +410,13 @@ static class Emitter
                 codeWriter.AppendLine("throw new YamlSerializerException(parser.CurrentMark, \"Custom type deserialization supports only string key\");");
             }
             codeWriter.AppendLine();
+
+            using (codeWriter.BeginBlockScope($"if (context.Options.NamingConvention != global::VYaml.Annotations.NamingConvention.{typeMeta.NamingConventionByType})"))
+            {
+                codeWriter.AppendLine($"global::VYaml.Serialization.NamingConventionMutator.MutateToThreadStaticBufferUtf8(key, global::VYaml.Annotations.NamingConvention.{typeMeta.NamingConventionByType}, out var mutated, out var written);");
+                codeWriter.AppendLine("key = mutated.AsSpan(0, written);");
+            }
+
             using (codeWriter.BeginBlockScope("switch (key.Length)"))
             {
                 var membersByNameLength = typeMeta.MemberMetas.GroupBy(x => x.KeyNameUtf8Bytes.Length);
@@ -415,8 +430,8 @@ static class Emitter
                             using (codeWriter.BeginBlockScope($"{branching} (key.SequenceEqual({memberMeta.Name}KeyUtf8Bytes))"))
                             {
                                 codeWriter.AppendLine("parser.Read(); // skip key");
-                                codeWriter.AppendLine(
-                                    $"__{memberMeta.Name}__ = context.DeserializeWithAlias<{memberMeta.FullTypeName}>(ref parser);");
+                                codeWriter.AppendLine($"__{memberMeta.Name}__ = context.DeserializeWithAlias<{memberMeta.FullTypeName}>(ref parser);");
+                                codeWriter.AppendLine("continue;");
                             }
                             branching = "else if";
                         }

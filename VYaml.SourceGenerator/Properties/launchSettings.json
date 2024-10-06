@@ -3,7 +3,7 @@
   "profiles": {
     "DebugRoslynSourceGenerator": {
       "commandName": "DebugRoslynComponent",
-      "targetProject": "../VYaml.SourceGenerator.Sample/VYaml.SourceGenerator.Sample.csproj"
+      "targetProject": "../VYaml.Tests/VYaml.Tests.csproj"
     }
   }
 }

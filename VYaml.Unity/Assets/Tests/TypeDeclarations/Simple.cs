@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Runtime.Serialization;
 using VYaml.Annotations;
@@ -84,6 +83,13 @@ namespace VYaml.Tests.TypeDeclarations
         A,
         B,
         C,
+    }
+
+    [YamlObject(NamingConvention.SnakeCase)]
+    public enum NamingConventionEnum
+    {
+        HogeFuga,
+        BarGuz,
     }
 
     public enum EnumMemberLabeledEnum
@@ -264,6 +270,12 @@ namespace VYaml.Tests.TypeDeclarations
             Foo = foo;
             Bar = bar;
         }
+    }
+
+    [YamlObject(NamingConvention.SnakeCase)]
+    public partial class WithCustomNamingConvention
+    {
+        public int HogeFuga { get; init; }
     }
 }
 

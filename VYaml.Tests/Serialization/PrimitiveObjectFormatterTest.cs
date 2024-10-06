@@ -1,14 +1,28 @@
 using System;
 using System.Collections.Generic;
 using NUnit.Framework;
+using VYaml.Annotations;
 using VYaml.Internal;
 using VYaml.Serialization;
+using VYaml.Tests.TypeDeclarations;
 
 namespace VYaml.Tests.Serialization
 {
     [TestFixture]
     public class PrimitiveObjectFormatterTest : FormatterTestBase
     {
+        [Test]
+        public void Serialize_Enum()
+        {
+            var options = new YamlSerializerOptions
+            {
+                NamingConvention = NamingConvention.UpperCamelCase
+            };
+            Assert.That(Serialize<dynamic>(SimpleEnum.A, options), Is.EqualTo("A"));
+            Assert.That(Serialize<dynamic>(NamingConventionEnum.HogeFuga, options), Is.EqualTo("hoge_fuga"));
+            Assert.That(Serialize<dynamic>(DataMemberLabeledEnum.C, options), Is.EqualTo("c-alias"));
+        }
+
         [Test]
         public void Serialize_dynamic()
         {
@@ -66,7 +80,7 @@ bill-to:
       Suite #292
     city: Royal Oak
     state: MI
-    postal: 48046
+    postal: ""48046""
 product: 
 - sku: BL394D
   quantity: 4

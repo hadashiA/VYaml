@@ -23,6 +23,16 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\VYaml.Annotations\VYaml.Annotations.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Include="..\VYaml\Serialization\NamingConventionMutator.cs">
+            <Link>NamingConventionMutator.cs</Link>
+        </Compile>
+    </ItemGroup>
+
+    <ItemGroup>
         <!-- Mainly used for Unity, Unity 2021.3 has Roslyn 3.9.0(see: Editor\Data\DotNetSdkRoslyn\ -->
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="3.9.0" PrivateAssets="all" />
         <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.3">

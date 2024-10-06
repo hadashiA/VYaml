@@ -93,8 +93,7 @@ namespace VYaml.Serialization
 
             if (type.IsEnum)
             {
-                var enumValue = EnumAsStringNonGenericCache.Instance.GetStringValue(type, value);
-                emitter.WriteString(enumValue, ScalarStyle.Plain);
+                EnumAsStringNonGenericHelper.Serialize(ref emitter, type, value, context);
                 return;
             }
 

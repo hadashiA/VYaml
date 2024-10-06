@@ -24,6 +24,16 @@
         <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.1.0"/>
     </ItemGroup>
 
+<!--    <ItemGroup>-->
+<!--      <ProjectReference Include="..\VYaml.Annotations\VYaml.Annotations.csproj" />-->
+<!--    </ItemGroup>-->
+
+<!--    <ItemGroup>-->
+<!--      <Compile Include="..\VYaml\Serialization\NamingConventionMutator.cs">-->
+<!--        <Link>NamingConventionMutator.cs</Link>-->
+<!--      </Compile>-->
+<!--    </ItemGroup>-->
+
     <!-- Copy files for Unity -->
     <PropertyGroup>
         <UnityAssetsRoot>$(MSBuildProjectDirectory)\..\VYaml.Unity\Assets\VYaml\Runtime</UnityAssetsRoot>

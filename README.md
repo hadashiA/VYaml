@@ -237,7 +237,31 @@ documents[2]["Fatal"]   // #=> "Unknown variable \"bar\""
 
 :exclamation: By default, VYaml maps C# property names in lower camel case (e.g. `propertyName`) format to yaml keys.
 
-If you want to customize this behaviour, use argment of `[YamlObject]` attribute.
+If you want to customize this behaviour, `YamlSerializerOptions.NamingConvention` to set it.
+
+```cs
+var options = YamlSerializerOptions.Standard;
+options.NamingConvention = NamingConvention.SnakeCase;
+
+YamlSerializer.Serialize(new A { FooBar = 123 }, options); // #=> "{ foo_bar: 123 }"
+```
+
+List of possible values:
+- NamingConvention.LowerCamelCase
+  - Like `propertyName`
+- NamingConvention.UpperCamelCase:
+  - Like `PropertyName`
+- NamingConvention.SnakeCase:
+  - Like  `property_name`
+- NamingConvention.KebabCase:
+  - Like `property-name`
+
+
+> [!TIP]
+> If you specify an option other than the default `LowerCamelCase`, there will be a slight performance degradation at runtime.
+
+You may specify NamingConvention for each type declaration by `[YamlObject]` attribute.
+In this case, no performance degradation occurs.
 
 ```csharp
 [YamlObject(NamingConvention.SnakeCase)]
@@ -253,17 +277,7 @@ This serialize as:
 foo_bar: 100
 ```
 
-List of possible values:
-- NamingConvention.LowerCamelCase
-  - Like `propertyName` 
-- NamingConvention.UpperCamelCase:
-  - Like `PropertyName` 
-- NamingConvention.SnakeCase: 
-  - Like  `property_name` 
-- NamingConvention.KebabCase: 
-  - Like `property-name` 
-
-Alos, you can change the key name each members with `[YamlMember("name")]`
+Also, you can change the key name each members with `[YamlMember("name")]`
 
 ```csharp
 [YamlObject]
