@@ -44,7 +44,8 @@ Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular y
 
 ## Most recent roadmap
 
-- [ ] Restrict max depth
+- [ ] Support Unity specific types
+- [ ] Support node tree representation
 
 ## Installation
 
