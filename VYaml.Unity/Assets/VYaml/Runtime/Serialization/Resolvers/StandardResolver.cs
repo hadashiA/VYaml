@@ -8,6 +8,9 @@ namespace VYaml.Serialization
         {
             BuiltinResolver.Instance,
             GeneratedResolver.Instance,
+#if UNITY_2018_3_OR_NEWER
+            UnityResolver.Instance,
+#endif
         };
 
         static class FormatterCache<T>

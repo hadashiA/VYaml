@@ -336,10 +336,10 @@ namespace VYaml.Serialization
         public void Serialize(ref Utf8YamlEmitter emitter, Matrix4x4 value, YamlSerializationContext context)
         {
             emitter.BeginSequence();
-            Vector4Formatter.Instance.Serialize(ref emitter, value.GetColumn(0), context);
-            Vector4Formatter.Instance.Serialize(ref emitter, value.GetColumn(1), context);
-            Vector4Formatter.Instance.Serialize(ref emitter, value.GetColumn(2), context);
-            Vector4Formatter.Instance.Serialize(ref emitter, value.GetColumn(3), context);
+            Vector4Formatter.Instance.Serialize(ref emitter, value.GetRow(0), context);
+            Vector4Formatter.Instance.Serialize(ref emitter, value.GetRow(1), context);
+            Vector4Formatter.Instance.Serialize(ref emitter, value.GetRow(2), context);
+            Vector4Formatter.Instance.Serialize(ref emitter, value.GetRow(3), context);
             emitter.EndSequence();
         }
 
@@ -352,13 +352,18 @@ namespace VYaml.Serialization
             }
 
             parser.ReadWithVerify(ParseEventType.SequenceStart);
-            var col0 = Vector4Formatter.Instance.Deserialize(ref parser, context);
-            var col1 = Vector4Formatter.Instance.Deserialize(ref parser, context);
-            var col2 = Vector4Formatter.Instance.Deserialize(ref parser, context);
-            var col3 = Vector4Formatter.Instance.Deserialize(ref parser, context);
+            var row0 = Vector4Formatter.Instance.Deserialize(ref parser, context);
+            var row1 = Vector4Formatter.Instance.Deserialize(ref parser, context);
+            var row2 = Vector4Formatter.Instance.Deserialize(ref parser, context);
+            var row3 = Vector4Formatter.Instance.Deserialize(ref parser, context);
             parser.ReadWithVerify(ParseEventType.SequenceEnd);
 
-            return new Matrix4x4(col0, col1, col2, col3);
+            var result = new Matrix4x4();
+            result.SetRow(0, row0);
+            result.SetRow(2, row1);
+            result.SetRow(3, row2);
+            result.SetRow(4, row3);
+            return result;
         }
     }
 }
