@@ -39,13 +39,13 @@ jobs:
           license: UNITY_LICENSE_2022_3
     steps: 
     - uses: actions/checkout@v2
-    - uses: actions/cache@v2
-      with:
-        path: VYaml.Unity/Library
-        key: Library-VYaml-${{ matrix.unityVersion }}
-        restore-keys: |
-          Library-VYaml-
-          Library-
+    # - uses: actions/cache@v2
+    #   with:
+    #     path: VYaml.Unity/Library
+    #     key: Library-VYaml-${{ matrix.unityVersion }}
+    #     restore-keys: |
+    #       Library-VYaml-
+    #       Library-
     - uses: game-ci/unity-test-runner@v4
       env:
         UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
