@@ -275,7 +275,7 @@ namespace VYaml.Tests.TypeDeclarations
     [YamlObject(NamingConvention.SnakeCase)]
     public partial class WithCustomNamingConvention
     {
-        public int HogeFuga { get; init; }
+        public int HogeFuga { get; set; }
     }
 }
 

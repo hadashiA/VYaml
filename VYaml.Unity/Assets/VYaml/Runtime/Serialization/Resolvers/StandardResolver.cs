@@ -7,6 +7,9 @@ namespace VYaml.Serialization
         public static readonly IYamlFormatterResolver[] DefaultResolvers =
         {
             BuiltinResolver.Instance,
+#if UNITY_2018_3_OR_NEWER
+            UnityResolver.Instance,
+#endif
             GeneratedResolver.Instance,
         };
 
