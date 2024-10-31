@@ -68,7 +68,7 @@ Require Unity 2021.3 or later.
 If you are using a version of Unity newer than 2022.2, you can install as the Unity package manager at the following git URL;
 
 ```
-https://github.com/hadashiA/VYaml.git?path=VYaml.Unity/Assets/VYaml#0.28.0
+https://github.com/hadashiA/VYaml.git?path=VYaml.Unity/Assets/VYaml#0.28.1
 ```
 
 > [!IMPORTANT]  
