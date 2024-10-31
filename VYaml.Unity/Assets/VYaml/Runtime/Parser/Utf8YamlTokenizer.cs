@@ -300,7 +300,7 @@ namespace VYaml.Parser
             tokens.Enqueue(new Token(TokenType.StreamEnd));
         }
 
-        void ConsumeBom()
+        bool ConsumeBom()
         {
             if (reader.IsNext(YamlCodes.Utf8Bom))
             {
@@ -324,7 +324,11 @@ namespace VYaml.Parser
                         throw new YamlTokenizerException(CurrentMark, "BOM must be at the beginning of the stream or document.");
                     }
                 }
+                return true;
             }
+
+            // not BOM.
+            return false;
         }
 
         void ConsumeDirective()
@@ -1482,7 +1486,7 @@ namespace VYaml.Parser
                         }
                         break;
                     case 0xEF:
-                        ConsumeBom();
+                        if (!ConsumeBom()) return;
                         break;
                     default:
                         return;
