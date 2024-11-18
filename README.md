@@ -169,7 +169,25 @@ These types can be serialized by default:
 - `IEnumerable<>`, `ICollection<>`, `IList<>`, `IReadOnlyCollection<>`, `IReadOnlyList<>`, `ISet<>`
 - `IDictionary<,>`, `IReadOnlyDictionary<,>`
 
-TODO: We plan add more.
+And the following Unity-specific types can also be serialized:
+- `Color`, `Color32`
+- `Vector2`, `Vector2Int`, `Vector3`, `Vector3Int`, `Vector4`, `Vector4Int`
+- `Matrix4x4`
+- `Quaternion`
+- `Rect`, `RectInt`, `RectOffset`
+- Addtionaly, If the `Unity.Mathmatics` package is installed, the following support is enabled:
+  - `bool2`, `bool3`, `bool4`
+  - `float2`, `float3`, `float4`
+  - `double2`, `double3`, `double4`
+  - `half2`, `half3`, `half4`
+  - `int2`, `int3`, `int4` 
+  - `uint2`, `uint3`, `uint4` 
+  - `bool2x2`, `bool2x3`, `bool2x4`, `bool3x2`, `bool3x3`, `bool3x4`, `bool4x2`, `bool4x3`, `bool4x4`
+  - `float2x2`, `float2x3`, `float2x4`, `float3x2`, `float3x3`, `float3x4`, `float4x2`, `float4x3`, `float4x4`
+  - `double2x2`, `double2x3`, `double2x4`, `double3x2`, `double3x3`, `double3x4`, `double4x2`, `double4x3`, `double4x4`
+  - `int2x2`, `int2x3`, `int2x4`, `int3x2`, `int3x3`, `int3x4`, `int4x2`, `int4x3`, `int4x4`
+  - `uint2x2`, `uint2x3`, `uint2x4`, `uint3x2`, `uint3x3`, `uint3x4`, `uint4x2`, `uint4x3`, `uint4x4`
+  - `quaternion`
 
 #### Deserialize as `dynamic`
 
