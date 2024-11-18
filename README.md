@@ -141,7 +141,7 @@ using var stream = File.OpenRead("/path/to/yaml");
 var sample = await YamlSerializer.DeserializeAsync<Sample>(stream);
 
 // Or 
-// var yamlUtf8Bytes = System.Text.Encofing.UTF8.GetBytes("<yaml string....>");
+// var yamlUtf8Bytes = System.Text.Encoding.UTF8.GetBytes("<yaml string....>");
 // var sample = YamlSerializer.Deserialize<Sample>(yamlUtf8Bytes);
 ```
 
