@@ -524,7 +524,7 @@ YamlSerializer.Deserialize<T>(yaml, options);
     - `YamlParser.TryGetScalarAs*` families return true and take a result if the current position is a scalar and of the specified type.
     - `YamlParser.ReadScalarAs*` families is similar to GetScalarAs*, but advances the present position to after the scalar read.
 - How to access meta information:
-    - `YamlParser.TryGetTag(out Tag tag)` 
+    - `YamlParser.TryGetCurrentTag(out Tag tag)` 
     - `YamlParser.TryGetCurrentAnchor(out Anchor anchor)`
 
 Basic example:
@@ -569,7 +569,7 @@ while (parser.Read())
         while (!parser.End && parser.CurrentEventType != ParseEventType.SequenceEnd)
         {
              // A sequence element may be a scalar or other...
-             if (parser.CurrentEventType = ParseEventType.Scalar)
+             if (parser.CurrentEventType == ParseEventType.Scalar)
              {
                  // ...
              }
@@ -627,7 +627,7 @@ The above test covers various patterns for the order of `ParsingEvent`.
 Basic usage:
 
 ``` csharp
-var buffer = new ArrayBufferWriter();
+var buffer = new ArrayBufferWriter<byte>();
 var emitter = new Utf8YamlEmitter(buffer); // It needs buffer implemented `IBufferWriter<byte>`
 
 emitter.BeginMapping(); // Mapping is a collection like Dictionary in YAML
