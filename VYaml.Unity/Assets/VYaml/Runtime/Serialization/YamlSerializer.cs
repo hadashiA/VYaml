@@ -132,6 +132,7 @@ namespace VYaml.Serialization
             contextLocal.Reset();
 
             parser.SkipHeader();
+            if (parser.End) return default!;
 
             var formatter = options.Resolver.GetFormatterWithVerify<T>();
             return contextLocal.DeserializeWithAlias(formatter, ref parser);

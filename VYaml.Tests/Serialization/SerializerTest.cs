@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using NUnit.Framework;
 using VYaml.Internal;
@@ -149,6 +150,14 @@ namespace VYaml.Tests.Serialization
             Assert.That(documents["id1"], Is.EqualTo(8083928222794209684));
             Assert.That(documents["id2"], Is.InstanceOf<int>());
             Assert.That(documents["id3"], Is.InstanceOf<double>());
+        }
+
+        [Test]
+        public void Deserialize_Empty()
+        {
+            var empty = new ReadOnlyMemory<byte>(Array.Empty<byte>());
+            var result1 = YamlSerializer.Deserialize<dynamic>(empty);
+            Assert.That(result1, Is.Null);
         }
     }
 }
