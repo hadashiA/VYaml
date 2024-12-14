@@ -27,13 +27,13 @@ namespace VYaml.Serialization
 
         public void Serialize(ref Utf8YamlEmitter emitter, bool? value, YamlSerializationContext context)
         {
-            if (value == null)
+            if (value.HasValue)
             {
-                emitter.WriteNull();
+                emitter.WriteBool(value.GetValueOrDefault());
             }
             else
             {
-                emitter.WriteBool(value.Value);
+                emitter.WriteNull();
             }
         }
 

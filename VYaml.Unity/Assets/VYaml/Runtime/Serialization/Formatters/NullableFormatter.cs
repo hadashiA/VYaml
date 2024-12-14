@@ -44,7 +44,7 @@ namespace VYaml.Serialization
         {
             if (value.HasValue)
             {
-                underlyingFormatter.Serialize(ref emitter, value.Value, context);
+                underlyingFormatter.Serialize(ref emitter, value.GetValueOrDefault(), context);
             }
             else
             {

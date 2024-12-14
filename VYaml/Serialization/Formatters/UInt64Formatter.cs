@@ -29,7 +29,7 @@ namespace VYaml.Serialization
         {
             if (value.HasValue)
             {
-                emitter.WriteUInt64(value.Value);
+                emitter.WriteUInt64(value.GetValueOrDefault());
             }
             else
             {
