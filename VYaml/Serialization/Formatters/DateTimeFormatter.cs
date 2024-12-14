@@ -56,7 +56,7 @@ namespace VYaml.Serialization
             if (value.HasValue)
             {
                 var buf = context.GetBuffer64();
-                if (Utf8Formatter.TryFormat(value.Value, buf, out var bytesWritten, new StandardFormat('O')))
+                if (Utf8Formatter.TryFormat(value.GetValueOrDefault(), buf, out var bytesWritten, new StandardFormat('O')))
                 {
                     emitter.WriteScalar(buf[..bytesWritten]);
                 }
