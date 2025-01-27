@@ -367,7 +367,7 @@ public partial class Person
     public string Profile { get; set; } // from setter
 
     // If all members of the construct are not taken as arguments, setters are used for the other members
-    public Person3(int age, string name)
+    public Person(int age, string name)
     {
         this.Age = age;
         this.Name = name;
