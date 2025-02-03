@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFrameworks>netstandard2.1;net6.0;net8.0</TargetFrameworks>
+        <TargetFrameworks>netstandard2.1;net6.0;net8.0;net9.0</TargetFrameworks>
         <ImplicitUsings>disable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <LangVersion>9</LangVersion>
+        <LangVersion>13</LangVersion>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
         <NoWarn>$(NoWarn);NU5128</NoWarn>
@@ -34,15 +34,4 @@
         <ProjectReference Include="..\VYaml.SourceGenerator\VYaml.SourceGenerator.csproj"
                           ReferenceOutputAssembly="false" />
     </ItemGroup>
-
-    <!-- Copy files for Unity -->
-    <PropertyGroup>
-        <DestinationRoot>$(MSBuildProjectDirectory)\..\VYaml.Unity\Assets\VYaml\Runtime</DestinationRoot>
-    </PropertyGroup>
-    <ItemGroup>
-        <TargetFiles1 Include="$(MSBuildProjectDirectory)\**\*.cs" Exclude="**\bin\**\*.*;**\obj\**\*.*" />
-    </ItemGroup>
-    <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-        <Copy SourceFiles="@(TargetFiles1)" DestinationFiles="$(DestinationRoot)\%(RecursiveDir)%(Filename)%(Extension)" SkipUnchangedFiles="true" />
-    </Target>
 </Project>
