@@ -3,7 +3,6 @@
 [![GitHub license](https://img.shields.io/github/license/hadashiA/VYaml)](./LICENSE)
 ![Unity 2022.2+](https://img.shields.io/badge/unity-2021.3+-000.svg)
 [![NuGet](https://img.shields.io/nuget/v/VYaml.svg)](https://www.nuget.org/packages/VYaml)
-[![openupm](https://img.shields.io/npm/v/jp.hadashikick.vyaml?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/jp.hadashikick.vyaml/)
 
 VYaml is a pure C# YAML 1.2 implementation, which is extra fast, low memory footprint with focued on .NET and Unity.
 
@@ -19,7 +18,7 @@ In parsing, scalar values are pooled and no allocation occurs until `Scalar.ToSt
 Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular yaml library in C#), basically 6x faster and about 1/50 heap allocations in some case.
 
 
-## Currentry supported fetures
+## Features
 
 - YAML Parser (Reader)
   - [YAML 1.2 mostly supported](#httpsyamlorgspec122)
@@ -50,8 +49,6 @@ Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular y
 
 ### NuGet
 
-Require netstandard2.1 or later.
-
 You can install the following nuget package.
 https://www.nuget.org/packages/VYaml
 
@@ -61,20 +58,20 @@ dotnet add package VYaml
 
 ### Unity
 
-Require Unity 2021.3 or later. 
+> [!IMPORTANT]
+> Starting with version 1.0, VYaml is now via NuGetForUnity.
+> If you are using an older version, please follow these instructions to reinstall.
 
-#### Install via git url
+> [!INFO]
+> Requirements: Unity 2021.3 or later.
 
-If you are using a version of Unity newer than 2022.2, you can install as the Unity package manager at the following git URL;
-
-```
-https://github.com/hadashiA/VYaml.git?path=VYaml.Unity/Assets/VYaml#0.28.1
-```
-
-> [!IMPORTANT]  
-> If you are using Unity 2022.1 or older, the git url cannot be used as is because the source generator versions are different.
-> Instead, install with VYaml.2022_1_or_lower.unitypackage from the [Releases](https://github.com/hadashiA/VYaml/releases) page.
-
+1. Install NugetForUnity.
+2. Open the NuGet window by going to NuGet > Manage NuGet Packages, search for the "VYaml" package, and install it.
+3. (Optional) Installing Unity-specific extensions:
+  - Open the Package Manager window by selecting Window > Package Manager, then click on [+] > Add package from git URL and enter the following URL:
+  - ```
+    https://github.com/hadashiA/VYaml.git?path=VYaml.Unity/Assets/VYaml#1.0.0
+    ```
 
 ## Usage
 
