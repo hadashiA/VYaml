@@ -3,7 +3,6 @@
 [![GitHub license](https://img.shields.io/github/license/hadashiA/VYaml)](./LICENSE)
 ![Unity 2022.2+](https://img.shields.io/badge/unity-2021.3+-000.svg)
 [![NuGet](https://img.shields.io/nuget/v/VYaml.svg)](https://www.nuget.org/packages/VYaml)
-[![openupm](https://img.shields.io/npm/v/jp.hadashikick.vyaml?label=openupm&registry_uri=https://package.openupm.com)](https://openupm.com/packages/jp.hadashikick.vyaml/)
 
 VYaml is a pure C# YAML 1.2 implementation, which is extra fast, low memory footprint with focued on .NET and Unity.
 
@@ -19,7 +18,7 @@ In parsing, scalar values are pooled and no allocation occurs until `Scalar.ToSt
 Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular yaml library in C#), basically 6x faster and about 1/50 heap allocations in some case.
 
 
-## Currentry supported fetures
+## Features
 
 - YAML Parser (Reader)
   - [YAML 1.2 mostly supported](#httpsyamlorgspec122)
@@ -50,8 +49,6 @@ Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular y
 
 ### NuGet
 
-Require netstandard2.1 or later.
-
 You can install the following nuget package.
 https://www.nuget.org/packages/VYaml
 
@@ -61,20 +58,20 @@ dotnet add package VYaml
 
 ### Unity
 
-Require Unity 2021.3 or later. 
+> [!IMPORTANT]
+> Starting with version 1.0, VYaml is now via NuGetForUnity.
+> If you are using an older version, please follow these instructions to reinstall.
 
-#### Install via git url
+> [!NOTE]
+> Requirements: Unity 2021.3 or later.
 
-If you are using a version of Unity newer than 2022.2, you can install as the Unity package manager at the following git URL;
-
-```
-https://github.com/hadashiA/VYaml.git?path=VYaml.Unity/Assets/VYaml#0.28.1
-```
-
-> [!IMPORTANT]  
-> If you are using Unity 2022.1 or older, the git url cannot be used as is because the source generator versions are different.
-> Instead, install with VYaml.2022_1_or_lower.unitypackage from the [Releases](https://github.com/hadashiA/VYaml/releases) page.
-
+1. Install NugetForUnity.
+2. Open the NuGet window by going to NuGet > Manage NuGet Packages, search for the "VYaml" package, and install it.
+3. (Optional) Installing Unity-specific extensions:
+  - Open the Package Manager window by selecting Window > Package Manager, then click on [+] > Add package from git URL and enter the following URL:
+  - ```
+    https://github.com/hadashiA/VYaml.git?path=VYaml.Unity/Assets/VYaml#1.0.0
+    ```
 
 ## Usage
 
@@ -169,7 +166,8 @@ These types can be serialized by default:
 - `IEnumerable<>`, `ICollection<>`, `IList<>`, `IReadOnlyCollection<>`, `IReadOnlyList<>`, `ISet<>`
 - `IDictionary<,>`, `IReadOnlyDictionary<,>`
 
-And the following Unity-specific types can also be serialized:
+The following types of support are included in the package for Unity.
+
 - `Color`, `Color32`
 - `Vector2`, `Vector2Int`, `Vector3`, `Vector3Int`, `Vector4`, `Vector4Int`
 - `Matrix4x4`
@@ -188,6 +186,22 @@ And the following Unity-specific types can also be serialized:
   - `int2x2`, `int2x3`, `int2x4`, `int3x2`, `int3x3`, `int3x4`, `int4x2`, `int4x3`, `int4x4`
   - `uint2x2`, `uint2x3`, `uint2x4`, `uint3x2`, `uint3x3`, `uint3x4`, `uint4x2`, `uint4x3`, `uint4x4`
   - `quaternion`
+  
+
+- To enable it, do the following
+1. Install the unity package.
+    - See [Installation/Unity](#unity) section.
+2. Add UnityResolver to YamlSeriarOptions.
+    - ```cs
+      YamlSerializer.DefaultOptions = new YamlSerializerOptions
+      {
+          Resolver = CompositeResolver.Create(new IYamlFormatterResolver[]
+          {
+              StandardResolver.Instance,
+              UnityResolver.Instance,
+          })
+      };
+      ```
 
 #### Deserialize as `dynamic`
 
