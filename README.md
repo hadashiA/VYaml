@@ -62,7 +62,7 @@ dotnet add package VYaml
 > Starting with version 1.0, VYaml is now via NuGetForUnity.
 > If you are using an older version, please follow these instructions to reinstall.
 
-> [!INFO]
+> [!NOTE]
 > Requirements: Unity 2021.3 or later.
 
 1. Install NugetForUnity.
@@ -166,7 +166,8 @@ These types can be serialized by default:
 - `IEnumerable<>`, `ICollection<>`, `IList<>`, `IReadOnlyCollection<>`, `IReadOnlyList<>`, `ISet<>`
 - `IDictionary<,>`, `IReadOnlyDictionary<,>`
 
-And the following Unity-specific types can also be serialized:
+The following types of support are included in the package for Unity.
+
 - `Color`, `Color32`
 - `Vector2`, `Vector2Int`, `Vector3`, `Vector3Int`, `Vector4`, `Vector4Int`
 - `Matrix4x4`
@@ -185,6 +186,22 @@ And the following Unity-specific types can also be serialized:
   - `int2x2`, `int2x3`, `int2x4`, `int3x2`, `int3x3`, `int3x4`, `int4x2`, `int4x3`, `int4x4`
   - `uint2x2`, `uint2x3`, `uint2x4`, `uint3x2`, `uint3x3`, `uint3x4`, `uint4x2`, `uint4x3`, `uint4x4`
   - `quaternion`
+  
+
+- To enable it, do the following
+1. Install the unity package.
+    - See [Installation/Unity](#unity) section.
+2. Add UnityResolver to YamlSeriarOptions.
+    - ```cs
+      YamlSerializer.DefaultOptions = new YamlSerializerOptions
+      {
+          Resolver = CompositeResolver.Create(new IYamlFormatterResolver[]
+          {
+              StandardResolver.Instance,
+              UnityResolver.Instance,
+          })
+      };
+      ```
 
 #### Deserialize as `dynamic`
 
