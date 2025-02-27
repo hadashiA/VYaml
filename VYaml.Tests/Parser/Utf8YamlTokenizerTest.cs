@@ -750,7 +750,7 @@ namespace VYaml.Tests
 
         static void CreateTokenizer(IEnumerable<string> lines, out Utf8YamlTokenizer tokenizer)
         {
-            var yaml = string.Join('\n', lines);
+            var yaml = string.Join("\n", lines);
             CreateTokenizer(yaml, out tokenizer);
         }
 
