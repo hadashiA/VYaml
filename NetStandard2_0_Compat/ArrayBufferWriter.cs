@@ -1,9 +1,6 @@
 // Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 
-//it is part of the public API (see: YamlSerializationContext.GetArrayBufferWriter)
-#define MAKE_ABW_PUBLIC
-
 using System.Diagnostics;
 
 namespace System.Buffers

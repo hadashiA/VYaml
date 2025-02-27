@@ -69,7 +69,7 @@ namespace VYaml.Serialization
         {
             options ??= DefaultOptions;
             var contextLocal = GetThreadLocalSerializationContext(options);
-            var writer = contextLocal.GetArrayBufferWriter();
+            var writer = contextLocal.GetArrayBufferWriterInternal();
             var emitter = new Utf8YamlEmitter(writer);
             contextLocal.Reset();
             var formatter = contextLocal.Resolver.GetFormatterWithVerify<T>();

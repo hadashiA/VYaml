@@ -1,5 +1,4 @@
-﻿//#if NETSTANDARD2_0
-using System;
+﻿using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -10,16 +9,15 @@ using System.Threading;
 
 namespace System
 {
-    public static class NetStandardCompat
+    internal static class NetStandardCompat
     {
         public static int GetBytes(this Encoding encoding, string chars, Span<byte> bytes)
         {
-            return encoding.GetBytes(chars.AsSpan(), bytes);
+            return GetBytes(encoding, chars.AsSpan(), bytes);
         }
 
         public static int GetBytes(this Encoding encoding, ReadOnlySpan<char> chars, Span<byte> bytes)
         {
-            bytes = new byte[encoding.GetMaxByteCount(chars.Length)];
             unsafe
             {
                 fixed (char* srcPtr = &chars[0])
@@ -45,7 +43,6 @@ namespace System
             {
                 fixed(byte* srcPtr = &bytes[0])
                 {
-                    
                     return encoding.GetString(srcPtr, bytes.Length);
                 }
             }
@@ -115,16 +112,44 @@ namespace System
             }
         }
 
-        public static System.Threading.Tasks.ValueTask<int> ReadAsync(this Stream stream, Memory<byte> chars,
+        public static async System.Threading.Tasks.ValueTask<int> ReadAsync(this Stream stream, Memory<byte> chars,
             CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            var read = 0;
+            var array = ArrayPool<byte>.Shared.Rent(512);
+            try
+            {
+                while (true)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var remainingSpaceInTarget = chars.Length - read;
+                    var maxPossible = Math.Min(remainingSpaceInTarget, array.Length);
+
+                    var curRead = await stream.ReadAsync(array, 0, maxPossible);
+                    if (curRead == 0)
+                    {
+                        return read;
+                    }
+                    array.AsSpan()[0..curRead].CopyTo(chars.Span.Slice(read));
+                    read += curRead;
+                }
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(array);
+            }
         }
 
-        public static int CopyTo(this StringBuilder stream, int startIndex, ReadOnlySpan<char> chars, int cnt)
+        public static int CopyTo(this StringBuilder stringBuilder, int sourceIndex, Span<char> destination, int count)
         {
-            throw new NotImplementedException();
+            var arrSize = Math.Min(destination.Length, count);
+            var arr = new char[arrSize];
+
+            stringBuilder.CopyTo(sourceIndex, arr, 0, arrSize);
+
+            //todo: avoid copy...
+            arr.AsSpan().CopyTo(destination);
+            return arrSize;
         }
     }
 }
-//#endif

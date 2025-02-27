@@ -38,10 +38,23 @@ namespace VYaml.Serialization
             Resolver.GetFormatterWithVerify<T>().Serialize(ref emitter, value, this);
         }
 
-        public ArrayBufferWriter<byte> GetArrayBufferWriter()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal ArrayBufferWriter<byte> GetArrayBufferWriterInternal()
         {
             return arrayBufferWriter ??= new ArrayBufferWriter<byte>(65536);
         }
+
+#if NETSTANDARD2_0
+        public IBufferWriter<byte> GetArrayBufferWriter()
+        {
+            return GetArrayBufferWriterInternal();
+        }
+#else
+        public ArrayBufferWriter<byte> GetArrayBufferWriter()
+        {
+            return GetArrayBufferWriterInternal();
+        }
+#endif
 
         public void Reset()
         {
