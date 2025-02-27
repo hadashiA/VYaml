@@ -26,7 +26,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\VYaml\VYaml.csproj" />
-        <ProjectReference Include="..\VYaml.SourceGenerator\VYaml.SourceGenerator.csproj" />
+        <!--<ProjectReference Include="..\VYaml.SourceGenerator\VYaml.SourceGenerator.csproj" />-->
 		
 		<!-- disable SourceGenerator for net framework because it does not allow default implementations for interfaces -->
         <ProjectReference Include="..\VYaml.SourceGenerator\VYaml.SourceGenerator.csproj" Condition="'$(TargetFramework)' != 'net472'">
