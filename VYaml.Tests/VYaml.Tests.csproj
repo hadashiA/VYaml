@@ -1,14 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-		<!-- using multi targeting seems to cause error CS0006 
-		     no metadata file found in YamlSourceGenerator\obj\Debug\net9.0\ref\Yaml.SourceGenerator.dll
-			 
-			 -> the source gen is netstandard - not net9.0
-	    -->
-		<UseMultiTargets>true</UseMultiTargets>
-        <TargetFrameworks Condition="'$(UseMultiTargets)' == 'true'">net9.0;net472</TargetFrameworks>
-		<TargetFramework Condition="'$(UseMultiTargets)' != 'true'">net9.0</TargetFramework>
+        <TargetFrameworks>net9.0;net472</TargetFrameworks>
 		<LangVersion>12</LangVersion>
         <Nullable>enable</Nullable>
         <ImplicitUsings>disable</ImplicitUsings>
@@ -33,7 +26,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\VYaml\VYaml.csproj" />
-        <ProjectReference Include="..\VYaml.SourceGenerator\VYaml.SourceGenerator.csproj" Condition="'$(UseMultiTargets)' != 'true'" />
+        <ProjectReference Include="..\VYaml.SourceGenerator\VYaml.SourceGenerator.csproj" />
 		
 		<!-- disable SourceGenerator for net framework because it does not allow default implementations for interfaces -->
         <ProjectReference Include="..\VYaml.SourceGenerator\VYaml.SourceGenerator.csproj" Condition="'$(TargetFramework)' != 'net472'">
