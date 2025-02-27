@@ -43,8 +43,13 @@ namespace VYaml.Serialization
             }
             var stringValue = parser.ReadScalarAsString()!;
             var separatorIndex = stringValue.IndexOf('+');
+#if NETSTANDARD2_0
+            var real = double.Parse(stringValue.Substring(0, separatorIndex));
+            var imaginary = double.Parse(stringValue.Substring(separatorIndex + 1, stringValue.Length - separatorIndex - 2));
+#else
             var real = double.Parse(stringValue.AsSpan(0, separatorIndex));
             var imaginary = double.Parse(stringValue.AsSpan(separatorIndex + 1, stringValue.Length - separatorIndex - 2));
+#endif
             return new Complex(real, imaginary);
         }
     }

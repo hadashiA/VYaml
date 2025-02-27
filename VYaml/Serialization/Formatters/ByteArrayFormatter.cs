@@ -1,15 +1,39 @@
 using System;
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using System.Text;
 using VYaml.Emitter;
 using VYaml.Parser;
 
 namespace VYaml.Serialization
 {
+    internal static class SpanExtensions
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static string ToBase64String(this ReadOnlySpan<byte> bytes,
+            Base64FormattingOptions options = Base64FormattingOptions.None)
+        {
+#if NETSTANDARD2_0
+            return Convert.ToBase64String(bytes.ToArray(), options);
+#else
+            return Convert.ToBase64String(bytes, options);
+#endif
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static string ToBase64String(this Span<byte> bytes,
+            Base64FormattingOptions options = Base64FormattingOptions.None)
+        {
+            ReadOnlySpan<byte> robytes = bytes;
+            return robytes.ToBase64String(options);
+        }
+    }
+
     public sealed class ByteArrayFormatter : IYamlFormatter<byte[]?>
     {
         public static readonly IYamlFormatter<byte[]?> Instance = new ByteArrayFormatter();
 
+        
         public void Serialize(ref Utf8YamlEmitter emitter, byte[]? value, YamlSerializationContext context)
         {
             if (value == null)
@@ -19,7 +43,7 @@ namespace VYaml.Serialization
             }
 
             emitter.WriteString(
-                Convert.ToBase64String(value, Base64FormattingOptions.None),
+                value.AsSpan().ToBase64String(),
                 ScalarStyle.Plain);
         }
 
@@ -43,7 +67,7 @@ namespace VYaml.Serialization
         public void Serialize(ref Utf8YamlEmitter emitter, Memory<byte> value, YamlSerializationContext context)
         {
             emitter.WriteString(
-                Convert.ToBase64String(value.Span, Base64FormattingOptions.None),
+                value.Span.ToBase64String(),
                 ScalarStyle.Plain);
         }
 
@@ -61,8 +85,9 @@ namespace VYaml.Serialization
         public void Serialize(ref Utf8YamlEmitter emitter, ReadOnlyMemory<byte> value, YamlSerializationContext context)
         {
             emitter.WriteString(
-                Convert.ToBase64String(value.Span, Base64FormattingOptions.None),
-                ScalarStyle.Plain);
+                value.Span.ToBase64String(),
+                ScalarStyle.Plain
+            );
         }
 
         public ReadOnlyMemory<byte> Deserialize(ref YamlParser parser, YamlDeserializationContext context)
@@ -81,7 +106,7 @@ namespace VYaml.Serialization
             var builder = new StringBuilder((int)value.Length);
             foreach (var segment in value)
             {
-                builder.Append(Convert.ToBase64String(segment.Span, Base64FormattingOptions.None));
+                builder.Append(segment.Span.ToBase64String());
             }
             emitter.WriteString(builder.ToString(), ScalarStyle.Plain);
         }
@@ -100,15 +125,15 @@ namespace VYaml.Serialization
 
         public void Serialize(ref Utf8YamlEmitter emitter, ArraySegment<byte> value, YamlSerializationContext context)
         {
-            emitter.WriteString(
-                Convert.ToBase64String(value, Base64FormattingOptions.None),
+            emitter.WriteString(                
+                Convert.ToBase64String(value.Array, value.Offset, value.Count, Base64FormattingOptions.None),
                 ScalarStyle.Plain);
         }
 
         public ArraySegment<byte> Deserialize(ref YamlParser parser, YamlDeserializationContext context)
         {
             var str = parser.ReadScalarAsString();
-            return Convert.FromBase64String(str!);
+            return new (Convert.FromBase64String(str!));
         }
     }
 }

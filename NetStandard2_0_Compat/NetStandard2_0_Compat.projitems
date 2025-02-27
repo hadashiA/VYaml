@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>03e661fa-f25d-407e-ae90-daf988bcf536</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>NetStandard2_0_Compat</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)ArrayBufferWriter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)NetStandardCompat.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SequenceReader.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)SequenceReader.Search.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)StackExtension_Netstandard.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ThrowHelper.cs" />
+  </ItemGroup>
+</Project>

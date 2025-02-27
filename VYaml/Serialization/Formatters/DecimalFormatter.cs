@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using System.Buffers.Text;
 using VYaml.Emitter;
 using VYaml.Parser;
@@ -14,7 +15,7 @@ namespace VYaml.Serialization
             var buf = context.GetBuffer64();
             if (Utf8Formatter.TryFormat(value, buf, out var bytesWritten))
             {
-                emitter.WriteScalar(buf[..bytesWritten]);
+                emitter.WriteScalar(buf.AsSpan()[..bytesWritten]);
             }
             else
             {

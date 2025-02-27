@@ -1,7 +1,7 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFrameworks>netstandard2.1;net6.0;net8.0;net9.0</TargetFrameworks>
-        <ImplicitUsings>disable</ImplicitUsings>
+        <TargetFrameworks>netstandard2.0;netstandard2.1;net6.0;net8.0;net9.0</TargetFrameworks>
+		<ImplicitUsings>disable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <LangVersion>13</LangVersion>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -28,6 +28,19 @@
     <ItemGroup>
         <InternalsVisibleTo Include="VYaml.Tests" />
     </ItemGroup>
+
+    <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+      <PackageReference Include="PolySharp" Version="1.15.0">
+        <PrivateAssets>all</PrivateAssets>
+        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      </PackageReference>
+      <PackageReference Include="System.Buffers" Version="4.6.0" />
+      <PackageReference Include="System.Memory" Version="4.6.0" />
+      <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.6.0" />
+    </ItemGroup>
+
+    <Import Project="..\NetStandard2_0_Compat\NetStandard2_0_Compat.projitems" Label="Shared"
+        Condition="'$(TargetFramework)' == 'netstandard2.0'" />
 
     <ItemGroup>
         <ProjectReference Include="..\VYaml.Annotations\VYaml.Annotations.csproj" />
