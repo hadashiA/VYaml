@@ -1,5 +1,6 @@
 using System.Buffers;
 using NUnit.Framework;
+using System;
 using VYaml.Emitter;
 using VYaml.Internal;
 

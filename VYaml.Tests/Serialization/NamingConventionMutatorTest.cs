@@ -34,7 +34,7 @@ namespace VYaml.Tests.Serialization
             var inputUtf8 = Utf8.GetBytes(input);
 
             Span<char> destination = stackalloc char[input.Length * 2];
-            var success = mutator.TryMutate(input, destination, out var written);
+            var success = mutator.TryMutate(input.AsSpan(), destination, out var written);
             Assert.That(success, Is.True);
             Assert.That(destination[..written].ToString(), Is.EqualTo(expected));
 

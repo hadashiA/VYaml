@@ -161,7 +161,7 @@ namespace VYaml.Serialization
             var mutator = NamingConventionMutator.Of(NamingConventionByType ?? YamlSerializerOptions.DefaultNamingConvention);
             Span<char> buffer = stackalloc char[scalar.Length];
             int bytesWritten;
-            while (!mutator.TryMutate(scalar, buffer, out bytesWritten))
+            while (!mutator.TryMutate(scalar.AsSpan(), buffer, out bytesWritten))
             {
                 // ReSharper disable once StackAllocInsideLoop
                 buffer = stackalloc char[buffer.Length * 2];

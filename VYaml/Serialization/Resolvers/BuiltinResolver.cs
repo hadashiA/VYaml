@@ -185,17 +185,21 @@ namespace VYaml.Serialization
 
             if (type.IsArray)
             {
+#if !NETSTANDARD2_0
                 if (type.IsSZArray)
                 {
                     formatterType = typeof(ArrayFormatter<>).MakeGenericType(type.GetElementType()!);
                 }
                 else
+#endif
                 {
                     var rank = type.GetArrayRank();
                     switch (rank)
                     {
+                        case 1:
+                            formatterType = typeof(ArrayFormatter<>).MakeGenericType(type.GetElementType()!);
+                            break;
                         case 2:
-
                             formatterType = typeof(TwoDimensionalArrayFormatter<>).MakeGenericType(type.GetElementType()!);
                             break;
                         case 3:

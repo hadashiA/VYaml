@@ -1,5 +1,6 @@
 .DS_Store
 bin/
+.vs/
 obj/
 *.DotSettings.user
 .idea
@@ -13,3 +14,4 @@ VYaml.Unity/*.csproj
 VYaml.Unity/*.sln
 VYaml.Unity/VYaml.*.unitypackage
 VYaml.Unity/UserSettings
+VYaml.Unity/**

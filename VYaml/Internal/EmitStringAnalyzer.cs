@@ -291,7 +291,7 @@ namespace VYaml.Internal
             switch (value.Length)
             {
                 case 1:
-                    if (value == "~")
+                    if (value is ['~'])
                     {
                         return true;
                     }

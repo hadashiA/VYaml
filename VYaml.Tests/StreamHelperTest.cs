@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.IO;
 using System.Threading.Tasks;
 using NUnit.Framework;
@@ -18,9 +19,9 @@ namespace VYaml.Tests
                 var sequence = builder.Build();
                 Assert.That(sequence.IsSingleSegment, Is.True);
                 Assert.That(sequence.Length, Is.EqualTo(3));
-                Assert.That(sequence.FirstSpan[0], Is.EqualTo((byte)'a'));
-                Assert.That(sequence.FirstSpan[1], Is.EqualTo((byte)'b'));
-                Assert.That(sequence.FirstSpan[2], Is.EqualTo((byte)'c'));
+                Assert.That(sequence.First.Span[0], Is.EqualTo((byte)'a'));
+                Assert.That(sequence.First.Span[1], Is.EqualTo((byte)'b'));
+                Assert.That(sequence.First.Span[2], Is.EqualTo((byte)'c'));
             }
             finally
             {
@@ -32,9 +33,13 @@ namespace VYaml.Tests
         public async Task ReadAsSequenceAsync_FileStream()
         {
             var tempFilePath = Path.GetTempFileName();
+#if NETFRAMEWORK
+            File.WriteAllText(tempFilePath, new string('a', 1000));
+            using var fileStream = File.OpenRead(tempFilePath);
+#else
             await File.WriteAllTextAsync(tempFilePath, new string('a', 1000));
-
             await using var fileStream = File.OpenRead(tempFilePath);
+#endif
             var builder = await StreamHelper.ReadAsSequenceAsync(fileStream);
             try
             {

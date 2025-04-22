@@ -242,7 +242,7 @@ namespace VYaml.Tests.Parser
 
         static YamlParser CreateParser(IEnumerable<string> lines)
         {
-            var yaml = string.Join('\n', lines);
+            var yaml = string.Join("\n", lines);
             var sequence = new ReadOnlySequence<byte>(Encoding.UTF8.GetBytes(yaml));
             return new YamlParser(sequence);
         }
