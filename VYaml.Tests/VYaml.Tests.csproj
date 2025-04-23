@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFrameworks>net9.0;net48</TargetFrameworks>
 		<LangVersion>12</LangVersion>
         <Nullable>enable</Nullable>
         <ImplicitUsings>disable</ImplicitUsings>
@@ -29,7 +29,7 @@
         <!--<ProjectReference Include="..\VYaml.SourceGenerator\VYaml.SourceGenerator.csproj" />-->
 
 		<!-- disable SourceGenerator for net framework because it does not allow default implementations for interfaces -->
-        <ProjectReference Include="..\VYaml.SourceGenerator\VYaml.SourceGenerator.csproj" Condition="'$(TargetFramework)' != 'net472'">
+        <ProjectReference Include="..\VYaml.SourceGenerator\VYaml.SourceGenerator.csproj">
             <OutputItemType>Analyzer</OutputItemType>
             <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
         </ProjectReference>
