@@ -31,7 +31,7 @@ namespace VYaml.Serialization
 
             if (type.IsInterface)
             {
-                var generatedFormatterType = Type.GetType($"{type.FullName}GeneratedFormatter");
+                var generatedFormatterType = type.GetNestedType($"{type.Name}GeneratedFormatter");
                 if (generatedFormatterType == null) return false;
 
                 var formatterInstance = (IYamlFormatter<T>)Activator.CreateInstance(generatedFormatterType)!;
