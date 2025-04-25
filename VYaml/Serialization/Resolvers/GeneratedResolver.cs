@@ -20,24 +20,32 @@ namespace VYaml.Serialization
             {
                 if (Check<T>.Registered) return;
 
-                var type = typeof(T);
-                TryInvokeRegisterYamlFormatter(type);
+                TryInvokeRegisterYamlFormatter<T>();
             }
         }
 
-        static bool TryInvokeRegisterYamlFormatter(Type type)
+        static bool TryInvokeRegisterYamlFormatter<T>()
         {
+            var type = typeof(T);
             if (type.GetCustomAttribute<YamlObjectAttribute>() == null) return false;
+
+            if (type.IsInterface)
+            {
+                var generatedFormatterType = type.GetNestedType($"{type.Name}GeneratedFormatter");
+                if (generatedFormatterType == null) return false;
+
+                var formatterInstance = (IYamlFormatter<T>)Activator.CreateInstance(generatedFormatterType)!;
+                Register(formatterInstance);
+
+                return true;
+            }
 
             var m = type.GetMethod("__RegisterVYamlFormatter",
                 BindingFlags.Public |
                 BindingFlags.NonPublic |
                 BindingFlags.Static);
 
-            if (m == null)
-            {
-                return false;
-            }
+            if (m == null) return false;
 
             m.Invoke(null, null); // Cache<T>.formatter will set from method
             return true;

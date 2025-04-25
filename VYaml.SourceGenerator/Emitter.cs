@@ -169,9 +169,12 @@ static class Emitter
             using (codeWriter.BeginBlockScope($"partial {typeDeclarationKeyword} {typeMeta.TypeName}"))
             {
                 // EmitCCtor(typeMeta, codeWriter, in context);
-                if (!TryEmitRegisterMethod(typeMeta, codeWriter, in context))
+                if (typeMeta.Symbol.TypeKind != TypeKind.Interface)
                 {
-                    return false;
+                    if (!TryEmitRegisterMethod(typeMeta, codeWriter, in context))
+                    {
+                        return false;
+                    }
                 }
                 if (!TryEmitFormatter(typeMeta, codeWriter, references, in context))
                 {
