@@ -1,7 +1,7 @@
 <Project>
     <PropertyGroup>
         <!-- NuGet Packaging -->
-        <PackageVersion>1.1.0</PackageVersion>
+        <PackageVersion>1.1.1</PackageVersion>
         <Authors>hadashiA</Authors>
         <PackageProjectUrl>https://github.com/hadashiA/VYaml</PackageProjectUrl>
         <RepositoryUrl>$(PackageProjectUrl)</RepositoryUrl>
