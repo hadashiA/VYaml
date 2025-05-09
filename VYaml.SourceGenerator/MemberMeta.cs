@@ -46,7 +46,7 @@ class MemberMeta
             }
 
             var orderProp = memberAttribute.NamedArguments.FirstOrDefault(x => x.Key == "Order");
-            if (orderProp.Key != "Order" && orderProp.Value.Value is { } explicitOrder)
+            if (orderProp is { Key: "Order", Value.Value: { } explicitOrder })
             {
                 HasExplicitOrder = true;
                 Order = (int)explicitOrder;
