@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 
 namespace VYaml.SourceGenerator
 {
@@ -37,12 +38,16 @@ namespace VYaml.SourceGenerator
             _ => throw new ArgumentOutOfRangeException(nameof(namingConvention), namingConvention, null)
         };
 
-        internal static bool IsUpper(byte ch) => ch >= 'A' && ch <= 'Z';
-        internal static bool IsLower(byte ch) => ch >= 'a' && ch <= 'z';
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static bool IsUpper(byte c) => c - (byte)'A' < 26;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static bool IsLower(byte c) => c - (byte)'a' < 26;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static byte ToUpper(byte ch)
         {
-            if (ch >= 'a' && ch <= 'z')
+            if (IsUpper(ch))
             {
                 return (byte)(ch - 0x20);
             }
@@ -50,13 +55,13 @@ namespace VYaml.SourceGenerator
             return ch;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static byte ToLower(byte ch)
         {
-            if (ch >= 'A' && ch <= 'Z')
+            if (IsUpper(ch))
             {
                 return (byte)(ch + 0x20);
             }
-
             return ch;
         }
     }

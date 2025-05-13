@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
@@ -6,13 +5,7 @@ using VYaml.Internal;
 
 namespace VYaml.Parser
 {
-    class YamlTokenizerException : Exception
-    {
-        public YamlTokenizerException(in Marker marker, string message)
-            : base($"{message} at {marker}")
-        {
-        }
-    }
+    class YamlTokenizerException(in Marker marker, string message) : Exception($"{message} at {marker}");
 
     struct SimpleKeyState
     {
