@@ -13,14 +13,13 @@ static class Program
 {
     static int Main()
     {
-        var switcher = new BenchmarkSwitcher(new[]
-        {
+        var switcher = new BenchmarkSwitcher([
             typeof(DeserializationBenchmark),
             typeof(SerializationBenchmark),
             typeof(SimpleParsingBenchmark),
             typeof(DynamicDeserializationBenchmark),
-            typeof(JsonDeserializationBenchmark),
-        });
+            typeof(JsonDeserializationBenchmark)
+        ]);
         switcher.Run();
 
         // var path = Path.Combine(Directory.GetCurrentDirectory(), "Examples", "sample_envoy.yaml");

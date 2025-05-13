@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Runtime.CompilerServices;
 
@@ -86,21 +85,35 @@ namespace VYaml.Internal
         public const byte FlowSequenceStart = (byte)'[';
         public const byte FlowSequenceEnd = (byte)']';
 
+        static readonly bool[] EmptyTable = new bool[256];
+        static readonly bool[] BlankTable = new bool[256];
+        static readonly bool[] FlowSymbolTable = new bool[256];
+
+        static YamlCodes()
+        {
+            EmptyTable[Space] = true;
+            EmptyTable[Tab] = true;
+            EmptyTable[Lf] = true;
+            EmptyTable[Cr] = true;
+
+            BlankTable[Space] = true;
+            BlankTable[Tab] = true;
+
+            FlowSymbolTable[','] = true;
+            FlowSymbolTable['['] = true;
+            FlowSymbolTable[']'] = true;
+            FlowSymbolTable['{'] = true;
+            FlowSymbolTable['}'] = true;
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsAlphaNumericDashOrUnderscore(byte code) => code is
-            >= (byte)'0' and <= (byte)'9' or
-            >= (byte)'A' and <= (byte)'Z' or
-            >= (byte)'a' and <= (byte)'z' or
-            (byte)'_' or
-            (byte)'-';
+        public static bool IsAlphaNumericDashOrUnderscore(byte code) =>
+            IsNumber(code) || IsAlphabet(code) || code is (byte)'_' or (byte)'-';
 
         // Spec: https://yaml.org/spec/1.2.2/#rule-ns-word-char
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsWordChar(byte code) => code is
-            >= (byte)'0' and <= (byte)'9' or
-            >= (byte)'A' and <= (byte)'Z' or
-            >= (byte)'a' and <= (byte)'z' or
-            (byte)'-';
+        public static bool IsWordChar(byte code) =>
+            IsNumber(code) || IsAlphabet(code) || code is (byte)'-';
 
         // Spec: https://yaml.org/spec/1.2.2/#rule-ns-uri-char
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -168,13 +181,16 @@ namespace VYaml.Internal
         public static bool IsNumber(byte c) => (byte)((c | 0x20) - (byte)'0') < 10;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsEmpty(byte code) => code is Space or Tab or Lf or Cr;
+        public static bool IsEmpty(byte code) => EmptyTable[code];
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsBlank(byte code) => BlankTable[code];
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsLineBreak(byte code) => code is Lf or Cr;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsBlank(byte code) => code is Space or Tab;
+        public static bool IsAlphabet(byte c) => (byte)((c | 0x20) - (byte)'a') < 26;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsHexAlphabet(byte c) => (byte)((c | 0x20) - (byte)'a') < 6;
@@ -184,8 +200,7 @@ namespace VYaml.Internal
 
         // Spec: https://yaml.org/spec/1.2.2/#rule-c-flow-indicator
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsAnyFlowSymbol(byte code) => code is
-            (byte)',' or (byte)'[' or (byte)']' or (byte)'{' or (byte)'}';
+        public static bool IsAnyFlowSymbol(byte code) => FlowSymbolTable[code];
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte AsHex(byte code)
