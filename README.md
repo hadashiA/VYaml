@@ -70,7 +70,7 @@ dotnet add package VYaml
 3. (Optional) Installing Unity-specific extensions:
   - Open the Package Manager window by selecting Window > Package Manager, then click on [+] > Add package from git URL and enter the following URL:
   - ```
-    https://github.com/hadashiA/VYaml.git?path=VYaml.Unity/Assets/VYaml#1.1.1
+    https://github.com/hadashiA/VYaml.git?path=VYaml.Unity/Assets/VYaml#1.2.0
     ```
 
 ## Usage
