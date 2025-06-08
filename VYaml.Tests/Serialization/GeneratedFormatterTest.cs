@@ -70,7 +70,7 @@ namespace VYaml.Tests.Serialization
                     new() { One = 222 },
                 }
             });
-            Assert.That(result1, Is.EqualTo("one: \n" +
+            Assert.That(result1, Is.EqualTo("one:\n" +
                                            "- one: 111\n" +
                                            "- one: 222\n"));
 

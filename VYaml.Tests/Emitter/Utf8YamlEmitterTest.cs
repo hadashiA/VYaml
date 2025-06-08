@@ -396,7 +396,7 @@ namespace VYaml.Tests.Emitter
             emitter.EndMapping();
 
             Assert.That(ToString(in emitter), Is.EqualTo(
-                "matrix: \n" +
+                "matrix:\n" +
                 "- [100, 200]\n" +
                 "- [300, 400]\n"
             ));
@@ -435,8 +435,8 @@ namespace VYaml.Tests.Emitter
             emitter.EndMapping();
 
             Assert.That(ToString(in emitter), Is.EqualTo(
-                "key1: \n" +
-                "  matrix: \n" +
+                "key1:\n" +
+                "  matrix:\n" +
                 "  - [100, 200]\n" +
                 "  - [300, 400]\n"
             ));
@@ -630,8 +630,8 @@ namespace VYaml.Tests.Emitter
             emitter.EndMapping();
 
             Assert.That(ToString(in emitter), Is.EqualTo(
-                "aaa: \n" +
-                "  bbb: \n" +
+                "aaa:\n" +
+                "  bbb:\n" +
                 "  - 200\n" +
                 "  - 300\n"
             ));
@@ -667,11 +667,11 @@ namespace VYaml.Tests.Emitter
             emitter.EndMapping();
 
             Assert.That(ToString(in emitter), Is.EqualTo(
-                "aaa: \n" +
-                "  bbb: \n" +
+                "aaa:\n" +
+                "  bbb:\n" +
                 "  - 200\n" +
                 "  - 300\n" +
-                "  ccc: \n" +
+                "  ccc:\n" +
                 "  - 400\n" +
                 "  - 500\n"
             ));
@@ -761,7 +761,7 @@ namespace VYaml.Tests.Emitter
 
             Assert.That(ToString(in emitter), Is.EqualTo(
                 "1: 100\n" +
-                "2: \n" +
+                "2:\n" +
                 "  3: 300\n" +
                 "  4: 400\n" +
                 "5: 500\n"
@@ -837,19 +837,19 @@ namespace VYaml.Tests.Emitter
             emitter.EndMapping();
 
             Assert.That(ToString(in emitter), Is.EqualTo(
-                "key1: \n" +
-                "  key2: \n" +
-                "    key3: \n" +
-                "      key4: \n" +
+                "key1:\n" +
+                "  key2:\n" +
+                "    key3:\n" +
+                "      key4:\n" +
                 "      - 111\n" +
                 "      - 222\n" +
-                "key5: \n" +
-                "  key6: \n" +
-                "    key7: \n" +
+                "key5:\n" +
+                "  key6:\n" +
+                "    key7:\n" +
                 "      key8: []\n" +
-                "key9: \n" +
-                "  key10: \n" +
-                "    key11: \n" +
+                "key9:\n" +
+                "  key10:\n" +
+                "    key11:\n" +
                 "      key12: {}\n"
             ));
         }
@@ -982,21 +982,21 @@ namespace VYaml.Tests.Emitter
             emitter.EndMapping();
 
             Assert.That(ToString(in emitter), Is.EqualTo(
-                "key1: \n" +
-                "  key2: \n" +
-                "    key3: \n" +
+                "key1:\n" +
+                "  key2:\n" +
+                "    key3:\n" +
                 "      key4: aaa\n" +
-                "key5: \n" +
-                "  key6: \n" +
-                "    key7: \n" +
+                "key5:\n" +
+                "  key6:\n" +
+                "    key7:\n" +
                 "      key8: []\n" +
-                "key9: \n" +
-                "  key10: \n" +
-                "    key11: \n" +
+                "key9:\n" +
+                "  key10:\n" +
+                "    key11:\n" +
                 "      key12: []\n" +
-                "key13: \n" +
-                "  key14: \n" +
-                "    key15: \n" +
+                "key13:\n" +
+                "  key14:\n" +
+                "    key15:\n" +
                 "      key16: {}\n"
             ));
         }
@@ -1123,7 +1123,7 @@ namespace VYaml.Tests.Emitter
                 "key1: !impl1\n" +
                 "  key2: value2\n" +
                 "  key3: value3\n" +
-                "  key4: \n" +
+                "  key4:\n" +
                 "    key5: !impl2 {}\n"
             ));
         }
@@ -1194,7 +1194,7 @@ namespace VYaml.Tests.Emitter
             Assert.That(ToString(in emitter), Is.EqualTo(
                 "A1: !a1 3.1415\n" +
                 "NoTag1: [!a2 A2]\n" +
-                "NoTag2: \n" +
+                "NoTag2:\n" +
                 "- !a3 A3\n"
                 ));
         }
@@ -1426,15 +1426,15 @@ namespace VYaml.Tests.Emitter
                 "- [100, \"&hoge\", bra]\n" +
                 "- key1: item1\n" +
                 "  key2: []\n" +
-                "  key3: \n" +
+                "  key3:\n" +
                 "    key4: 400\n" +
                 "    key5: []\n" +
-                "    key6: \n" +
+                "    key6:\n" +
                 "    - 600\n" +
                 "    - aaa: |\n" +
                 "        AAAAAAAAAAA\n" +
                 "        HEYHEYHEYHEYHEY\n" +
-                "      ccc: \n" +
+                "      ccc:\n" +
                 "      - []\n" +
                 "      - []\n" +
                 "      - {}\n" +
