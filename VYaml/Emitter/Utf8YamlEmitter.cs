@@ -7,12 +7,7 @@ using VYaml.Internal;
 
 namespace VYaml.Emitter
 {
-    public class YamlEmitterException : Exception
-    {
-        public YamlEmitterException(string message) : base(message)
-        {
-        }
-    }
+    public class YamlEmitterException(string message) : Exception(message);
 
     enum EmitState
     {
@@ -28,7 +23,6 @@ namespace VYaml.Emitter
     public ref struct Utf8YamlEmitter
     {
         static byte[] whiteSpaces = "                                "u8.ToArray();
-        static readonly byte[] BlockSequenceEntryHeader = "- "u8.ToArray();
         static readonly byte[] FlowSequenceEmpty = "[]"u8.ToArray();
         static readonly byte[] FlowSequenceEmptyWithSpace = " []"u8.ToArray();
         static readonly byte[] FlowSequenceSeparator = ", "u8.ToArray();
@@ -135,9 +129,10 @@ namespace VYaml.Emitter
 
                         case EmitState.BlockSequenceEntry:
                         {
-                            var output = writer.GetSpan(currentIndentLevel * options.IndentWidth + BlockSequenceEntryHeader.Length + 1);
+                            var output = writer.GetSpan(currentIndentLevel * options.IndentWidth + 3);
                             var offset = 0;
                             WriteBlockSequenceEntryHeader(output, ref offset);
+                            output[offset++] = YamlCodes.Space;
                             output[offset++] = YamlCodes.FlowSequenceStart;
                             writer.Advance(offset);
                             break;
@@ -159,11 +154,12 @@ namespace VYaml.Emitter
                         {
                             var output = writer.GetSpan(GetTagLength() + 3);
                             var offset = 0;
-                            if (CurrentState is EmitState.FlowMappingValue or EmitState.BlockMappingValue)
+                            var withSpace = CurrentState is EmitState.FlowMappingValue or EmitState.BlockMappingValue;
+                            if (withSpace)
                             {
                                 output[offset++] = YamlCodes.Space;
                             }
-                            if (TryWriteTag(output, ref offset))
+                            if (TryWriteTag(output, false, ref offset))
                             {
                                 output[offset++] = YamlCodes.Space;
                             }
@@ -193,7 +189,7 @@ namespace VYaml.Emitter
                     if (isEmptySequence)
                     {
                         var lineBreak = CurrentState is EmitState.BlockSequenceEntry or EmitState.BlockMappingValue;
-                        var space = CurrentState is EmitState.BlockMappingValue or EmitState.FlowMappingValue;
+                        var space = CurrentState is EmitState.BlockMappingValue or EmitState.FlowMappingValue or EmitState.BlockSequenceEntry;
                         WriteRaw(space ? FlowSequenceEmptyWithSpace : FlowSequenceEmpty, false, lineBreak);
                     }
 
@@ -295,10 +291,11 @@ namespace VYaml.Emitter
 
                         case EmitState.BlockSequenceEntry:
                         {
-                            var output = writer.GetSpan(currentIndentLevel * options.IndentWidth + BlockSequenceEntryHeader.Length + FlowMappingHeader.Length + GetTagLength() + 1);
+                            var output = writer.GetSpan(currentIndentLevel * options.IndentWidth + 3 + FlowMappingHeader.Length + GetTagLength() + 1);
                             var offset = 0;
                             WriteBlockSequenceEntryHeader(output, ref offset);
-                            if (TryWriteTag(output, ref offset))
+                            output[offset++] = YamlCodes.Space;
+                            if (TryWriteTag(output, false, ref offset))
                             {
                                 output[offset++] = YamlCodes.Space;
                             }
@@ -323,12 +320,12 @@ namespace VYaml.Emitter
                         {
                             var output = writer.GetSpan(GetTagLength() + 2);
                             var offset = 0;
-                            var space = CurrentState is EmitState.BlockMappingValue or EmitState.FlowMappingValue;
+                            var space = CurrentState is EmitState.BlockMappingValue or EmitState.FlowMappingValue or EmitState.BlockSequenceEntry;
                             if (space)
                             {
                                 output[offset++] = YamlCodes.Space;
                             }
-                            if (TryWriteTag(output, ref offset))
+                            if (TryWriteTag(output, false, ref offset))
                             {
                                 output[offset++] = YamlCodes.Space;
                             }
@@ -357,7 +354,7 @@ namespace VYaml.Emitter
                     if (isEmptyMapping)
                     {
                         var lineBreak = CurrentState is EmitState.BlockSequenceEntry or EmitState.BlockMappingValue;
-                        var space = CurrentState is EmitState.BlockMappingValue or EmitState.FlowMappingValue;
+                        var space = CurrentState is EmitState.BlockMappingValue or EmitState.FlowMappingValue or EmitState.BlockSequenceEntry;
                         if (tagStack.TryPop(out var tag))
                         {
                             var tagBytes = StringEncoding.Utf8.GetBytes((space ? " " : "") + tag + " "); // TODO:
@@ -714,7 +711,7 @@ namespace VYaml.Emitter
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void WriteBlockSequenceEntryHeader()
         {
-            var output = writer.GetSpan(BlockSequenceEntryHeader.Length + currentIndentLevel * options.IndentWidth + 2);
+            var output = writer.GetSpan(2 + currentIndentLevel * options.IndentWidth + 2);
             var offset = 0;
             WriteBlockSequenceEntryHeader(output, ref offset);
             writer.Advance(offset);
@@ -737,8 +734,7 @@ namespace VYaml.Emitter
                 }
             }
             WriteIndent(output, ref offset);
-            BlockSequenceEntryHeader.CopyTo(output[offset..]);
-            offset += BlockSequenceEntryHeader.Length;
+            output[offset++] = YamlCodes.BlockEntryIndent;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -779,7 +775,8 @@ namespace VYaml.Emitter
                 {
                     WriteBlockSequenceEntryHeader(output, ref offset);
 
-                    if (TryWriteTag(output, ref offset))
+                    output[offset++] = YamlCodes.Space;
+                    if (TryWriteTag(output, false, ref offset))
                     {
                         output[offset++] = YamlCodes.Space;
                     }
@@ -794,6 +791,7 @@ namespace VYaml.Emitter
                             case EmitState.BlockSequenceEntry:
                             {
                                 IncreaseIndent();
+                                output[offset++] = YamlCodes.Space;
 
                                 // Try write tag
                                 if (tagStack.TryPop(out var tag))
@@ -812,7 +810,7 @@ namespace VYaml.Emitter
                             case EmitState.BlockMappingValue:
                             {
                                 IncreaseIndent();
-                                TryWriteTag(output, ref offset);
+                                TryWriteTag(output, true, ref offset);
                                 output[offset++] = YamlCodes.Lf;
                                 WriteIndent(output, ref offset);
                                 break;
@@ -822,7 +820,7 @@ namespace VYaml.Emitter
                                 break;
                         }
 
-                        if (TryWriteTag(output, ref offset))
+                        if (TryWriteTag(output, false, ref offset))
                         {
                             output[offset++] = YamlCodes.Lf;
                             WriteIndent(output, ref offset);
@@ -836,7 +834,7 @@ namespace VYaml.Emitter
                 }
                 case EmitState.BlockMappingValue:
                     output[offset++] = YamlCodes.Space;
-                    if (TryWriteTag(output, ref offset))
+                    if (TryWriteTag(output, false, ref offset))
                     {
                         output[offset++] = YamlCodes.Space;
                     }
@@ -848,7 +846,7 @@ namespace VYaml.Emitter
                         FlowSequenceSeparator.CopyTo(output[offset..]);
                         offset += FlowSequenceSeparator.Length;
                     }
-                    if (TryWriteTag(output, ref offset))
+                    if (TryWriteTag(output, false, ref offset))
                     {
                         output[offset++] = YamlCodes.Space;
                     }
@@ -866,13 +864,13 @@ namespace VYaml.Emitter
                     break;
                 case EmitState.FlowMappingValue:
                     output[offset++] = YamlCodes.Space;
-                    if (TryWriteTag(output, ref offset))
+                    if (TryWriteTag(output, false, ref offset))
                     {
                         output[offset++] = YamlCodes.Space;
                     }
                     break;
                 case EmitState.None:
-                    if (TryWriteTag(output, ref offset))
+                    if (TryWriteTag(output, false, ref offset))
                     {
                         output[offset++] = YamlCodes.Space;
                     }
@@ -952,10 +950,14 @@ namespace VYaml.Emitter
                 currentIndentLevel--;
         }
 
-        bool TryWriteTag(Span<byte> output, ref int offset)
+        bool TryWriteTag(Span<byte> output, bool beforeSpace, ref int offset)
         {
             if (tagStack.TryPop(out var tag))
             {
+                if (beforeSpace)
+                {
+                    output[offset++] = YamlCodes.Space;
+                }
                 offset += StringEncoding.Utf8.GetBytes(tag, output[offset..]);
                 return true;
             }

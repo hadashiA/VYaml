@@ -361,7 +361,7 @@ namespace VYaml.Tests.Emitter
 
             Assert.That(ToString(in emitter), Is.EqualTo(
                 "- 100\n" +
-                "- \n" +
+                "-\n" +
                 "  - 200\n" +
                 "  - 300\n" +
                 "- 400\n"
@@ -469,7 +469,7 @@ namespace VYaml.Tests.Emitter
             emitter.EndSequence();
 
             Assert.That(ToString(in emitter), Is.EqualTo(
-                "- \n" +
+                "-\n" +
                 "  - [100, 200]\n" +
                 "  - [300, 400]\n"
             ));
@@ -516,14 +516,14 @@ namespace VYaml.Tests.Emitter
 
             Assert.That(ToString(in emitter), Is.EqualTo(
                 "- 100\n" +
-                "- \n" +
+                "-\n" +
                 "  - 200\n" +
                 "  - 300\n" +
                 "- 400\n" +
-                "- \n" +
+                "-\n" +
                 "  - 500\n" +
-                "  - \n" +
-                "    - \n" +
+                "  -\n" +
+                "    -\n" +
                 "      - 600\n" +
                 "      - 700\n" +
                 "      - []\n" +
@@ -591,18 +591,18 @@ namespace VYaml.Tests.Emitter
             emitter.EndSequence();
 
             Assert.That(ToString(in emitter), Is.EqualTo(
-                "- \n" +
-                "  - \n" +
-                "    - \n" +
-                "      - \n" +
+                "-\n" +
+                "  -\n" +
+                "    -\n" +
+                "      -\n" +
                 "        - aaa\n" +
-                "- \n" +
-                "  - \n" +
-                "    - \n" +
+                "-\n" +
+                "  -\n" +
+                "    -\n" +
                 "      - []\n" +
-                "- \n" +
-                "  - \n" +
-                "    - \n" +
+                "-\n" +
+                "  -\n" +
+                "    -\n" +
                 "      - {}\n" +
                 "- item1\n"
             ));
@@ -1079,8 +1079,8 @@ namespace VYaml.Tests.Emitter
             Assert.That(ToString(in emitter), Is.EqualTo(
                 "- !impl1\n" +
                 "  key1: value1\n" +
-                "- \n" +
-                "  - \n" +
+                "-\n" +
+                "  -\n" +
                 "    - !impl2\n" +
                 "      key2: value2\n"
             ));

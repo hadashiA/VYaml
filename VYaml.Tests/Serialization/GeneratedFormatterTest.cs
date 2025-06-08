@@ -227,7 +227,7 @@ namespace VYaml.Tests.Serialization
                 }
             });
             Assert.That(result, Is.EqualTo("a: 100\n" +
-                                           "unions: \n" +
+                                           "unions:\n" +
                                            "- !impl1\n" +
                                            "  a: 200\n" +
                                            "  b: foo\n" +
