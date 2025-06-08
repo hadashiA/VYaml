@@ -71,17 +71,17 @@ namespace VYaml.Tests.Serialization
             Assert.That(result, Is.EqualTo(
 @"invoice: 34843
 date: 2001-01-23T00:00:00.0000000
-bill-to: 
+bill-to:
   given: Chris
   family: Dumars
-  address: 
+  address:
     lines: |
       458 Walkman Dr.
       Suite #292
     city: Royal Oak
     state: MI
     postal: ""48046""
-product: 
+product:
 - sku: BL394D
   quantity: 4
   description: Basketball

@@ -12,11 +12,11 @@ namespace VYaml.Tests
             var value = new int[2, 3] { { 1, 2, 3 }, { 4, 5, 6 } };
             var serialized = Serialize(value);
             Assert.That(serialized, Is.EqualTo(
-                "- \n" +
+                "-\n" +
                 "  - 1\n" +
                 "  - 2\n" +
                 "  - 3\n" +
-                "- \n" +
+                "-\n" +
                 "  - 4\n" +
                 "  - 5\n" +
                 "  - 6\n"));
@@ -44,44 +44,44 @@ namespace VYaml.Tests
             };
             var serialized = Serialize(value);
             Assert.That(serialized, Is.EqualTo(
-                "- \n" +
-                "  - \n" +
+                "-\n" +
+                "  -\n" +
                 "    - 1\n" +
                 "    - 2\n" +
-                "  - \n" +
+                "  -\n" +
                 "    - 3\n" +
                 "    - 4\n" +
-                "  - \n" +
+                "  -\n" +
                 "    - 5\n" +
                 "    - 6\n" +
-                "- \n" +
-                "  - \n" +
+                "-\n" +
+                "  -\n" +
                 "    - 7\n" +
                 "    - 8\n" +
-                "  - \n" +
+                "  -\n" +
                 "    - 9\n" +
                 "    - 0\n" +
-                "  - \n" +
+                "  -\n" +
                 "    - 1\n" +
                 "    - 2\n" +
-                "- \n" +
-                "  - \n" +
+                "-\n" +
+                "  -\n" +
                 "    - 3\n" +
                 "    - 4\n" +
-                "  - \n" +
+                "  -\n" +
                 "    - 5\n" +
                 "    - 6\n" +
-                "  - \n" +
+                "  -\n" +
                 "    - 7\n" +
                 "    - 8\n" +
-                "- \n" +
-                "  - \n" +
+                "-\n" +
+                "  -\n" +
                 "    - 9\n" +
                 "    - 0\n" +
-                "  - \n" +
+                "  -\n" +
                 "    - 1\n" +
                 "    - 2\n" +
-                "  - \n" +
+                "  -\n" +
                 "    - 3\n" +
                 "    - 4\n"
                 ));
