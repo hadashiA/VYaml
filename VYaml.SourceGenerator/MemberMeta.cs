@@ -98,6 +98,11 @@ class MemberMeta
             double x => $"{x}d",
             decimal x => $"{x}m",
             bool x => x ? "true" : "false",
+            uint x => $"{x}u",
+            ulong x => $"{x}ul",
+            ushort x => $"(ushort){x}",
+            byte x => $"(byte){x}",
+            sbyte x => $"(sbyte){x}",
             _ => ExplicitDefaultValueFromConstructor.ToString()
         };
     }

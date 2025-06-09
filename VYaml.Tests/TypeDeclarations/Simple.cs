@@ -277,6 +277,28 @@ namespace VYaml.Tests.TypeDeclarations
     {
         public int HogeFuga { get; set; }
     }
+
+    [YamlObject]
+    public partial class WithUnsignedDefaultValues
+    {
+        public uint UintValue { get; }
+        public ulong UlongValue { get; }
+        public ushort UshortValue { get; }
+        public byte ByteValue { get; }
+
+        [YamlConstructor]
+        public WithUnsignedDefaultValues(
+            uint uintValue = 123u,
+            ulong ulongValue = 456ul,
+            ushort ushortValue = 789,
+            byte byteValue = 255)
+        {
+            UintValue = uintValue;
+            UlongValue = ulongValue;
+            UshortValue = ushortValue;
+            ByteValue = byteValue;
+        }
+    }
 }
 
 // another namespace, same type name
