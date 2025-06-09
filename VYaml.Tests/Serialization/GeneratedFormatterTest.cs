@@ -402,6 +402,26 @@ namespace VYaml.Tests.Serialization
         }
 
         [Test]
+        public void Deserialize_UnsignedDefaultValues()
+        {
+            var result = Deserialize<WithUnsignedDefaultValues>("{}");
+            Assert.That(result.UintValue, Is.EqualTo(123u));
+            Assert.That(result.UlongValue, Is.EqualTo(456ul));
+            Assert.That(result.UshortValue, Is.EqualTo(789));
+            Assert.That(result.ByteValue, Is.EqualTo(255));
+        }
+
+        [Test]
+        public void Deserialize_UnsignedDefaultValues_PartialOverride()
+        {
+            var result = Deserialize<WithUnsignedDefaultValues>("{ uintValue: 999 }");
+            Assert.That(result.UintValue, Is.EqualTo(999u));
+            Assert.That(result.UlongValue, Is.EqualTo(456ul));
+            Assert.That(result.UshortValue, Is.EqualTo(789));
+            Assert.That(result.ByteValue, Is.EqualTo(255));
+        }
+
+        [Test]
         public void Deserialize_CustomNamingConvention()
         {
             var result1 = Deserialize<WithCustomNamingConvention>("{ hoge_fuga: 123 }");
