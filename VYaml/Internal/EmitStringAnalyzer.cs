@@ -87,6 +87,7 @@ namespace VYaml.Internal
                     case '`':
                     case '"':
                     case '\'':
+                    case '\t':
                         needsQuotes = true;
                         break;
                     case '\n':

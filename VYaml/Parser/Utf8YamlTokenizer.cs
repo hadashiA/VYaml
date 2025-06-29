@@ -1436,7 +1436,7 @@ namespace VYaml.Parser
                     {
                         if (isLeadingBlanks && mark.Col < currentIndent && currentCode == YamlCodes.Tab)
                         {
-                            throw new YamlTokenizerException(mark, "While scanning a plain scaler, found a tab");
+                            throw new YamlTokenizerException(mark, "While scanning a plain scalar, found a tab");
                         }
                         if (!isLeadingBlanks)
                         {
