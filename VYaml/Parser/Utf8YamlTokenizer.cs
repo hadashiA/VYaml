@@ -361,9 +361,11 @@ namespace VYaml.Parser
                 ScalarPool.Shared.Return(name);
             }
 
-            while (YamlCodes.IsBlank(currentCode))
+            while (!reader.End && 
+                   (YamlCodes.IsBlank(currentCode) || 
+                    YamlCodes.IsUtf8Whitespace(currentCode, TryPeekMany(3))))
             {
-                Advance(1);
+                AdvanceUtf8Sequence();
             }
 
             if (currentCode == YamlCodes.Comment)
@@ -410,9 +412,11 @@ namespace VYaml.Parser
 
         void ConsumeVersionDirectiveValue()
         {
-            while (YamlCodes.IsBlank(currentCode))
+            while (!reader.End && 
+                   (YamlCodes.IsBlank(currentCode) || 
+                    YamlCodes.IsUtf8Whitespace(currentCode, TryPeekMany(3))))
             {
-                Advance(1);
+                AdvanceUtf8Sequence();
             }
 
             var major = ConsumeVersionDirectiveNumber();
@@ -460,22 +464,27 @@ namespace VYaml.Parser
             try
             {
                 // Eat whitespaces.
-                while (YamlCodes.IsBlank(currentCode))
+                while (!reader.End && 
+                       (YamlCodes.IsBlank(currentCode) || 
+                        YamlCodes.IsUtf8Whitespace(currentCode, TryPeekMany(3))))
                 {
-                    Advance(1);
+                    AdvanceUtf8Sequence();
                 }
 
                 ConsumeTagHandle(true, handle);
 
                 // Eat whitespaces
-                if (!YamlCodes.IsBlank(currentCode))
+                if (!YamlCodes.IsBlank(currentCode) && 
+                    !YamlCodes.IsUtf8Whitespace(currentCode, TryPeekMany(3)))
                 {
                     throw new YamlTokenizerException(CurrentMark,
                         "While scanning a TAG directive, did not find expected whitespace after tag handle.");
                 }
-                while (YamlCodes.IsBlank(currentCode))
+                while (!reader.End && 
+                       (YamlCodes.IsBlank(currentCode) || 
+                        YamlCodes.IsUtf8Whitespace(currentCode, TryPeekMany(3))))
                 {
-                    Advance(1);
+                    AdvanceUtf8Sequence();
                 }
 
                 ConsumeTagPrefix(prefix);
@@ -931,9 +940,11 @@ namespace VYaml.Parser
             }
 
             // Eat whitespaces and comments to the end of the line.
-            while (YamlCodes.IsBlank(currentCode))
+            while (!reader.End && 
+                   (YamlCodes.IsBlank(currentCode) || 
+                    YamlCodes.IsUtf8Whitespace(currentCode, TryPeekMany(3))))
             {
-                Advance(1);
+                AdvanceUtf8Sequence();
             }
 
             if (currentCode == YamlCodes.Comment)
@@ -1359,7 +1370,9 @@ namespace VYaml.Parser
                             break;
                         }
                     }
-                    else if (flowLevel > 0 && YamlCodes.IsAnyFlowSymbol(currentCode))
+                    else if (flowLevel > 0 && 
+                             (YamlCodes.IsAnyFlowSymbol(currentCode) || 
+                              YamlCodes.IsUtf8FlowSymbol(currentCode, TryPeekMany(3))))
                     {
                         break;
                     }
@@ -1395,21 +1408,31 @@ namespace VYaml.Parser
                         }
                     }
 
-                    scalar.Write(currentCode);
-                    Advance(1);
+                    // Handle UTF-8 sequences atomically
+                    var sequenceLength = YamlCodes.GetUtf8SequenceLength(currentCode);
+                    for (int i = 0; i < sequenceLength && !reader.End; i++)
+                    {
+                        scalar.Write(currentCode);
+                        Advance(1);
+                        if (i < sequenceLength - 1 && !reader.End)
+                        {
+                            reader.TryPeek(out currentCode);
+                        }
+                    }
                 }
 
                 // is the end?
-                if (!YamlCodes.IsEmpty(currentCode))
+                if (reader.End || !YamlCodes.IsEmpty(currentCode))
                 {
                     break;
                 }
 
                 // whitespaces or line-breaks
-                while (YamlCodes.IsEmpty(currentCode))
+                while (!reader.End && YamlCodes.IsEmpty(currentCode))
                 {
                     // whitespaces
-                    if (YamlCodes.IsBlank(currentCode))
+                    if (YamlCodes.IsBlank(currentCode) || 
+                        YamlCodes.IsUtf8Whitespace(currentCode, TryPeekMany(3)))
                     {
                         if (isLeadingBlanks && mark.Col < currentIndent && currentCode == YamlCodes.Tab)
                         {
@@ -1425,7 +1448,7 @@ namespace VYaml.Parser
                             }
                             whitespaceBuffer[whitespaceLength++] = currentCode;
                         }
-                        Advance(1);
+                        AdvanceUtf8Sequence();
                     }
                     // line-break
                     else
@@ -1504,6 +1527,42 @@ namespace VYaml.Parser
                 }
                 reader.Advance(1);
                 reader.TryPeek(out currentCode);
+            }
+        }
+
+        /// <summary>
+        /// Try to peek ahead multiple bytes for UTF-8 sequence detection.
+        /// </summary>
+        ReadOnlySpan<byte> TryPeekMany(int count)
+        {
+            var tempReader = reader;
+            var buffer = new byte[Math.Min(count, 4)]; // Max UTF-8 is 4 bytes
+            int i = 0;
+            
+            // Skip current byte
+            tempReader.Advance(1);
+            
+            while (i < buffer.Length && i < count && tempReader.TryPeek(out var b))
+            {
+                buffer[i++] = b;
+                tempReader.Advance(1);
+            }
+            
+            return buffer.AsSpan(0, i);
+        }
+
+        /// <summary>
+        /// Advances the reader by a full UTF-8 sequence if the current byte starts one.
+        /// </summary>
+        void AdvanceUtf8Sequence()
+        {
+            if (reader.End)
+                return;
+                
+            var sequenceLength = YamlCodes.GetUtf8SequenceLength(currentCode);
+            for (int i = 0; i < sequenceLength && !reader.End; i++)
+            {
+                Advance(1);
             }
         }
 
