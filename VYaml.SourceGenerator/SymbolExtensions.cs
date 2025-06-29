@@ -6,26 +6,26 @@ namespace VYaml.SourceGenerator;
 
 static class SymbolExtensions
 {
-    public static bool ContainsAttribute(this ISymbol symbol, INamedTypeSymbol attribtue)
+    public static bool ContainsAttribute(this ISymbol symbol, INamedTypeSymbol attribute)
     {
-        return symbol.GetAttributes().Any(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, attribtue));
+        return symbol.GetAttributes().Any(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, attribute));
     }
 
-    public static AttributeData? GetAttribute(this ISymbol symbol, INamedTypeSymbol attribtue)
+    public static AttributeData? GetAttribute(this ISymbol symbol, INamedTypeSymbol attribute)
     {
-        return symbol.GetAttributes().FirstOrDefault(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, attribtue));
+        return symbol.GetAttributes().FirstOrDefault(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, attribute));
     }
 
-    public static AttributeData? GetImplAttribute(this ISymbol symbol, INamedTypeSymbol implAttribtue)
+    public static AttributeData? GetImplAttribute(this ISymbol symbol, INamedTypeSymbol implAttribute)
     {
         return symbol.GetAttributes().FirstOrDefault(x =>
         {
             if (x.AttributeClass == null) return false;
-            if (x.AttributeClass.EqualsUnconstructedGenericType(implAttribtue)) return true;
+            if (x.AttributeClass.EqualsUnconstructedGenericType(implAttribute)) return true;
 
             foreach (var item in x.AttributeClass.GetAllBaseTypes())
             {
-                if (item.EqualsUnconstructedGenericType(implAttribtue))
+                if (item.EqualsUnconstructedGenericType(implAttribute))
                 {
                     return true;
                 }

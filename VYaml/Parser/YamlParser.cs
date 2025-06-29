@@ -120,11 +120,22 @@ namespace VYaml.Parser
             CurrentEventType = default;
             lastAnchorId = -1;
 
-            anchors = anchorsBufferStatic ??= new Dictionary<string, int>();
-            anchors.Clear();
+            // Check if the static buffers are in use (nested parsing scenario)
+            if (stateStackBufferStatic != null && stateStackBufferStatic.Length > 0)
+            {
+                // Create new instances for nested parsing
+                anchors = new Dictionary<string, int>();
+                stateStack = new ExpandBuffer<ParseState>(16);
+            }
+            else
+            {
+                // Reuse static buffers for performance
+                anchors = anchorsBufferStatic ??= new Dictionary<string, int>();
+                anchors.Clear();
 
-            stateStack = stateStackBufferStatic ??= new ExpandBuffer<ParseState>(16);
-            stateStack.Clear();
+                stateStack = stateStackBufferStatic ??= new ExpandBuffer<ParseState>(16);
+                stateStack.Clear();
+            }
 
             currentScalar = null;
             currentTag = null;

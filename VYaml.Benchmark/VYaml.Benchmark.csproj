@@ -11,7 +11,7 @@
     <ItemGroup>
       <PackageReference Include="BenchmarkDotNet" Version="0.13.1" />
       <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
-      <PackageReference Include="System.Text.Json" Version="8.0.4" />
+      <PackageReference Include="System.Text.Json" Version="9.0.6" />
       <PackageReference Include="YamlDotNet" Version="11.2.1" />
     </ItemGroup>
 
