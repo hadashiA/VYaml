@@ -454,6 +454,10 @@ namespace VYaml.Parser
                 tokenizer.Read();
             }
 
+            // Clear anchors at document boundary per YAML 1.2 spec section 3.2.2.2
+            anchors.Clear();
+            lastAnchorId = 0;
+
             // TODO tag handling
             currentState = ParseState.DocumentStart;
             CurrentEventType = ParseEventType.DocumentEnd;

@@ -1,4 +1,3 @@
-using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Text;
@@ -366,6 +365,353 @@ namespace VYaml.Tests.Parser
             
             parser.Read();
             Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.MappingStart));
+        }
+
+        /// <summary>
+        /// Validates that anchor definitions within a YAML document are local to that document
+        /// and cannot be referenced in subsequent documents. Ensures that an exception is thrown
+        /// when an alias tries to resolve an anchor from a previous document.
+        /// </summary>
+        /// <remarks>
+        /// This test verifies the YAML specification requirement that anchors are scoped locally
+        /// to a single document and do not persist across document boundaries. It ensures the
+        /// parser throws a <see cref="YamlParserException"/> when an undefined alias is
+        /// referenced in a subsequent document.
+        /// </remarks>
+        [Test]
+        public void AnchorsAreLocalToDocument_CannotUseAnchorFromPreviousDocument()
+        {
+            string[] lines = ["---", "anchor_def: &anchor_value \"shared value\"", "first_use: *anchor_value", "---", "# This should fail - anchor from previous document should not be accessible", "second_use: *anchor_value"
+            ];
+            var yaml = string.Join("\n", lines);
+
+            var parser = YamlParser.FromSequence(new ReadOnlySequence<byte>(Encoding.UTF8.GetBytes(yaml)));
+            
+            parser.Read(); // StreamStart
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.StreamStart));
+            
+            // First document - should parse successfully
+            parser.Read(); // DocumentStart
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.DocumentStart));
+            
+            parser.Read(); // MappingStart
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.MappingStart));
+            
+            parser.Read(); // Scalar "anchor_def"
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.Scalar));
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("anchor_def"));
+            
+            parser.Read(); // Scalar "shared value" with anchor
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.Scalar));
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("shared value"));
+            
+            parser.Read(); // Scalar "first_use"
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.Scalar));
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("first_use"));
+            
+            parser.Read(); // Alias
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.Alias));
+            
+            parser.Read(); // MappingEnd
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.MappingEnd));
+            
+            parser.Read(); // DocumentEnd
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.DocumentEnd));
+            
+            // Second document - should fail when trying to use anchor from first document
+            parser.Read(); // DocumentStart
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.DocumentStart));
+            
+            parser.Read(); // MappingStart
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.MappingStart));
+            
+            parser.Read(); // Scalar "second_use"
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.Scalar));
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("second_use"));
+            
+            // This should throw because the anchor is not defined in the current document
+            try
+            {
+                parser.Read();
+                Assert.Fail("Expected exception for undefined alias, but alias was resolved across document boundary");
+            }
+            catch (YamlParserException)
+            {
+                // Expected
+            }
+        }
+
+        /// <summary>
+        /// Validates that the same anchor name can be reused across different YAML documents without conflict,
+        /// where each instance within a document resolves distinctly to its respective value.
+        /// </summary>
+        /// <remarks>
+        /// This method parses a multi-document YAML sequence containing anchors and aliases. It ensures that:
+        /// 1. Anchors with the same name, defined in different documents, retain unique values per document.
+        /// 2. Aliases correctly resolve to the values of their respective anchors.
+        /// The test verifies the parsing sequence of YAML events, including anchors, aliases, and document transitions.
+        /// </remarks>
+        [Test]
+        public void SameAnchorNameCanBeReusedInDifferentDocuments()
+        {
+            string[] lines = ["---", "data: &shared_anchor \"value in doc 1\"", "ref: *shared_anchor", "---", "data: &shared_anchor \"value in doc 2\"", "ref: *shared_anchor", "---", "data: &shared_anchor \"value in doc 3\"", "ref: *shared_anchor"
+            ];
+            var yaml = string.Join("\n", lines);
+
+            var parser = YamlParser.FromSequence(new ReadOnlySequence<byte>(Encoding.UTF8.GetBytes(yaml)));
+            
+            parser.Read(); // StreamStart
+            
+            // Document 1
+            parser.Read(); // DocumentStart
+            parser.Read(); // MappingStart
+            parser.Read(); // Scalar "data"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("data"));
+            parser.Read(); // Scalar "value in doc 1" with anchor
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("value in doc 1"));
+            parser.Read(); // Scalar "ref"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("ref"));
+            parser.Read(); // Alias - should resolve to "value in doc 1"
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.Alias));
+            parser.Read(); // MappingEnd
+            parser.Read(); // DocumentEnd
+            
+            // Document 2 - same anchor name, different value
+            parser.Read(); // DocumentStart
+            parser.Read(); // MappingStart
+            parser.Read(); // Scalar "data"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("data"));
+            parser.Read(); // Scalar "value in doc 2" with anchor
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("value in doc 2"));
+            parser.Read(); // Scalar "ref"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("ref"));
+            parser.Read(); // Alias - should resolve to "value in doc 2"
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.Alias));
+            parser.Read(); // MappingEnd
+            parser.Read(); // DocumentEnd
+            
+            // Document 3 - same anchor name, different value
+            parser.Read(); // DocumentStart
+            parser.Read(); // MappingStart
+            parser.Read(); // Scalar "data"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("data"));
+            parser.Read(); // Scalar "value in doc 3" with anchor
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("value in doc 3"));
+            parser.Read(); // Scalar "ref"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("ref"));
+            parser.Read(); // Alias - should resolve to "value in doc 3"
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.Alias));
+            parser.Read(); // MappingEnd
+            parser.Read(); // DocumentEnd
+            
+            parser.Read(); // StreamEnd
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.StreamEnd));
+        }
+
+        /// <summary>
+        /// Tests the proper isolation and resolution of complex anchors within nested YAML structures.
+        /// Verifies that the parser correctly reproduces data relationships and maintains anchor integrity
+        /// within hierarchical and multi-level YAML documents.
+        /// </summary>
+        [Test]
+        public void ComplexAnchorIsolationWithNestedStructures()
+        {
+            string[] lines = ["---", "defaults: &defaults", "  name: Default Name", "  settings:", "    timeout: 30", "    retries: 3", "user1:", "  <<: *defaults", "  name: User One", "---", "# New document - defaults anchor should not be available", "user2:", "  <<: *defaults", "  name: User Two"
+            ];
+            var yaml = string.Join("\n", lines);
+
+            var parser = YamlParser.FromSequence(new ReadOnlySequence<byte>(Encoding.UTF8.GetBytes(yaml)));
+            
+            parser.Read(); // StreamStart
+            
+            // First document
+            parser.Read(); // DocumentStart
+            parser.Read(); // MappingStart
+            
+            // defaults with anchor
+            parser.Read(); // Scalar "defaults"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("defaults"));
+            parser.Read(); // MappingStart with anchor
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.MappingStart));
+            
+            parser.Read(); // Scalar "name"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("name"));
+            parser.Read(); // Scalar "Default Name"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("Default Name"));
+            parser.Read(); // Scalar "settings"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("settings"));
+            parser.Read(); // MappingStart
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.MappingStart));
+            parser.Read(); // Scalar "timeout"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("timeout"));
+            parser.Read(); // Scalar "30"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("30"));
+            parser.Read(); // Scalar "retries"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("retries"));
+            parser.Read(); // Scalar "3"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("3"));
+            parser.Read(); // MappingEnd
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.MappingEnd));
+            parser.Read(); // MappingEnd
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.MappingEnd));
+            
+            // user1 using merge key
+            parser.Read(); // Scalar "user1"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("user1"));
+            parser.Read(); // MappingStart
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.MappingStart));
+            parser.Read(); // Scalar "<<"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("<<"));
+            parser.Read(); // Alias - should work
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.Alias));
+            parser.Read(); // Scalar "name"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("name"));
+            parser.Read(); // Scalar "User One"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("User One"));
+            parser.Read(); // MappingEnd
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.MappingEnd));
+            
+            parser.Read(); // MappingEnd
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.MappingEnd));
+            parser.Read(); // DocumentEnd
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.DocumentEnd));
+            
+            // Second document - should fail when trying to use defaults anchor
+            parser.Read(); // DocumentStart
+            parser.Read(); // MappingStart
+            parser.Read(); // Scalar "user2"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("user2"));
+            parser.Read(); // MappingStart
+            parser.Read(); // Scalar "<<"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("<<"));
+            
+            // This should throw because the anchor is not defined in the current document
+            try
+            {
+                parser.Read();
+                Assert.Fail("Expected exception for undefined alias");
+            }
+            catch (YamlParserException)
+            {
+                // Expected
+            }
+        }
+
+        /// <summary>
+        /// Tests the behavior of the YAML parser when encountering a document with only an alias that refers to an undefined anchor.
+        /// Verifies that the parser throws a <see cref="YamlParserException"/> for the undefined alias reference in the second document.
+        /// </summary>
+        /// <exception cref="YamlParserException">
+        /// Thrown when attempting to read an alias that references an anchor not defined within the current document.
+        /// </exception>
+        [Test]
+        public void DocumentWithOnlyAliasToUndefinedAnchor()
+        {
+            string[] lines = ["---", "value: &anchor 42", "---", "*anchor"];
+            var yaml = string.Join("\n", lines);
+
+            var parser = YamlParser.FromSequence(new ReadOnlySequence<byte>(Encoding.UTF8.GetBytes(yaml)));
+            
+            parser.Read(); // StreamStart
+            
+            // First document
+            parser.Read(); // DocumentStart
+            parser.Read(); // MappingStart
+            parser.Read(); // Scalar "value"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("value"));
+            parser.Read(); // Scalar "42" with anchor
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("42"));
+            parser.Read(); // MappingEnd
+            parser.Read(); // DocumentEnd
+            
+            // Second document
+            parser.Read(); // DocumentStart
+            
+            // Should throw when trying to read undefined alias
+            try
+            {
+                parser.Read();
+                Assert.Fail("Expected exception for undefined alias");
+            }
+            catch (YamlParserException)
+            {
+                // Expected
+            }
+        }
+
+        /// <summary>
+        /// Tests the ability of the YAML parser to handle multiple anchors and aliases within a single document.
+        /// Ensures that anchors are properly defined, and aliases correctly resolve to their respective anchors,
+        /// including scalars, sequences, and nested mappings.
+        /// </summary>
+        [Test]
+        public void MultipleAnchorsAndAliasesWithinSingleDocument()
+        {
+            string[] lines = ["---", "str_anchor: &str \"string value\"", "num_anchor: &num 123", "list_anchor: &list", "  - item1", "  - item2", "references:", "  str_ref: *str", "  num_ref: *num", "  list_ref: *list", "  another_str: *str"
+            ];
+            var yaml = string.Join("\n", lines);
+
+            var parser = YamlParser.FromSequence(new ReadOnlySequence<byte>(Encoding.UTF8.GetBytes(yaml)));
+            
+            parser.Read(); // StreamStart
+            parser.Read(); // DocumentStart
+            parser.Read(); // MappingStart
+            
+            // All anchors and aliases within same document should work
+            parser.Read(); // Scalar "str_anchor"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("str_anchor"));
+            parser.Read(); // Scalar "string value" with anchor
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("string value"));
+            
+            parser.Read(); // Scalar "num_anchor"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("num_anchor"));
+            parser.Read(); // Scalar "123" with anchor
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("123"));
+            
+            parser.Read(); // Scalar "list_anchor"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("list_anchor"));
+            parser.Read(); // SequenceStart with anchor
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.SequenceStart));
+            parser.Read(); // Scalar "item1"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("item1"));
+            parser.Read(); // Scalar "item2"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("item2"));
+            parser.Read(); // SequenceEnd
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.SequenceEnd));
+            
+            parser.Read(); // Scalar "references"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("references"));
+            parser.Read(); // MappingStart
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.MappingStart));
+            
+            parser.Read(); // Scalar "str_ref"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("str_ref"));
+            parser.Read(); // Alias to str
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.Alias));
+            
+            parser.Read(); // Scalar "num_ref"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("num_ref"));
+            parser.Read(); // Alias to num
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.Alias));
+            
+            parser.Read(); // Scalar "list_ref"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("list_ref"));
+            parser.Read(); // Alias to list
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.Alias));
+            
+            parser.Read(); // Scalar "another_str"
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("another_str"));
+            parser.Read(); // Alias to str
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.Alias));
+            
+            parser.Read(); // MappingEnd
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.MappingEnd));
+            parser.Read(); // MappingEnd
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.MappingEnd));
+            parser.Read(); // DocumentEnd
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.DocumentEnd));
+            parser.Read(); // StreamEnd
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.StreamEnd));
         }
     }
 }
