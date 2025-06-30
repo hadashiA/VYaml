@@ -58,11 +58,17 @@ namespace VYaml.Parser
         readonly InsertionQueue<Token> tokens;
         readonly ExpandBuffer<SimpleKeyState> simpleKeyCandidates;
         readonly ExpandBuffer<int> indents;
+        readonly YamlParserOptions options;
 
-        public Utf8YamlTokenizer(ReadOnlySequence<byte> sequence)
+        public Utf8YamlTokenizer(ReadOnlySequence<byte> sequence) : this(sequence, YamlParserOptions.Default)
+        {
+        }
+
+        public Utf8YamlTokenizer(ReadOnlySequence<byte> sequence, YamlParserOptions options)
         {
             reader = new SequenceReader<byte>(sequence);
             mark = new Marker(0, 1, 0);
+            this.options = options ?? YamlParserOptions.Default;
 
             indent = -1;
             flowLevel = 0;
@@ -176,6 +182,13 @@ namespace VYaml.Parser
             }
 
             SkipToNextToken();
+            
+            // If we produced a comment token, we're done
+            if (tokens.Count > 0 && tokens.Peek().Type == TokenType.Comment)
+            {
+                return;
+            }
+            
             StaleSimpleKeyCandidates();
             UnrollIndent(mark.Col);
 
@@ -613,6 +626,41 @@ namespace VYaml.Parser
             }
             Advance(1);
             tokens.Enqueue(new Token(TokenType.ValueStart));
+        }
+
+        /// <summary>
+        /// Consumes a comment from the current position in the YAML document.
+        /// Comments in YAML begin with a '#' character and extend to the end of the line.
+        /// </summary>
+        /// <remarks>
+        /// If the <see cref="YamlParserOptions.StripLeadingWhitespace"/> option is enabled,
+        /// leading whitespace characters within the comment are skipped.
+        /// The remaining comment text is captured and stored as a token of type <see cref="TokenType.Comment"/>.
+        /// </remarks>
+        private void ConsumeComment()
+        {
+            var scalar = ScalarPool.Shared.Rent();
+            
+            // Skip the '#' character
+            Advance(1);
+            
+            // Skip leading whitespace if option is enabled
+            if (options.StripLeadingWhitespace)
+            {
+                while (!reader.End && !YamlCodes.IsLineBreak(currentCode) && YamlCodes.IsBlank(currentCode))
+                {
+                    Advance(1);
+                }
+            }
+            
+            // Consume the comment text until end of line
+            while (!reader.End && !YamlCodes.IsLineBreak(currentCode))
+            {
+                scalar.Write(currentCode);
+                Advance(1);
+            }
+            
+            tokens.Enqueue(new Token(TokenType.Comment, scalar));
         }
 
         void ConsumeAnchor(bool alias)
@@ -1496,9 +1544,17 @@ namespace VYaml.Parser
                         if (flowLevel == 0) simpleKeyAllowed = true;
                         break;
                     case YamlCodes.Comment:
-                        while (!reader.End && !YamlCodes.IsLineBreak(currentCode))
+                        if (options.PreserveComments)
                         {
-                            Advance(1);
+                            ConsumeComment();
+                            return;
+                        }
+                        else
+                        {
+                            while (!reader.End && !YamlCodes.IsLineBreak(currentCode))
+                            {
+                                Advance(1);
+                            }
                         }
                         break;
                     case 0xEF:

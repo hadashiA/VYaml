@@ -37,6 +37,8 @@ namespace VYaml.Parser
         /// Anchor ID
         MappingStart,
         MappingEnd,
+        /// Comment text
+        Comment,
     }
 
     enum ParseState
@@ -112,10 +114,16 @@ namespace VYaml.Parser
 
         readonly Dictionary<string, int> anchors;
         readonly ExpandBuffer<ParseState> stateStack;
+        readonly YamlParserOptions options;
 
-        public YamlParser(ReadOnlySequence<byte> sequence)
+        public YamlParser(ReadOnlySequence<byte> sequence) : this(sequence, YamlParserOptions.Default)
         {
-            tokenizer = new Utf8YamlTokenizer(sequence);
+        }
+
+        public YamlParser(ReadOnlySequence<byte> sequence, YamlParserOptions? options)
+        {
+            this.options = options ?? YamlParserOptions.Default;
+            tokenizer = new Utf8YamlTokenizer(sequence, this.options);
             currentState = ParseState.StreamStart;
             CurrentEventType = default;
             lastAnchorId = -1;
@@ -144,9 +152,10 @@ namespace VYaml.Parser
             UnityStrippedMark = false;
         }
 
-        public YamlParser(ref Utf8YamlTokenizer tokenizer)
+        public YamlParser(ref Utf8YamlTokenizer tokenizer, YamlParserOptions? options = null)
         {
             this.tokenizer = tokenizer;
+            this.options = options ?? YamlParserOptions.Default;
             currentState = ParseState.StreamStart;
             CurrentEventType = default;
             lastAnchorId = -1;
@@ -264,6 +273,7 @@ namespace VYaml.Parser
                 default:
                     throw new ArgumentOutOfRangeException();
             }
+            
             return true;
         }
 
@@ -413,6 +423,12 @@ namespace VYaml.Parser
 
         void ParseDocumentContent()
         {
+            // Check for comments at document content level
+            if (TryEmitComment())
+            {
+                return;
+            }
+
             switch (tokenizer.CurrentTokenType)
             {
                 case TokenType.VersionDirective:
@@ -445,6 +461,12 @@ namespace VYaml.Parser
 
         void ParseNode(bool block, bool indentlessSequence)
         {
+            // Check for comments before parsing node
+            if (TryEmitComment())
+            {
+                return;
+            }
+
             currentAnchor = null;
             currentTag = null;
             UnityStrippedMark = false;
@@ -566,6 +588,12 @@ namespace VYaml.Parser
                 tokenizer.Read();
             }
 
+            // Check for comments between mapping entries
+            if (TryEmitComment())
+            {
+                return;
+            }
+
             switch (CurrentTokenType)
             {
                 case TokenType.KeyStart:
@@ -607,6 +635,15 @@ namespace VYaml.Parser
             if (CurrentTokenType == TokenType.ValueStart)
             {
                 tokenizer.Read();
+                
+                // Check for comments after colon but stay in same state
+                if (CurrentTokenType == TokenType.Comment && TryEmitComment())
+                {
+                    // After emitting comment, stay in ParseBlockMappingValue state
+                    // to parse the actual value on next Read()
+                    return;
+                }
+                
                 if (CurrentTokenType is
                     TokenType.KeyStart or
                     TokenType.ValueStart or
@@ -623,8 +660,27 @@ namespace VYaml.Parser
             }
             else
             {
-                currentState = ParseState.BlockMappingKey;
-                EmptyScalar();
+                // This path handles the case after comment emission
+                // Check for comments first
+                if (TryEmitComment())
+                {
+                    return;
+                }
+                
+                // Now parse the actual value
+                if (CurrentTokenType is
+                    TokenType.KeyStart or
+                    TokenType.ValueStart or
+                    TokenType.BlockEnd)
+                {
+                    currentState = ParseState.BlockMappingKey;
+                    EmptyScalar();
+                }
+                else
+                {
+                    PushState(ParseState.BlockMappingKey);
+                    ParseNode(true, true);
+                }
             }
         }
 
@@ -634,6 +690,12 @@ namespace VYaml.Parser
             if (first)
             {
                 tokenizer.Read();
+            }
+
+            // Check for comments in sequences
+            if (TryEmitComment())
+            {
+                return;
             }
 
             switch (CurrentTokenType)
@@ -932,6 +994,25 @@ namespace VYaml.Parser
                     $"Did not find expected token of  `{expectedTokenType}`");
             }
         }
+
+        /// Attempts to emit a comment from the current token in the YAML parser stream.
+        /// This method checks if the current token type is identified as a comment.
+        /// If the token is a comment, the content is extracted, the parser moves to the
+        /// next token, and the current event type is updated to represent a comment.
+        /// <returns>
+        /// Returns true if the current token is a comment and it has been successfully
+        /// emitted; otherwise, false.
+        /// </returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool TryEmitComment()
+        {
+            if (tokenizer.CurrentTokenType != TokenType.Comment) return false;
+            currentScalar = tokenizer.TakeCurrentTokenContent<Scalar>();
+            tokenizer.Read();
+            CurrentEventType = ParseEventType.Comment;
+            return true;
+        }
+
     }
 }
 
