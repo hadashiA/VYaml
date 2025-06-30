@@ -276,6 +276,15 @@ static class Emitter
         codeWriter.AppendLine("emitter.BeginMapping();");
         foreach (var memberMeta in memberMetas)
         {
+            // Generate condition check based on DefaultIgnoreCondition
+            var needsIgnoreCheck = GenerateIgnoreConditionCheck(codeWriter, memberMeta);
+            
+            IDisposable? ignoreScope = null;
+            if (needsIgnoreCheck)
+            {
+                ignoreScope = codeWriter.BeginIndentScope();
+            }
+            
             if (memberMeta.HasKeyNameAlias || typeMeta.NamingConventionByType != NamingConvention.LowerCamelCase)
             {
                 codeWriter.AppendLine($"emitter.WriteString(\"{memberMeta.KeyName}\");");
@@ -293,10 +302,69 @@ static class Emitter
                 }
             }
             codeWriter.AppendLine($"context.Serialize(ref emitter, value.{memberMeta.Name});");
+            
+            if (ignoreScope != null)
+            {
+                ignoreScope.Dispose();
+                codeWriter.AppendLine("}");
+            }
         }
         codeWriter.AppendLine("emitter.EndMapping();");
 
         return true;
+    }
+
+    static bool GenerateIgnoreConditionCheck(CodeWriter codeWriter, MemberMeta memberMeta)
+    {
+        var isReferenceType = memberMeta.MemberType.IsReferenceType;
+        var namedType = memberMeta.MemberType as INamedTypeSymbol;
+        var isNullableValueType = namedType?.IsGenericType == true && 
+                                  namedType.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T;
+        
+        // Always need to check the condition at runtime
+        if (isReferenceType || isNullableValueType)
+        {
+            // For reference types and nullable value types, null is the default
+            codeWriter.AppendLine($"if (context.Options.DefaultIgnoreCondition == global::VYaml.Serialization.YamlIgnoreCondition.Never || " +
+                                  $"(context.Options.DefaultIgnoreCondition == global::VYaml.Serialization.YamlIgnoreCondition.WhenWritingNull && value.{memberMeta.Name} != null) || " +
+                                  $"(context.Options.DefaultIgnoreCondition == global::VYaml.Serialization.YamlIgnoreCondition.WhenWritingDefault && value.{memberMeta.Name} != null))");
+            codeWriter.AppendLine("{");
+            return true;
+        }
+        else if (memberMeta.MemberType.IsValueType)
+        {
+            // For non-nullable value types, only need to check for WhenWritingDefault
+            var defaultComparison = GetDefaultValueComparison(memberMeta.MemberType, memberMeta.Name);
+            codeWriter.AppendLine($"if (context.Options.DefaultIgnoreCondition != global::VYaml.Serialization.YamlIgnoreCondition.WhenWritingDefault || {defaultComparison})");
+            codeWriter.AppendLine("{");
+            return true;
+        }
+        
+        return false;
+    }
+    
+    static string GetDefaultValueComparison(ITypeSymbol type, string memberName)
+    {
+        var typeName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        
+        // Handle common value types with known defaults
+        return typeName switch
+        {
+            "global::System.Boolean" => $"value.{memberName} != false",
+            "global::System.Byte" => $"value.{memberName} != 0",
+            "global::System.SByte" => $"value.{memberName} != 0",
+            "global::System.Int16" => $"value.{memberName} != 0",
+            "global::System.UInt16" => $"value.{memberName} != 0",
+            "global::System.Int32" => $"value.{memberName} != 0",
+            "global::System.UInt32" => $"value.{memberName} != 0",
+            "global::System.Int64" => $"value.{memberName} != 0L",
+            "global::System.UInt64" => $"value.{memberName} != 0UL",
+            "global::System.Single" => $"value.{memberName} != 0f",
+            "global::System.Double" => $"value.{memberName} != 0d",
+            "global::System.Decimal" => $"value.{memberName} != 0m",
+            "global::System.Char" => $"value.{memberName} != '\\0'",
+            _ => $"!value.{memberName}.Equals(default({typeName}))"
+        };
     }
 
     static bool TryEmitSerializeMethodUnion(TypeMeta typeMeta, CodeWriter codeWriter, in SourceProductionContext context)

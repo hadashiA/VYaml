@@ -252,5 +252,120 @@ namespace VYaml.Tests.Parser
             var sequence = new ReadOnlySequence<byte>(Encoding.UTF8.GetBytes(yaml));
             x = new YamlParser(sequence);
         }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="YamlParser"/> class with the provided YAML content and parser options.
+        /// Converts the YAML document into a readable byte sequence and assigns the out parameter to the created parser instance.
+        /// </summary>
+        /// <param name="yaml">The YAML content to parse, provided as a string.</param>
+        /// <param name="x">The output parameter representing the constructed <see cref="YamlParser"/> instance.</param>
+        /// <param name="options">The parser options, specified as an instance of <see cref="YamlParserOptions"/>.</param>
+        private static void CreateParser(string yaml, out YamlParser x, YamlParserOptions options)
+        {
+            var sequence = new ReadOnlySequence<byte>(Encoding.UTF8.GetBytes(yaml));
+            x = new YamlParser(sequence, options);
+        }
+
+        /// <summary>
+        /// Verifies that comments are emitted as events when <see cref="YamlParserOptions.PreserveComments"/> is enabled.
+        /// Tests that the parser correctly identifies and processes comments within a YAML document, adhering to the provided options.
+        /// </summary>
+        [Test]
+        public void CommentEvent_WhenPreserveCommentsEnabled()
+        {
+            var options = new YamlParserOptions { PreserveComments = true, StripLeadingWhitespace = false };
+            CreateParser("# This is a comment\nkey: value", out var parser, options);
+            
+            // Read StreamStart
+            Assert.That(parser.Read(), Is.True);
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.StreamStart));
+            
+            // Read DocumentStart
+            Assert.That(parser.Read(), Is.True);
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.DocumentStart));
+            
+            // Read Comment
+            Assert.That(parser.Read(), Is.True);
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.Comment));
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo(" This is a comment"));
+            
+            // Read MappingStart
+            Assert.That(parser.Read(), Is.True);
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.MappingStart));
+        }
+
+        /// <summary>
+        /// Ensures that comments are not emitted as events when <see cref="YamlParserOptions.PreserveComments"/> is disabled.
+        /// Validates that the parser correctly skips over comments and processes the YAML structure as expected.
+        /// </summary>
+        [Test]
+        public void CommentEvent_NotEmittedWhenPreserveCommentsDisabled()
+        {
+            CreateParser("# This is a comment\nkey: value", out var parser);
+            
+            parser.SkipHeader();
+            
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.MappingStart));
+        }
+
+        /// <summary>
+        /// Validates the handling of inline comments in a YAML document, ensuring that the parser correctly associates
+        /// the comment with the appropriate parse event when <see cref="YamlParserOptions.PreserveComments"/> is enabled.
+        /// Verifies the parsing of scalar values and confirms processing of the inline comment following a key-value pair.
+        /// </summary>
+        [Test]
+        public void CommentEvent_InlineComment()
+        {
+            var options = new YamlParserOptions { PreserveComments = true, StripLeadingWhitespace = false };
+            CreateParser("key: value # inline comment", out var parser, options);
+            
+            parser.SkipHeader();
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.MappingStart));
+            
+            parser.Read();
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.Scalar));
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("key"));
+            
+            parser.Read();
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.Scalar));
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo("value"));
+            
+            parser.Read();
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.Comment));
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo(" inline comment"));
+        }
+
+        /// <summary>
+        /// Validates the handling and emission of multiple comment events by the YAML parser,
+        /// ensuring that comments are recognized as distinct parse events, retained when
+        /// <see cref="YamlParserOptions.PreserveComments"/> is enabled, and processed in correct order.
+        /// </summary>
+        [Test]
+        public void CommentEvent_MultipleComments()
+        {
+            var options = new YamlParserOptions { PreserveComments = true, StripLeadingWhitespace = false };
+            const string yaml = """
+                                # File header comment
+                                # Second line of header
+                                key1: value1
+                                # Comment between entries
+                                key2: value2 # inline comment
+                                """;
+            
+            CreateParser(yaml, out var parser, options);
+            parser.SkipHeader();
+            
+            // First comment
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.Comment));
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo(" File header comment"));
+            
+            parser.Read();
+            // Second comment
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.Comment));
+            Assert.That(parser.GetScalarAsString(), Is.EqualTo(" Second line of header"));
+            
+            parser.Read();
+            Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.MappingStart));
+        }
     }
 }

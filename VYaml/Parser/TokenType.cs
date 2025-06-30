@@ -30,5 +30,6 @@ namespace VYaml.Parser
         DoubleQuotedScaler,
         LiteralScalar,
         FoldedScalar,
+        Comment,
     }
 }

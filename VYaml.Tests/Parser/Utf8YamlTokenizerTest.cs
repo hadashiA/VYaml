@@ -764,5 +764,115 @@ namespace VYaml.Tests
         {
             return tokenizer.TakeCurrentTokenContent<Scalar>();
         }
+
+        /// <summary>
+        /// Tests the behavior of the tokenizer when the <c>PreserveComments</c> option is enabled.
+        /// This method verifies that comment tokens within the YAML input are correctly
+        /// recognized and preserved in the tokenization process.
+        /// </summary>
+        /// <remarks>
+        /// The test ensures that:
+        /// - The tokenizer reads the stream start successfully.
+        /// - Comments in the YAML input are tokenized as <c>TokenType.Comment</c>.
+        /// - The content of the comment token matches the expected value, excluding the leading comment marker (#).
+        /// - The tokenizer properly reads the stream end.
+        /// </remarks>
+        [Test]
+        public void CommentToken_WhenPreserveCommentsEnabled()
+        {
+            var options = new YamlParserOptions { PreserveComments = true, StripLeadingWhitespace = false };
+            CreateTokenizerWithOptions("# This is a comment", out var tokenizer, options);
+            
+            Assert.That(tokenizer.Read(), Is.True);
+            Assert.That(tokenizer.CurrentTokenType, Is.EqualTo(TokenType.StreamStart));
+            
+            Assert.That(tokenizer.Read(), Is.True);
+            Assert.That(tokenizer.CurrentTokenType, Is.EqualTo(TokenType.Comment));
+            Assert.That(tokenizer.TakeCurrentTokenContent<Scalar>().ToString(), Is.EqualTo(" This is a comment"));
+            
+            Assert.That(tokenizer.Read(), Is.True);
+            Assert.That(tokenizer.CurrentTokenType, Is.EqualTo(TokenType.StreamEnd));
+        }
+
+        /// <summary>
+        /// Tests the behavior of the tokenizer when the <c>PreserveComments</c> option is disabled.
+        /// This method verifies that comment tokens within the YAML input are not recognized or preserved
+        /// during the tokenization process, ensuring only non-comment tokens are processed.
+        /// </summary>
+        /// <remarks>
+        /// The test ensures that:
+        /// - The tokenizer successfully reads the stream start.
+        /// - Tokens representing comments are ignored when the <c>PreserveComments</c> option is disabled.
+        /// - The tokenizer proceeds directly to reading the stream end after encountering comments in the YAML input.
+        /// </remarks>
+        [Test]
+        public void CommentToken_WhenPreserveCommentsDisabled()
+        {
+            CreateTokenizerWithOptions("# This is a comment", out var tokenizer);
+            
+            Assert.That(tokenizer.Read(), Is.True);
+            Assert.That(tokenizer.CurrentTokenType, Is.EqualTo(TokenType.StreamStart));
+            
+            Assert.That(tokenizer.Read(), Is.True);
+            Assert.That(tokenizer.CurrentTokenType, Is.EqualTo(TokenType.StreamEnd));
+        }
+
+        /// <summary>
+        /// Verifies that the tokenizer correctly identifies and preserves inline comments when
+        /// the <c>PreserveComments</c> option is enabled.
+        /// This test ensures that inline comments within YAML input are properly tokenized
+        /// as <c>TokenType.Comment</c>, retaining their content.
+        /// </summary>
+        /// <remarks>
+        /// The method performs the following validations:
+        /// - Confirms that the stream starts and block mappings are identified correctly.
+        /// - Ensures that the key-value pairs are tokenized accurately with the expected content.
+        /// - Verifies that the inline comment is properly tokenized as <c>TokenType.Comment</c>,
+        /// with its content correctly retained (excluding whitespace leading the comment marker).
+        /// </remarks>
+        [Test]
+        public void InlineComment_WhenPreserveCommentsEnabled()
+        {
+            var options = new YamlParserOptions { PreserveComments = true, StripLeadingWhitespace = false };
+            CreateTokenizerWithOptions("key: value # inline comment", out var tokenizer, options);
+            
+            Assert.That(tokenizer.Read(), Is.True);
+            Assert.That(tokenizer.CurrentTokenType, Is.EqualTo(TokenType.StreamStart));
+            
+            Assert.That(tokenizer.Read(), Is.True);
+            Assert.That(tokenizer.CurrentTokenType, Is.EqualTo(TokenType.BlockMappingStart));
+            
+            Assert.That(tokenizer.Read(), Is.True);
+            Assert.That(tokenizer.CurrentTokenType, Is.EqualTo(TokenType.KeyStart));
+            
+            Assert.That(tokenizer.Read(), Is.True);
+            Assert.That(tokenizer.CurrentTokenType, Is.EqualTo(TokenType.PlainScalar));
+            Assert.That(tokenizer.TakeCurrentTokenContent<Scalar>().ToString(), Is.EqualTo("key"));
+            
+            Assert.That(tokenizer.Read(), Is.True);
+            Assert.That(tokenizer.CurrentTokenType, Is.EqualTo(TokenType.ValueStart));
+            
+            Assert.That(tokenizer.Read(), Is.True);
+            Assert.That(tokenizer.CurrentTokenType, Is.EqualTo(TokenType.PlainScalar));
+            Assert.That(tokenizer.TakeCurrentTokenContent<Scalar>().ToString(), Is.EqualTo("value"));
+            
+            Assert.That(tokenizer.Read(), Is.True);
+            Assert.That(tokenizer.CurrentTokenType, Is.EqualTo(TokenType.Comment));
+            Assert.That(tokenizer.TakeCurrentTokenContent<Scalar>().ToString(), Is.EqualTo(" inline comment"));
+        }
+
+        /// <summary>
+        /// Creates a new instance of <see cref="Utf8YamlTokenizer"/> initialized with the provided YAML input
+        /// and optional parser options. This method facilitates testing by allowing direct configuration of the tokenizer's behavior.
+        /// </summary>
+        /// <param name="yaml">The YAML string input to be tokenized.</param>
+        /// <param name="x">The resulting instance of <see cref="Utf8YamlTokenizer"/> created from the input and options.</param>
+        /// <param name="options">Optional parser options to customize the tokenization process, such as preserving comments or stripping leading whitespace.</param>
+        private static void CreateTokenizerWithOptions (string yaml, out Utf8YamlTokenizer x, YamlParserOptions? options = null)
+        {
+            var bytes = Encoding.UTF8.GetBytes(yaml);
+            var sequence = new ReadOnlySequence<byte>(bytes);
+            x = new Utf8YamlTokenizer(sequence, options);
+        }
     }
 }

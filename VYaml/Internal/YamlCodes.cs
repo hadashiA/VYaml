@@ -202,6 +202,94 @@ namespace VYaml.Internal
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsAnyFlowSymbol(byte code) => FlowSymbolTable[code];
 
+        /// <summary>
+        /// Gets the length of a UTF-8 sequence from its first byte.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int GetUtf8SequenceLength(byte firstByte)
+        {
+            // UTF-8 sequence length from first byte:
+            // 0xxxxxxx = 1 byte (ASCII)
+            // 110xxxxx = 2 bytes
+            // 1110xxxx = 3 bytes  
+            // 11110xxx = 4 bytes
+            if ((firstByte & 0x80) == 0) return 1;
+            if ((firstByte & 0xE0) == 0xC0) return 2;
+            if ((firstByte & 0xF0) == 0xE0) return 3;
+            if ((firstByte & 0xF8) == 0xF0) return 4;
+            return 1; // Invalid UTF-8, treat as single byte
+        }
+
+        /// <summary>
+        /// Checks if a byte is a UTF-8 continuation byte.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsUtf8ContinuationByte(byte code)
+        {
+            return (code & 0xC0) == 0x80;
+        }
+
+        /// <summary>
+        /// Checks if a byte sequence represents a UTF-8 whitespace character.
+        /// </summary>
+        public static bool IsUtf8Whitespace(byte code, ReadOnlySpan<byte> next)
+        {
+            // Fast path for ASCII
+            if (IsBlank(code)) return true;
+            
+            // Common UTF-8 whitespaces:
+            // U+00A0 (NBSP) = 0xC2 0xA0
+            if (code == 0xC2 && next.Length >= 1 && next[0] == 0xA0)
+                return true;
+            
+            // U+2000-U+200B (various spaces) = 0xE2 0x80 0x80-0x8B
+            if (code == 0xE2 && next.Length >= 2 && next[0] == 0x80 && 
+                next[1] >= 0x80 && next[1] <= 0x8B)
+                return true;
+            
+            // U+3000 (Ideographic space) = 0xE3 0x80 0x80
+            if (code == 0xE3 && next.Length >= 2 && 
+                next[0] == 0x80 && next[1] == 0x80)
+                return true;
+            
+            // U+FEFF (Zero-width non-breaking space) = 0xEF 0xBB 0xBF
+            if (code == 0xEF && next.Length >= 2 && 
+                next[0] == 0xBB && next[1] == 0xBF)
+                return true;
+            
+            return false;
+        }
+
+        /// <summary>
+        /// Checks if a byte sequence represents a UTF-8 flow symbol character.
+        /// </summary>
+        public static bool IsUtf8FlowSymbol(byte code, ReadOnlySpan<byte> next)
+        {
+            // Fast path for ASCII
+            if (IsAnyFlowSymbol(code)) return true;
+            
+            // Full-width brackets that might be used as flow symbols:
+            // U+FF3B ［ = 0xEF 0xBC 0xBB
+            // U+FF3D ］ = 0xEF 0xBC 0xBD
+            // U+FF5B ｛ = 0xEF 0xBD 0x9B
+            // U+FF5D ｝ = 0xEF 0xBD 0x9D
+            // U+FF0C ， = 0xEF 0xBC 0x8C
+            
+            if (code == 0xEF && next.Length >= 2)
+            {
+                if (next[0] == 0xBC)
+                {
+                    return next[1] == 0xBB || next[1] == 0xBD || next[1] == 0x8C;
+                }
+                if (next[0] == 0xBD)
+                {
+                    return next[1] == 0x9B || next[1] == 0x9D;
+                }
+            }
+            
+            return false;
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static byte AsHex(byte code)
         {

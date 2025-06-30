@@ -265,6 +265,57 @@ documents[1]["Warning"] // #=> "A slightly different error message."
 documents[2]["Fatal"]   // #=> "Unknown variable \"bar\""
 ```
 
+#### Ignore null/default values
+
+By default, VYaml serializes all properties, including those with null or default values. You can change this behavior using `YamlSerializerOptions.DefaultIgnoreCondition`:
+
+```cs
+var options = new YamlSerializerOptions
+{
+    DefaultIgnoreCondition = YamlIgnoreCondition.WhenWritingNull
+};
+
+var obj = new Person
+{
+    Name = "John",
+    Age = 30,
+    Email = null,  // This will be ignored
+    Address = null  // This will be ignored
+};
+
+YamlSerializer.Serialize(obj, options);
+// Output:
+// name: John
+// age: 30
+```
+
+Available options:
+- `YamlIgnoreCondition.Never` - Always serialize all properties (default)
+- `YamlIgnoreCondition.WhenWritingNull` - Skip properties with null values
+- `YamlIgnoreCondition.WhenWritingDefault` - Skip properties with default values (null for reference types, 0 for numbers, false for bool, etc.)
+
+Example with `WhenWritingDefault`:
+```cs
+var options = new YamlSerializerOptions
+{
+    DefaultIgnoreCondition = YamlIgnoreCondition.WhenWritingDefault
+};
+
+var obj = new Person
+{
+    Name = "John",
+    Age = 0,        // This will be ignored (default for int)
+    IsActive = false,  // This will be ignored (default for bool)
+    Email = null,   // This will be ignored (default for string)
+    Score = 100     // This will be serialized
+};
+
+YamlSerializer.Serialize(obj, options);
+// Output:
+// name: John
+// score: 100
+```
+
 #### Naming convention
 
 :exclamation: By default, VYaml maps C# property names in lower camel case (e.g. `propertyName`) format to yaml keys.

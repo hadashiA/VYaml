@@ -22,6 +22,17 @@ namespace VYaml.Emitter
 
     public ref struct Utf8YamlEmitter
     {
+        /// Retrieves the current key indentation level.
+        /// <returns>
+        /// The integer value representing the current indentation level of the key.
+        /// </returns>
+        private int GetCurrentKeyIndent() => currentIndentLevel;
+
+        /// Retrieves the current value indentation level.
+        /// <returns>
+        /// An integer representing the current indentation level of the value.
+        /// </returns>
+        private int GetCurrentValueIndent() => currentIndentLevel + 1;
         static byte[] whiteSpaces = "                                "u8.ToArray();
         static readonly byte[] FlowSequenceEmpty = "[]"u8.ToArray();
         static readonly byte[] FlowSequenceEmptyWithSpace = " []"u8.ToArray();
@@ -96,6 +107,68 @@ namespace VYaml.Emitter
 
         internal readonly IBufferWriter<byte> GetWriter() => writer;
 
+        /// Writes a YAML comment to the output.
+        /// <param name="comment">
+        /// The comment text to write.
+        /// </param>
+        /// <param name="isInline">
+        /// Indicates whether the comment is inline or not. Defaults to false.
+        /// </param>
+        public void WriteComment(ReadOnlySpan<char> comment, bool isInline = false)
+        {
+            if (!options.PreserveComments) return;
+
+            var maxLength = StringEncoding.Utf8.GetMaxByteCount(comment.Length) +
+                (currentIndentLevel + 2) * options.IndentWidth + 4;
+            var output = writer.GetSpan(maxLength);
+            var offset = 0;
+
+
+            if (!isInline)
+            {
+                // Check if we need a newline by looking at what was previously written
+                bool needsNewline = true;
+                if (writer is ArrayBufferWriter<byte> arrayWriter)
+                {
+                    var written = arrayWriter.WrittenSpan;
+                    if (written.Length == 0 || (written.Length > 0 && written[^1] == YamlCodes.Lf))
+                    {
+                        needsNewline = false;
+                    }
+                }
+                
+                if (needsNewline)
+                {
+                    output[offset++] = YamlCodes.Lf;
+                }
+                    
+                if (CurrentState == EmitState.BlockMappingValue || 
+                    (CurrentState == EmitState.BlockMappingKey && PreviousState == EmitState.BlockMappingValue)) {
+                    WriteIndent(output, ref offset, GetCurrentValueIndent() * options.IndentWidth);
+                } else if (CurrentState == EmitState.BlockSequenceEntry) {
+                    WriteIndent(output, ref offset, currentIndentLevel * options.IndentWidth);
+                } else {
+                    WriteIndent(output, ref offset, GetCurrentKeyIndent() * options.IndentWidth);
+                }
+            }
+            else
+            {
+                if (offset > 0 && output[offset - 1] != YamlCodes.Space)
+                    output[offset++] = YamlCodes.Space;
+            }
+
+            // Write the comment itself
+            output[offset++] = YamlCodes.Comment;
+            if (options.AddLeadingSpace && comment.Length > 0)
+            {
+                output[offset++] = YamlCodes.Space;
+            }
+            offset += StringEncoding.Utf8.GetBytes(comment, output[offset..]);
+            output[offset++] = YamlCodes.Lf;
+
+            writer.Advance(offset);
+        }
+
         public void BeginSequence(SequenceStyle style = SequenceStyle.Block)
         {
             switch (style)
@@ -107,16 +180,22 @@ namespace VYaml.Emitter
                         case EmitState.BlockSequenceEntry:
                             WriteBlockSequenceEntryHeader();
                             break;
-
                         case EmitState.FlowSequenceEntry:
                             throw new YamlEmitterException(
                                 "To start block-sequence in the flow-sequence is not supported.");
-
                         case EmitState.BlockMappingKey:
                             throw new YamlEmitterException(
                                 "To start block-sequence in the mapping key is not supported.");
+                        case EmitState.BlockMappingValue:
+                            // Only indent sequences when comments are being preserved
+                            // This allows sequences with comments to be properly indented
+                            // while keeping sequences without comments aligned with their keys
+                            if (options.PreserveComments)
+                            {
+                                IncreaseIndent();
+                            }
+                            break;
                     }
-
                     PushState(EmitState.BlockSequenceEntry);
                     break;
                 }
@@ -126,7 +205,6 @@ namespace VYaml.Emitter
                     {
                         case EmitState.BlockMappingKey:
                             throw new YamlEmitterException("To start flow-sequence in the mapping key is not supported.");
-
                         case EmitState.BlockSequenceEntry:
                         {
                             var output = writer.GetSpan(currentIndentLevel * options.IndentWidth + 3);
@@ -189,7 +267,7 @@ namespace VYaml.Emitter
                     if (isEmptySequence)
                     {
                         var lineBreak = CurrentState is EmitState.BlockSequenceEntry or EmitState.BlockMappingValue;
-                        var space = CurrentState is EmitState.BlockMappingValue or EmitState.FlowMappingValue or EmitState.BlockSequenceEntry;
+                        var space = CurrentState is EmitState.FlowMappingValue or EmitState.BlockSequenceEntry or EmitState.BlockMappingValue;
                         WriteRaw(space ? FlowSequenceEmptyWithSpace : FlowSequenceEmpty, false, lineBreak);
                     }
 
@@ -208,6 +286,11 @@ namespace VYaml.Emitter
 
                         case EmitState.BlockMappingValue:
                             ReplaceCurrentState(EmitState.BlockMappingKey);
+                            // Only decrease indent when comments are being preserved to match BeginSequence logic
+                            if (options.PreserveComments && !isEmptySequence)
+                            {
+                                DecreaseIndent();
+                            }
                             currentElementCount++;
                             break;
 
@@ -729,7 +812,21 @@ namespace VYaml.Emitter
                         IncreaseIndent();
                         break;
                     case EmitState.BlockMappingValue:
-                        output[offset++] = YamlCodes.Lf;
+                        // Check if we need a newline by looking at what was previously written
+                        var needsNewline = true;
+                        if (writer is ArrayBufferWriter<byte> arrayWriter)
+                        {
+                            var written = arrayWriter.WrittenSpan;
+                            if (written.Length > 0 && written[^1] == YamlCodes.Lf)
+                            {
+                                needsNewline = false;
+                            }
+                        }
+                        
+                        if (needsNewline)
+                        {
+                            output[offset++] = YamlCodes.Lf;
+                        }
                         break;
                 }
             }
@@ -811,7 +908,22 @@ namespace VYaml.Emitter
                             {
                                 IncreaseIndent();
                                 TryWriteTag(output, true, ref offset);
-                                output[offset++] = YamlCodes.Lf;
+                                
+                                // Check if we need a newline by looking at what was previously written
+                                bool needsNewline = true;
+                                if (writer is ArrayBufferWriter<byte> arrayWriter)
+                                {
+                                    var written = arrayWriter.WrittenSpan;
+                                    if (written.Length > 0 && written[^1] == YamlCodes.Lf)
+                                    {
+                                        needsNewline = false;
+                                    }
+                                }
+                                
+                                if (needsNewline)
+                                {
+                                    output[offset++] = YamlCodes.Lf;
+                                }
                                 WriteIndent(output, ref offset);
                                 break;
                             }
