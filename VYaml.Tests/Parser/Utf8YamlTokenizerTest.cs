@@ -717,6 +717,7 @@ namespace VYaml.Tests
         [Test]
         [TestCase("! x", "!")]
         [TestCase("!a%21b x", "!a!b")]
+        [TestCase("!%F0%9F%98%80", "!😀")]
         [TestCase("!!str x", "!!str")]
         [TestCase("!a!str- x", "!a!str-")]
         [TestCase("!!str, x", "!!str")]

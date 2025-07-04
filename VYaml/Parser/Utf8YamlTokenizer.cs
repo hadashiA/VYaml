@@ -797,7 +797,9 @@ namespace VYaml.Parser
         {
             if (currentCode == '%')
             {
-                scalar.WriteUnicodeCodepoint(ConsumeUriEscapes());
+                var toWrite =(stackalloc byte[4]);
+                var width = ConsumeUriEscapes(toWrite);
+                scalar.Write(toWrite[..width]);
                 return true;
             }
             else if (YamlCodes.IsUriChar(currentCode))
@@ -814,7 +816,9 @@ namespace VYaml.Parser
         {
             if (currentCode == '%')
             {
-                scalar.WriteUnicodeCodepoint(ConsumeUriEscapes());
+                var toWrite =(stackalloc byte[4]);
+                var width = ConsumeUriEscapes(toWrite);
+                scalar.Write(toWrite[..width]);
                 return true;
             }
             else if (YamlCodes.IsTagChar(currentCode))
@@ -827,11 +831,10 @@ namespace VYaml.Parser
         }
 
         // TODO: Use Uri
-        int ConsumeUriEscapes()
+        int ConsumeUriEscapes(scoped Span<byte> span)
         {
             var width = 0;
-            var codepoint = 0;
-
+            var index = 0;
             while (!reader.End)
             {
                 TryPeek(1, out var hexcode0);
@@ -853,7 +856,7 @@ namespace VYaml.Parser
                         _ => throw new YamlTokenizerException(mark,
                             "While parsing a tag, found an incorrect leading utf8 octet")
                     };
-                    codepoint = octet;
+                    span[0] = (byte)octet;
                 }
                 else
                 {
@@ -862,19 +865,18 @@ namespace VYaml.Parser
                         throw new YamlTokenizerException(mark,
                             "While parsing a tag, found an incorrect trailing utf8 octet");
                     }
-                    codepoint = (currentCode << 8) + octet;
+                    span[index] =(byte) octet;
                 }
 
                 Advance(3);
-
-                width -= 1;
-                if (width == 0)
+                index += 1;
+                if (index == width)
                 {
                     break;
                 }
             }
 
-            return codepoint;
+            return width;
         }
 
         void ConsumeBlockScaler(bool literal)
