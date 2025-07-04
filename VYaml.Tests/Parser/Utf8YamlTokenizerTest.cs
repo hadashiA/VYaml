@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using NUnit.Framework;
 using VYaml.Parser;
@@ -746,6 +747,31 @@ namespace VYaml.Tests
             tokenizer.Read();
             tokenizer.Read();
             return Scalar(ref tokenizer).IsNull();
+        }
+        
+        [Test]
+        [TestCase( "あ")]
+        [TestCase( "😀")]
+        
+        public void CodePointUtf16Test(string literal)
+        {
+            CreateTokenizer($"\"{ string.Join("",literal.Select(c=> $"\\u{(ushort)c:X4}"))}\"", out var  tokenizer);
+            tokenizer.Read();
+            tokenizer.Read();
+            Assert.That(Scalar(ref tokenizer).ToString(), Is.EqualTo(literal));
+        }
+        
+        [Test]
+        [TestCase( "あ")]
+        [TestCase( "😀")]
+        
+        public void CodePointUtf32Test(string literal)
+        {
+            Rune.DecodeFromUtf16(literal,out var rune, out var charsConsumed);
+            CreateTokenizer($"\"\\U{rune.Value:X8}\"", out var  tokenizer);
+            tokenizer.Read();
+            tokenizer.Read();
+            Assert.That(Scalar(ref tokenizer).ToString(), Is.EqualTo(literal));
         }
 
         static void CreateTokenizer(IEnumerable<string> lines, out Utf8YamlTokenizer tokenizer)

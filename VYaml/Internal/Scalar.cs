@@ -118,11 +118,36 @@ namespace VYaml.Parser
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteUnicodeCodepoint(int codepoint)
         {
-            Span<char> chars = stackalloc char[] { (char)codepoint };
-            var utf8ByteCount = StringEncoding.Utf8.GetByteCount(chars);
-            Span<byte> utf8Bytes = stackalloc byte[utf8ByteCount];
-            StringEncoding.Utf8.GetBytes(chars, utf8Bytes);
-            Write(utf8Bytes);
+            switch (codepoint)
+            {
+                case <= 0x7F:
+                    Write((byte)codepoint);
+                    return;
+                case <= 0x7FF:
+                    Write ((byte)((codepoint + (0b110 << 11)) >> 6));
+                    Write((byte)((codepoint & 0x3F) + 0x80));
+                    return;
+                case <= 0xFFFF:
+                {
+                    Write((byte)((codepoint + (0b1110u << 16)) >> 12));
+                    Write((byte)(((codepoint& (0x3Fu << 6)) >> 6) + 0x80));
+                    Write((byte)((codepoint & 0x3Fu) + 0x80));
+                    return;
+                }
+                case<= 0x10FFFF:
+                {
+                    Write((byte)((codepoint + (0b11110 << 21)) >> 18));
+                    Write((byte)(((codepoint & (0x3F << 12)) >> 12) + 0x80));
+                    Write((byte)(((codepoint & (0x3F << 6)) >>> 6) + 0x80));
+                    Write((byte)((codepoint & 0x3F) + 0x80));
+                    return;
+                }
+        
+                default:  {
+                    throw new ArgumentOutOfRangeException(nameof(codepoint), codepoint, "Codepoint must be in range of Unicode characters.");
+                }
+                
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
