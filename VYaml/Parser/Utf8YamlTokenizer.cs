@@ -1222,10 +1222,52 @@ namespace VYaml.Parser
                                     }
                                     else
                                     {
-                                        throw new YamlTokenizerException(mark,
-                                            "While parsing a quoted scalar, did not find expected hexadecimal number");
+                                        ThrowExpectHexException(mark);
                                     }
                                 }
+
+                                if (codeLength == 4  )
+                                {
+                                    if(char.IsHighSurrogate((char)codepoint))
+                                    {
+                                        if (TryPeek(4, out var nextCode) && nextCode=='\\' &&
+                                            TryPeek(5, out var nextNextCode) && nextNextCode == 'u')
+                                        {
+                                            // Consume the high surrogate.
+                                            Advance(6);
+                                            if (TryPeek(2, out nextCode) && YamlCodes.IsHex(nextCode) &&
+                                                TryPeek(3, out  nextNextCode) && YamlCodes.IsHex(nextNextCode))
+                                            {
+                                                var lowSurrogate = 0;
+                                                for (var i = 0; i < 4; i++)
+                                                {
+                                                    if (TryPeek(i, out var hex) && YamlCodes.IsHex(hex))
+                                                    {
+                                                        lowSurrogate = (lowSurrogate << 4) + YamlCodes.AsHex(hex);
+                                                    }
+                                                    else
+                                                    {
+                                                        ThrowExpectHexException(mark);
+                                                    }
+                                                }
+                                                if (char.IsLowSurrogate((char)lowSurrogate))
+                                                {
+                                                    codepoint = char.ConvertToUtf32((char)codepoint, (char)lowSurrogate);
+                                                }
+                                                else
+                                                {
+                                                    scalar.WriteUnicodeCodepoint(codepoint);
+                                                    codepoint = lowSurrogate;
+                                                }
+                                            }
+                                            else
+                                            {
+                                                ThrowExpectHexException(mark);
+                                            }
+                                        }
+                                    }
+                                } 
+                                
                                 scalar.WriteUnicodeCodepoint(codepoint);
                             }
 
@@ -1235,6 +1277,12 @@ namespace VYaml.Parser
                             scalar.Write(currentCode);
                             Advance(1);
                             break;
+                    }
+
+                    static void ThrowExpectHexException(Marker mark)
+                    {
+                        throw new YamlTokenizerException(mark,
+                            "While parsing a quoted scalar, did not find expected hexadecimal number");
                     }
                 }
 
