@@ -20,6 +20,34 @@ public class VYamlSourceGenerator : ISourceGenerator
             var codeWriter = new CodeWriter();
             if (context.SyntaxContextReceiver! is not SyntaxContextReceiver syntaxCollector) return;
 
+            // Collect union member information
+            var unionMembersByType = new Dictionary<INamedTypeSymbol, List<(string Tag, INamedTypeSymbol SubType)>>(SymbolEqualityComparer.Default);
+            foreach (var unionMemberSyntax in syntaxCollector.GetUnionMemberDeclarations())
+            {
+                var semanticModel = context.Compilation.GetSemanticModel(unionMemberSyntax.SyntaxTree);
+                var symbol = semanticModel.GetDeclaredSymbol(unionMemberSyntax, context.CancellationToken);
+                if (symbol is INamedTypeSymbol typeSymbol)
+                {
+                    var attrs = symbol.GetAttributes().Where(x => 
+                        SymbolEqualityComparer.Default.Equals(x.AttributeClass, references.YamlUnionMemberAttribute));
+                    foreach (var attr in attrs)
+                    {
+                        if (attr.ConstructorArguments.Length == 2)
+                        {
+                            var tag = (string)attr.ConstructorArguments[0].Value!;
+                            var unionType = (INamedTypeSymbol)attr.ConstructorArguments[1].Value!;
+                            
+                            if (!unionMembersByType.TryGetValue(unionType, out var list))
+                            {
+                                list = new List<(string, INamedTypeSymbol)>();
+                                unionMembersByType[unionType] = list;
+                            }
+                            list.Add((tag, typeSymbol));
+                        }
+                    }
+                }
+            }
+
             foreach (var workItem in syntaxCollector.GetWorkItems())
             {
                 if (context.CancellationToken.IsCancellationRequested)
@@ -27,17 +55,29 @@ public class VYamlSourceGenerator : ISourceGenerator
                     return;
                 }
 
-                var typeMeta = workItem.Analyze(in context, references);
-                if (typeMeta is null) continue;
-
-                if (TryEmit(typeMeta, codeWriter, references, in context))
+                var semanticModel = context.Compilation.GetSemanticModel(workItem.Syntax.SyntaxTree);
+                var symbol = semanticModel.GetDeclaredSymbol(workItem.Syntax, context.CancellationToken);
+                if (symbol is INamedTypeSymbol typeSymbol)
                 {
-                    var fullType = typeMeta.FullTypeName
-                        .Replace("global::", "")
-                        .Replace("<", "_")
-                        .Replace(">", "_");
+                    var attributeData = symbol.GetAttributes().FirstOrDefault(x =>
+                    {
+                        var attribute = references.YamlObjectAttribute;
+                        return SymbolEqualityComparer.Default.Equals(x.AttributeClass, attribute);
+                    });
+                    if (attributeData is not null)
+                    {
+                        var typeMeta = new TypeMeta(workItem.Syntax, typeSymbol, attributeData, references, unionMembersByType);
 
-                    context.AddSource($"{fullType}.YamlFormatter.g.cs", codeWriter.ToString());
+                        if (TryEmit(typeMeta, codeWriter, references, in context))
+                        {
+                            var fullType = typeMeta.FullTypeName
+                                .Replace("global::", "")
+                                .Replace("<", "_")
+                                .Replace(">", "_");
+
+                            context.AddSource($"{fullType}.YamlFormatter.g.cs", codeWriter.ToString());
+                        }
+                    }
                 }
                 codeWriter.Clear();
             }

@@ -11,7 +11,7 @@ public class VYamlIncrementalSourceGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var provider = context.SyntaxProvider
+        var yamlObjectProvider = context.SyntaxProvider
             .ForAttributeWithMetadataName(
                 context,
                 "VYaml.Annotations.YamlObjectAttribute",
@@ -26,27 +26,61 @@ public class VYamlIncrementalSourceGenerator : IIncrementalGenerator
             .Combine(context.CompilationProvider)
             .WithComparer(Comparer.Instance);
 
+        var yamlUnionMemberProvider = context.SyntaxProvider
+            .ForAttributeWithMetadataName(
+                context,
+                "VYaml.Annotations.YamlUnionMemberAttribute",
+                static (node, cancellation) =>
+                {
+                    return node is ClassDeclarationSyntax
+                        or StructDeclarationSyntax
+                        or RecordDeclarationSyntax;
+                },
+                static (context, cancellation) => context)
+            .Combine(context.CompilationProvider)
+            .WithComparer(Comparer.Instance);
+
         // Generate the source code.
         context.RegisterSourceOutput(
-            context.CompilationProvider.Combine(provider.Collect()),
+            context.CompilationProvider.Combine(yamlObjectProvider.Collect()).Combine(yamlUnionMemberProvider.Collect()),
             (sourceProductionContext, t) =>
             {
-                var (compilation, list) = t;
+                var ((compilation, yamlObjectList), yamlUnionMemberList) = t;
                 var references = ReferenceSymbols.Create(compilation);
                 if (references is null)
                 {
                     return;
                 }
 
+                // Collect union member information
+                var unionMembersByType = new Dictionary<INamedTypeSymbol, List<(string Tag, INamedTypeSymbol SubType)>>(SymbolEqualityComparer.Default);
+                foreach (var (x, _) in yamlUnionMemberList)
+                {
+                    var attr = x.Attributes.First();
+                    if (attr.ConstructorArguments.Length == 2)
+                    {
+                        var tag = (string)attr.ConstructorArguments[0].Value!;
+                        var unionType = (INamedTypeSymbol)attr.ConstructorArguments[1].Value!;
+                        
+                        if (!unionMembersByType.TryGetValue(unionType, out var list))
+                        {
+                            list = new List<(string, INamedTypeSymbol)>();
+                            unionMembersByType[unionType] = list;
+                        }
+                        list.Add((tag, (INamedTypeSymbol)x.TargetSymbol));
+                    }
+                }
+
                 var codeWriter = new CodeWriter();
 
-                foreach (var (x, _) in list)
+                foreach (var (x, _) in yamlObjectList)
                 {
                     var typeMeta = new TypeMeta(
                         (TypeDeclarationSyntax)x.TargetNode,
                         (INamedTypeSymbol)x.TargetSymbol,
                         x.Attributes.First(),
-                        references);
+                        references,
+                        unionMembersByType);
 
                     if (Emitter.TryEmit(typeMeta, codeWriter, references, sourceProductionContext))
                     {
