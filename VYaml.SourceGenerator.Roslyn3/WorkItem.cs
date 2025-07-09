@@ -27,7 +27,7 @@ class WorkItem
             {
                 return null;
             }
-            return new TypeMeta(Syntax, typeSymbol, attributeData, references);
+            return new TypeMeta(Syntax, typeSymbol, attributeData, references, null);
         }
         return null;
     }

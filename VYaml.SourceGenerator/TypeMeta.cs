@@ -49,7 +49,8 @@ class TypeMeta
         TypeDeclarationSyntax syntax,
         INamedTypeSymbol symbol,
         AttributeData yamlObjectAttribute,
-        ReferenceSymbols references)
+        ReferenceSymbols references,
+        Dictionary<INamedTypeSymbol, List<(string Tag, INamedTypeSymbol SubType)>>? unionMembersByType = null)
     {
         Syntax = syntax;
         Symbol = symbol;
@@ -73,13 +74,24 @@ class TypeMeta
             .Where(x => !x.IsImplicitlyDeclared) // remove empty ctor(struct always generate it), record's clone ctor
             .ToArray();
 
-        UnionMetas = symbol.GetAttributes()
+        // Collect union metas from both YamlObjectUnionAttribute and YamlUnionMemberAttribute
+        var unionMetasList = new List<UnionMeta>();
+        
+        // From YamlObjectUnionAttribute (traditional approach)
+        unionMetasList.AddRange(symbol.GetAttributes()
             .Where(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, references.YamlObjectUnionAttribute))
             .Where(x => x.ConstructorArguments.Length == 2)
             .Select(x => new UnionMeta(
                 (string)x.ConstructorArguments[0].Value!,
-                (INamedTypeSymbol)x.ConstructorArguments[1].Value!))
-            .ToArray();
+                (INamedTypeSymbol)x.ConstructorArguments[1].Value!)));
+        
+        // From YamlUnionMemberAttribute (new approach)
+        if (unionMembersByType != null && unionMembersByType.TryGetValue(symbol, out var memberList))
+        {
+            unionMetasList.AddRange(memberList.Select(x => new UnionMeta(x.Tag, x.SubType)));
+        }
+        
+        UnionMetas = unionMetasList.ToArray();
     }
 
     public bool IsPartial()

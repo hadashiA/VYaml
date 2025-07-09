@@ -64,6 +64,22 @@ namespace VYaml.Annotations
     }
 
     /// <summary>
+    /// Marks a concrete type as a member of a union type, specifying the tag and parent union type
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = false)]
+    public sealed class YamlUnionMemberAttribute : Attribute
+    {
+        public string Tag { get; }
+        public Type UnionType { get; }
+
+        public YamlUnionMemberAttribute(string tag, Type unionType)
+        {
+            Tag = tag;
+            UnionType = unionType;
+        }
+    }
+
+    /// <summary>
     /// Preserve for Unity IL2CPP(internal but used for code generator)
     /// </summary>
     /// <remarks>

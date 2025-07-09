@@ -493,6 +493,63 @@ Result:
 a: 100
 ```
 
+#### Polymorphism (Union from derived or implementation class)
+
+You can also define union relationships from the derived or implementation class side using `[YamlUnionMember]`.
+This approach is practical when you want to add new implementations without modifying the base type.
+
+``` csharp
+[YamlObject]
+public partial interface IUnionSample2
+{
+}
+
+[YamlObject]
+[YamlUnionMember("!baz", typeof(IUnionSample2))]
+public partial class BazClass : IUnionSample2
+{
+    public int A { get; set; }
+}
+```
+
+This works the same as `YamlObjectUnion` attribute:
+
+``` csharp
+// We can deserialize as interface type.
+var obj = YamlSerializer.Deserialize<IUnionSample2>(UTF8.GetBytes("!baz { a: 100 }"));
+
+Assert.That(obj, Is.TypeOf<BazClass>());
+```
+
+You can also serialize:
+
+``` csharp
+YamlSerializer.Serialize<IUnionSample2>(new Baz { A = 100 });
+```
+
+Result:
+``` yaml
+!baz
+a: 100
+```
+
+Both approaches can be mixed within the same union type:
+
+``` csharp
+[YamlObject]
+[YamlObjectUnion("!qux", typeof(QuxClass))]
+public partial interface IMixedUnion
+{
+}
+
+[YamlObject]
+public partial class QuxClass : IMixedUnion { }
+
+[YamlObject]
+[YamlUnionMember("!quux", typeof(IMixedUnion))]
+public partial class QuuxClass : IMixedUnion { }
+```
+
 ## Customize serialization behaviour
 
 - `IYamlFormatter<T>` is an interface customize the serialization behaviour of a your particular type.
