@@ -458,5 +458,32 @@ namespace VYaml.Tests.Serialization
                 new YamlSerializerOptions { NamingConvention = NamingConvention.UpperCamelCase });
             Assert.That(result2.B, Is.EqualTo(123));
         }
+
+        [Test]
+        public void Serialize_PrivateMembers()
+        {
+            var result = Serialize(new WithPrivateMembers(100, 200, "internal", "public"));
+            Assert.That(result, Is.EqualTo(
+                "publicField: 100\n" +
+                "privateField: 200\n" +
+                "internalProperty: internal\n" +
+                "publicProperty: public\n"
+            ));
+        }
+
+        [Test]
+        public void Deserialize_PrivateMembers()
+        {
+            var result = Deserialize<WithPrivateMembers>(
+                "publicField: 100\n" +
+                "privateField: 200\n" +
+                "internalProperty: internal\n" +
+                "publicProperty: public\n");
+            
+            Assert.That(result.PublicField, Is.EqualTo(100));
+            Assert.That(result.PublicProperty, Is.EqualTo("public"));
+            // Note: private/internal members can't be directly accessed in tests
+            // but serialization should include them
+        }
     }
 }

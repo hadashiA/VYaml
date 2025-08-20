@@ -209,6 +209,30 @@ namespace VYaml.Tests.TypeDeclarations
     }
 
     [YamlObject]
+    public partial class WithPrivateMembers
+    {
+        private int nonMemberPrivateField;
+        
+        public int PublicField;
+        
+        [YamlMember]
+        private int privateField;
+        
+        [YamlMember]
+        internal string internalProperty { get; set; } = default!;
+        
+        public string PublicProperty { get; set; } = default!;
+
+        public WithPrivateMembers(int publicField, int privateField, string internalProperty, string publicProperty)
+        {
+            PublicField = publicField;
+            this.privateField = privateField;
+            this.internalProperty = internalProperty;
+            PublicProperty = publicProperty;
+        }
+    }
+
+    [YamlObject]
     public partial class WithCustomConstructor
     {
         public int Foo { get; }
