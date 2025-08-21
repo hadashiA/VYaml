@@ -216,7 +216,7 @@ namespace VYaml.Tests.TypeDeclarations
         public int PublicField;
         
         [YamlMember]
-        private int privateField;
+        private int _privateField;
         
         [YamlMember]
         internal string internalProperty { get; set; } = default!;
@@ -226,7 +226,7 @@ namespace VYaml.Tests.TypeDeclarations
         public WithPrivateMembers(int publicField, int privateField, string internalProperty, string publicProperty)
         {
             PublicField = publicField;
-            this.privateField = privateField;
+            this._privateField = privateField;
             this.internalProperty = internalProperty;
             PublicProperty = publicProperty;
         }

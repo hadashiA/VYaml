@@ -33,7 +33,16 @@ class MemberMeta
         Name = symbol.Name;
         Order = sequentialOrder;
         NamingConventionByType = namingConventionByType;
-        KeyName = NamingConventionMutator.Mutate(Name, NamingConventionByType);
+
+        // .NET API naming convention
+        if (Name.StartsWith("_"))
+        {
+            KeyName = NamingConventionMutator.Mutate(Name.Substring(1), NamingConventionByType);   
+        }
+        else
+        {
+            KeyName = NamingConventionMutator.Mutate(Name, NamingConventionByType);
+        }
 
         var memberAttribute = symbol.GetAttribute(references.YamlMemberAttribute);
         if (memberAttribute != null)
