@@ -5,6 +5,7 @@
         <Nullable>enable</Nullable>
         <LangVersion>9</LangVersion>
         <ImplicitUsings>disable</ImplicitUsings>
+        <Description>The type annotations from VYaml, a high-speed Yaml parser</Description>
     </PropertyGroup>
 
     <!-- Copy files for Unity -->
