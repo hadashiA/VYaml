@@ -1310,6 +1310,7 @@ namespace VYaml.Parser
                         if (isLeadingBlanks)
                         {
                             trailingBreak = ConsumeLineBreaks();
+                            scalar.Write(trailingBreak);
                         }
                         else
                         {
@@ -1336,7 +1337,6 @@ namespace VYaml.Parser
                         }
                         else
                         {
-                            scalar.Write(trailingBreak);
                             trailingBreak = LineBreakState.None;
                         }
                         leadingBreak = LineBreakState.None;

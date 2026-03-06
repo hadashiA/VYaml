@@ -601,6 +601,16 @@ namespace VYaml.Tests
             " 2nd non-empty \n" +
             "\t3rd non-empty '";
 
+        public const string Ex7_9_Extended =
+            "' 1st non-empty\n" +
+            "\n" +
+            "\n" +
+            "\n" +
+            " 2nd non-empty \n" +
+            "\t3rd non-empty \n" +
+            "\n" +
+            "\n'";
+
         public const string Ex7_10 =
             "# Outside flow collection:\n" +
             "- ::vector\n" +

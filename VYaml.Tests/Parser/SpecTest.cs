@@ -1533,6 +1533,19 @@ namespace VYaml.Tests.Parser
         }
 
         [Test]
+        public void Ex7_09_SingleQuotedLines_Extended()
+        {
+            AssertParseEvents(SpecExamples.Ex7_9_Extended, new[]
+            {
+                Expect(ParseEventType.StreamStart),
+                Expect(ParseEventType.DocumentStart),
+                Expect(ParseEventType.Scalar, " 1st non-empty\n\n\n2nd non-empty 3rd non-empty\n\n"),
+                Expect(ParseEventType.DocumentEnd),
+                Expect(ParseEventType.StreamEnd),
+            });
+        }
+
+        [Test]
         public void Ex7_10_PlainCharacters()
         {
             AssertParseEvents(SpecExamples.Ex7_10, new []
