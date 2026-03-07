@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Runtime.Serialization;
 using VYaml.Annotations;
 
@@ -298,6 +298,20 @@ namespace VYaml.Tests.TypeDeclarations
             UshortValue = ushortValue;
             ByteValue = byteValue;
         }
+    }
+
+    [YamlObject]
+    public partial class GenericType<T>
+    {
+        public T? Value { get; set; }
+    }
+
+    [YamlObject]
+    public partial class GenericType<T, T2>
+    {
+        public T? Foo { get; set; }
+
+        public T2? Bar { get; set; }
     }
 }
 

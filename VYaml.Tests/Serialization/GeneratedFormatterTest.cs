@@ -1,8 +1,9 @@
+﻿using NUnit.Framework;
 using System;
-using NUnit.Framework;
 using VYaml.Annotations;
 using VYaml.Serialization;
 using VYaml.Tests.TypeDeclarations;
+
 
 namespace VYaml.Tests.Serialization
 {
@@ -237,6 +238,21 @@ namespace VYaml.Tests.Serialization
 
         }
 
+        public void Seralize_GenericType()
+        {
+            var result = Serialize(new GenericType<int>
+            {
+                Value = 100
+            });
+            Assert.That(result, Is.EqualTo("one: 100\n"));
+            var result2 = Serialize(new GenericType<int, string>
+            {
+                Foo = 111,
+                Bar = "aaa"
+            });
+            Assert.That(result2, Is.EqualTo("foo: 111\nbar: aaa\n"));
+        }
+
         [Test]
         public void Deserialize_NoMember()
         {
@@ -458,5 +474,16 @@ namespace VYaml.Tests.Serialization
                 new YamlSerializerOptions { NamingConvention = NamingConvention.UpperCamelCase });
             Assert.That(result2.B, Is.EqualTo(123));
         }
+
+        public void Deserialize_GenericType()
+        {
+            var result = Deserialize<GenericType<int>>("{ one: 100 }");
+            Assert.That(result.Value, Is.EqualTo(100));
+
+            var result2 = Deserialize<GenericType<int, string>>("{ foo: 111, bar: aaa }");
+            Assert.That(result2.Foo, Is.EqualTo(111));
+            Assert.That(result2.Bar, Is.EqualTo("aaa"));
+        }
+
     }
 }

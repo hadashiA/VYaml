@@ -35,7 +35,9 @@ public class VYamlSourceGenerator : ISourceGenerator
                     var fullType = typeMeta.FullTypeName
                         .Replace("global::", "")
                         .Replace("<", "_")
-                        .Replace(">", "_");
+                        .Replace(">", "_")
+                        .Replace(",", "_")
+                        .Replace(" ", "");
 
                     context.AddSource($"{fullType}.YamlFormatter.g.cs", codeWriter.ToString());
                 }
@@ -253,7 +255,9 @@ public class VYamlSourceGenerator : ISourceGenerator
     {
         codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
         using var _ = codeWriter.BeginBlockScope("public static void __RegisterVYamlFormatter()");
-        codeWriter.AppendLine($"global::VYaml.Serialization.GeneratedResolver.Register(new {typeMeta.TypeName}GeneratedFormatter());");
+
+        var typeName = typeMeta.TypeName.Replace("<", "_").Replace(">", "_").Replace(",", "_").Replace(" ", "");
+        codeWriter.AppendLine($"global::VYaml.Serialization.GeneratedResolver.Register(new {typeName}GeneratedFormatter());");
         return true;
     }
 
@@ -268,7 +272,9 @@ public class VYamlSourceGenerator : ISourceGenerator
             : $"{typeMeta.FullTypeName}?";
 
         codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
-        using var _ = codeWriter.BeginBlockScope($"public class {typeMeta.TypeName}GeneratedFormatter : IYamlFormatter<{returnType}>");
+
+        var typeName = typeMeta.TypeName.Replace("<", "_").Replace(">", "_").Replace(",", "_").Replace(" ", "");
+        using var _ = codeWriter.BeginBlockScope($"public class {typeName}GeneratedFormatter : IYamlFormatter<{returnType}>");
 
         // Union
         if (typeMeta.IsUnion)

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -216,7 +216,9 @@ static class Emitter
     {
         codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
         using var _ = codeWriter.BeginBlockScope("public static void __RegisterVYamlFormatter()");
-        codeWriter.AppendLine($"global::VYaml.Serialization.GeneratedResolver.Register(new {typeMeta.TypeName}GeneratedFormatter());");
+
+        var typeName = typeMeta.TypeName.Replace("<", "_").Replace(">", "_").Replace(",", "_").Replace(" ", "");
+        codeWriter.AppendLine($"global::VYaml.Serialization.GeneratedResolver.Register(new {typeName}GeneratedFormatter());");
         return true;
     }
 
@@ -231,7 +233,9 @@ static class Emitter
             : $"{typeMeta.FullTypeName}?";
 
         codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
-        using var _ = codeWriter.BeginBlockScope($"public class {typeMeta.TypeName}GeneratedFormatter : IYamlFormatter<{returnType}>");
+
+        var typeName = typeMeta.TypeName.Replace("<", "_").Replace(">", "_").Replace(",", "_").Replace(" ", "");
+        using var _ = codeWriter.BeginBlockScope($"public class {typeName}GeneratedFormatter : IYamlFormatter<{returnType}>");
 
         // Union
         if (typeMeta.IsUnion)

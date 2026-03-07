@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -53,7 +53,9 @@ public class VYamlIncrementalSourceGenerator : IIncrementalGenerator
                         var fullType = typeMeta.FullTypeName
                             .Replace("global::", "")
                             .Replace("<", "_")
-                            .Replace(">", "_");
+                            .Replace(">", "_")
+                            .Replace(",", "_")
+                            .Replace(" ", "");
 
                         sourceProductionContext.AddSource($"{fullType}.YamlFormatter.g.cs", codeWriter.ToString());
                     }
