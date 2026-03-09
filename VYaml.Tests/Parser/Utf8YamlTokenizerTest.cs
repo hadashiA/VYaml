@@ -775,6 +775,35 @@ namespace VYaml.Tests
             Assert.That(Scalar(ref tokenizer).ToString(), Is.EqualTo(literal));
         }
 
+        [Test]
+        [Timeout(5000)]
+        public void MappingKeyWithColonAtEof()
+        {
+            CreateTokenizer("  property:", out var tokenizer);
+
+            Assert.That(tokenizer.Read(), Is.True);
+            Assert.That(tokenizer.CurrentTokenType, Is.EqualTo(TokenType.StreamStart));
+
+            Assert.That(tokenizer.Read(), Is.True);
+            Assert.That(tokenizer.CurrentTokenType, Is.EqualTo(TokenType.BlockMappingStart));
+
+            Assert.That(tokenizer.Read(), Is.True);
+            Assert.That(tokenizer.CurrentTokenType, Is.EqualTo(TokenType.KeyStart));
+
+            Assert.That(tokenizer.Read(), Is.True);
+            Assert.That(tokenizer.CurrentTokenType, Is.EqualTo(TokenType.PlainScalar));
+            Assert.That(Scalar(ref tokenizer).ToString(), Is.EqualTo("property"));
+
+            Assert.That(tokenizer.Read(), Is.True);
+            Assert.That(tokenizer.CurrentTokenType, Is.EqualTo(TokenType.ValueStart));
+
+            Assert.That(tokenizer.Read(), Is.True);
+            Assert.That(tokenizer.CurrentTokenType, Is.EqualTo(TokenType.BlockEnd));
+
+            Assert.That(tokenizer.Read(), Is.True);
+            Assert.That(tokenizer.CurrentTokenType, Is.EqualTo(TokenType.StreamEnd));
+        }
+
         static void CreateTokenizer(IEnumerable<string> lines, out Utf8YamlTokenizer tokenizer)
         {
             var yaml = string.Join("\n", lines);
