@@ -438,6 +438,28 @@ namespace VYaml.Tests.Serialization
         }
 
         [Test]
+        public void Deserialize_NumericDefaultValues()
+        {
+            var result = Deserialize<WithNumericDefaultValues>("{}");
+            Assert.That(result.Address, Is.EqualTo((ushort)0));
+            Assert.That(result.ShortValue, Is.EqualTo((short)0));
+            Assert.That(result.SbyteValue, Is.EqualTo((sbyte)0));
+            Assert.That(result.ReadOnly, Is.EqualTo(false));
+            Assert.That(result.Name, Is.EqualTo(""));
+        }
+
+        [Test]
+        public void Deserialize_NumericDefaultValues_PartialOverride()
+        {
+            var result = Deserialize<WithNumericDefaultValues>("{ address: 100, shortValue: -50 }");
+            Assert.That(result.Address, Is.EqualTo((ushort)100));
+            Assert.That(result.ShortValue, Is.EqualTo((short)-50));
+            Assert.That(result.SbyteValue, Is.EqualTo((sbyte)0));
+            Assert.That(result.ReadOnly, Is.EqualTo(false));
+            Assert.That(result.Name, Is.EqualTo(""));
+        }
+
+        [Test]
         public void Deserialize_CustomNamingConvention()
         {
             var result1 = Deserialize<WithCustomNamingConvention>("{ hoge_fuga: 123 }");
