@@ -313,6 +313,31 @@ namespace VYaml.Tests.TypeDeclarations
 
         public T2? Bar { get; set; }
     }
+
+    [YamlObject]
+    public partial class WithNumericDefaultValues
+    {
+        public ushort Address { get; }
+        public short ShortValue { get; }
+        public sbyte SbyteValue { get; }
+        public bool ReadOnly { get; }
+        public string Name { get; }
+
+        [YamlConstructor]
+        public WithNumericDefaultValues(
+            ushort address = 0,
+            short shortValue = 0,
+            sbyte sbyteValue = 0,
+            bool readOnly = false,
+            string name = "")
+        {
+            Address = address;
+            ShortValue = shortValue;
+            SbyteValue = sbyteValue;
+            ReadOnly = readOnly;
+            Name = name;
+        }
+    }
 }
 
 // another namespace, same type name

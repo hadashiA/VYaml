@@ -153,6 +153,26 @@ namespace VYaml.Tests.Serialization
         }
 
         [Test]
+        public void SerializeDeserialize_NativeInt()
+        {
+            var yaml = YamlSerializer.SerializeToString<nint>(42);
+            Assert.That(yaml, Is.EqualTo("42"));
+
+            var result = YamlSerializer.Deserialize<nint>(StringEncoding.Utf8.GetBytes("42"));
+            Assert.That(result, Is.EqualTo((nint)42));
+        }
+
+        [Test]
+        public void SerializeDeserialize_NativeUInt()
+        {
+            var yaml = YamlSerializer.SerializeToString<nuint>(42);
+            Assert.That(yaml, Is.EqualTo("42"));
+
+            var result = YamlSerializer.Deserialize<nuint>(StringEncoding.Utf8.GetBytes("42"));
+            Assert.That(result, Is.EqualTo((nuint)42));
+        }
+
+        [Test]
         public void Deserialize_Empty()
         {
             var empty = new ReadOnlyMemory<byte>(Array.Empty<byte>());
