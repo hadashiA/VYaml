@@ -227,7 +227,8 @@ namespace VYaml.Parser
                     ConsumeComplexKeyStart();
                     break;
                 case YamlCodes.MapValueIndent
-                    when (TryPeek(1, out var nextCode) && YamlCodes.IsEmpty(nextCode)) ||
+                    when !TryPeek(1, out var nextCode) ||
+                         YamlCodes.IsEmpty(nextCode) ||
                          (flowLevel > 0 && (YamlCodes.IsAnyFlowSymbol(nextCode) || mark.Position == adjacentValueAllowedAt)):
                     ConsumeValueStart();
                     break;
