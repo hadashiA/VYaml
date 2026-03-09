@@ -173,6 +173,14 @@ namespace VYaml.Tests.Serialization
         }
 
         [Test]
+        public void Serialize_LongString()
+        {
+            var longString = new string('a', 3000);
+            var result = YamlSerializer.SerializeToString(longString);
+            Assert.That(result, Does.Contain(longString));
+        }
+
+        [Test]
         public void Deserialize_Empty()
         {
             var empty = new ReadOnlyMemory<byte>(Array.Empty<byte>());
