@@ -31,7 +31,7 @@ namespace VYaml.Internal
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Span<T> AsSpan(int length)
         {
-            if (length > buffer.Length)
+            while (length > buffer.Length)
             {
                 SetCapacity(buffer.Length * 2);
             }
