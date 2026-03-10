@@ -13,7 +13,7 @@ namespace VYaml.Serialization
     // TODO:
     static class EnumAsStringNonGenericHelper
     {
-        static readonly ConcurrentDictionary<object, string> AliasStringValues = new();
+        static readonly ConcurrentDictionary<object, string?> AliasStringValues = new();
         static readonly ConcurrentDictionary<Type, NamingConvention?> NamingConventionsByType = new();
 
         static readonly Func<object, Type, string?> AliasStringValueFactory = AnalyzeAliasStringValue;

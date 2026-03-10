@@ -338,6 +338,45 @@ namespace VYaml.Tests.TypeDeclarations
             Name = name;
         }
     }
+    [YamlObject]
+    public partial class WithPrivateMembers
+    {
+        public int PublicField;
+
+        [YamlMember("privateField")]
+        int _privateField;
+
+        [YamlMember]
+        internal string InternalProperty { get; set; } = default!;
+
+        public string PublicProperty { get; set; } = default!;
+
+        [YamlConstructor]
+        public WithPrivateMembers(int publicField, int privateField, string internalProperty, string publicProperty)
+        {
+            PublicField = publicField;
+            _privateField = privateField;
+            InternalProperty = internalProperty;
+            PublicProperty = publicProperty;
+        }
+
+        public int GetPrivateField() => _privateField;
+    }
+
+    [YamlObject]
+    public partial class WithPrivateMembersSettable
+    {
+        public int PublicValue { get; set; }
+
+        [YamlMember("secret")]
+        int _secret;
+
+        public WithPrivateMembersSettable()
+        {
+        }
+
+        public int GetSecret() => _secret;
+    }
 }
 
 // another namespace, same type name

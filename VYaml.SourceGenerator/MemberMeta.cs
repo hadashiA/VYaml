@@ -33,7 +33,12 @@ class MemberMeta
         Name = symbol.Name;
         Order = sequentialOrder;
         NamingConventionByType = namingConventionByType;
-        KeyName = NamingConventionMutator.Mutate(Name, NamingConventionByType);
+
+        // Strip leading '_' from private field names for key generation (e.g. _myField -> myField)
+        var nameForKey = symbol.DeclaredAccessibility != Accessibility.Public && Name.StartsWith("_")
+            ? Name.Substring(1)
+            : Name;
+        KeyName = NamingConventionMutator.Mutate(nameForKey, NamingConventionByType);
 
         var memberAttribute = symbol.GetAttribute(references.YamlMemberAttribute);
         if (memberAttribute != null)
