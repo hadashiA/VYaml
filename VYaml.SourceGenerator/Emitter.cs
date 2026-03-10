@@ -215,7 +215,13 @@ static class Emitter
     static bool TryEmitRegisterMethod(TypeMeta typeMeta, CodeWriter codeWriter, in SourceProductionContext context)
     {
         codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
-        using var _ = codeWriter.BeginBlockScope("public static void __RegisterVYamlFormatter()");
+        // Use 'new' modifier when base type also has [YamlObject] to avoid CS0108
+        var hasBaseYamlObject = typeMeta.Symbol.BaseType != null &&
+                                typeMeta.Symbol.BaseType.GetAttributes().Any(a =>
+                                    a.AttributeClass != null &&
+                                    a.AttributeClass.ToDisplayString() == "VYaml.Annotations.YamlObjectAttribute");
+        var modifier = hasBaseYamlObject ? "public static new" : "public static";
+        using var _ = codeWriter.BeginBlockScope($"{modifier} void __RegisterVYamlFormatter()");
 
         var typeName = typeMeta.TypeName.Replace("<", "_").Replace(">", "_").Replace(",", "_").Replace(" ", "");
         codeWriter.AppendLine($"global::VYaml.Serialization.GeneratedResolver.Register(new {typeName}GeneratedFormatter());");
