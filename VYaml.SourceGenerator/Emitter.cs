@@ -583,7 +583,9 @@ static class Emitter
         foreach (var parameter in selectedConstructor.Parameters)
         {
             var matchedMember = typeMeta.MemberMetas
-                .FirstOrDefault(member => parameter.Name.Equals(member.Name, StringComparison.OrdinalIgnoreCase));
+                .FirstOrDefault(member =>
+                    parameter.Name.Equals(member.Name, StringComparison.OrdinalIgnoreCase) ||
+                    parameter.Name.Equals(member.KeyName, StringComparison.OrdinalIgnoreCase));
             if (matchedMember != null)
             {
                 matchedMember.IsConstructorParameter = true;

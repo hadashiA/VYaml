@@ -507,5 +507,55 @@ namespace VYaml.Tests.Serialization
             Assert.That(result2.Bar, Is.EqualTo("aaa"));
         }
 
+        [Test]
+        public void Serialize_PrivateMembers()
+        {
+            var obj = new WithPrivateMembers(100, 200, "internal-val", "public-val");
+            var result = Serialize(obj);
+            Assert.That(result, Does.Contain("publicField: 100"));
+            Assert.That(result, Does.Contain("privateField: 200"));
+            Assert.That(result, Does.Contain("internalProperty: internal-val"));
+            Assert.That(result, Does.Contain("publicProperty: public-val"));
+        }
+
+        [Test]
+        public void Deserialize_PrivateMembers()
+        {
+            var result = Deserialize<WithPrivateMembers>(
+                "publicField: 100\n" +
+                "privateField: 200\n" +
+                "internalProperty: hello\n" +
+                "publicProperty: world\n");
+            Assert.That(result.PublicField, Is.EqualTo(100));
+            Assert.That(result.GetPrivateField(), Is.EqualTo(200));
+            Assert.That(result.InternalProperty, Is.EqualTo("hello"));
+            Assert.That(result.PublicProperty, Is.EqualTo("world"));
+        }
+
+        [Test]
+        public void RoundTrip_PrivateMembers()
+        {
+            var original = new WithPrivateMembers(42, 99, "secret", "visible");
+            var yaml = Serialize(original);
+            var deserialized = Deserialize<WithPrivateMembers>(yaml);
+            Assert.That(deserialized.PublicField, Is.EqualTo(42));
+            Assert.That(deserialized.GetPrivateField(), Is.EqualTo(99));
+            Assert.That(deserialized.InternalProperty, Is.EqualTo("secret"));
+            Assert.That(deserialized.PublicProperty, Is.EqualTo("visible"));
+        }
+
+        [Test]
+        public void Serialize_PrivateMembersSettable()
+        {
+            var yaml = "publicValue: 10\nsecret: 42\n";
+            var result = Deserialize<WithPrivateMembersSettable>(yaml);
+            Assert.That(result.PublicValue, Is.EqualTo(10));
+            Assert.That(result.GetSecret(), Is.EqualTo(42));
+
+            var serialized = Serialize(result);
+            Assert.That(serialized, Does.Contain("publicValue: 10"));
+            Assert.That(serialized, Does.Contain("secret: 42"));
+        }
+
     }
 }
