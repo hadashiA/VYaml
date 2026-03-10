@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
@@ -286,6 +286,8 @@ static class Emitter
         codeWriter.AppendLine("emitter.BeginMapping();");
         foreach (var memberMeta in memberMetas)
         {
+            var ignoreScope = EmitIgnoreConditionCheck(codeWriter, memberMeta);
+
             if (memberMeta.HasKeyNameAlias || typeMeta.NamingConventionByType != NamingConvention.LowerCamelCase)
             {
                 codeWriter.AppendLine($"emitter.WriteString(\"{memberMeta.KeyName}\");");
@@ -303,10 +305,67 @@ static class Emitter
                 }
             }
             codeWriter.AppendLine($"context.Serialize(ref emitter, value.{memberMeta.Name});");
+
+            if (ignoreScope != null)
+            {
+                ignoreScope.Dispose();
+                codeWriter.AppendLine("}");
+            }
         }
         codeWriter.AppendLine("emitter.EndMapping();");
 
         return true;
+    }
+
+    public static IDisposable? EmitIgnoreConditionCheck(CodeWriter codeWriter, MemberMeta memberMeta)
+    {
+        var isReferenceType = memberMeta.MemberType.IsReferenceType;
+        var namedType = memberMeta.MemberType as INamedTypeSymbol;
+        var isNullableValueType = namedType is { IsGenericType: true } &&
+                                  namedType.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T;
+
+        if (isReferenceType || isNullableValueType)
+        {
+            codeWriter.AppendLine(
+                $"if (context.Options.DefaultIgnoreCondition == global::VYaml.Serialization.YamlIgnoreCondition.Never || " +
+                $"value.{memberMeta.Name} != null)");
+            codeWriter.AppendLine("{");
+            return codeWriter.BeginIndentScope();
+        }
+
+        if (memberMeta.MemberType.IsValueType)
+        {
+            var comparison = GetDefaultValueComparison(memberMeta.MemberType, memberMeta.Name);
+            codeWriter.AppendLine(
+                $"if (context.Options.DefaultIgnoreCondition != global::VYaml.Serialization.YamlIgnoreCondition.WhenWritingDefault || " +
+                $"{comparison})");
+            codeWriter.AppendLine("{");
+            return codeWriter.BeginIndentScope();
+        }
+
+        return null;
+    }
+
+    static string GetDefaultValueComparison(ITypeSymbol type, string memberName)
+    {
+        var typeName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        return typeName switch
+        {
+            "bool" or "global::System.Boolean" => $"value.{memberName} != false",
+            "byte" or "global::System.Byte" => $"value.{memberName} != 0",
+            "sbyte" or "global::System.SByte" => $"value.{memberName} != 0",
+            "short" or "global::System.Int16" => $"value.{memberName} != 0",
+            "ushort" or "global::System.UInt16" => $"value.{memberName} != 0",
+            "int" or "global::System.Int32" => $"value.{memberName} != 0",
+            "uint" or "global::System.UInt32" => $"value.{memberName} != 0u",
+            "long" or "global::System.Int64" => $"value.{memberName} != 0L",
+            "ulong" or "global::System.UInt64" => $"value.{memberName} != 0UL",
+            "float" or "global::System.Single" => $"value.{memberName} != 0f",
+            "double" or "global::System.Double" => $"value.{memberName} != 0d",
+            "decimal" or "global::System.Decimal" => $"value.{memberName} != 0m",
+            "char" or "global::System.Char" => $"value.{memberName} != '\\0'",
+            _ => $"!value.{memberName}.Equals(default({typeName}))"
+        };
     }
 
     static bool TryEmitSerializeMethodUnion(TypeMeta typeMeta, CodeWriter codeWriter, in SourceProductionContext context)

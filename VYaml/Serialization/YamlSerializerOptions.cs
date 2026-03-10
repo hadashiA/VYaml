@@ -15,5 +15,6 @@ namespace VYaml.Serialization
         public IYamlFormatterResolver Resolver { get; set; } = StandardResolver.Instance;
         public NamingConvention NamingConvention { get; set; } = DefaultNamingConvention;
         public YamlEmitOptions EmitOptions { get; set; } = new();
+        public YamlIgnoreCondition DefaultIgnoreCondition { get; set; } = YamlIgnoreCondition.Never;
     }
 }
