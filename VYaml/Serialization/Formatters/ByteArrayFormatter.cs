@@ -126,7 +126,7 @@ namespace VYaml.Serialization
         public void Serialize(ref Utf8YamlEmitter emitter, ArraySegment<byte> value, YamlSerializationContext context)
         {
             emitter.WriteString(                
-                Convert.ToBase64String(value.Array, value.Offset, value.Count, Base64FormattingOptions.None),
+                Convert.ToBase64String(value.Array!, value.Offset, value.Count, Base64FormattingOptions.None),
                 ScalarStyle.Plain);
         }
 
