@@ -1,4 +1,4 @@
-﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis;
 
 namespace VYaml.SourceGenerator;
 
@@ -319,6 +319,8 @@ public class VYamlSourceGenerator : ISourceGenerator
         codeWriter.AppendLine("emitter.BeginMapping();");
         foreach (var memberMeta in memberMetas)
         {
+            var ignoreScope = Emitter.EmitIgnoreConditionCheck(codeWriter, memberMeta);
+
             if (memberMeta.HasKeyNameAlias)
             {
                 codeWriter.AppendLine($"emitter.WriteString(\"{memberMeta.KeyName}\");");
@@ -328,6 +330,12 @@ public class VYamlSourceGenerator : ISourceGenerator
                 codeWriter.AppendLine($"emitter.WriteString(\"{memberMeta.KeyName}\", ScalarStyle.Plain);");
             }
             codeWriter.AppendLine($"context.Serialize(ref emitter, value.{memberMeta.Name});");
+
+            if (ignoreScope != null)
+            {
+                ignoreScope.Dispose();
+                codeWriter.AppendLine("}");
+            }
         }
         codeWriter.AppendLine("emitter.EndMapping();");
 

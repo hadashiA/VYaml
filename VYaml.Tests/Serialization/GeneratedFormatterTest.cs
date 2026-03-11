@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using System;
 using VYaml.Annotations;
 using VYaml.Serialization;
@@ -555,6 +555,137 @@ namespace VYaml.Tests.Serialization
             var serialized = Serialize(result);
             Assert.That(serialized, Does.Contain("publicValue: 10"));
             Assert.That(serialized, Does.Contain("secret: 42"));
+        }
+
+        [Test]
+        public void Serialize_DefaultIgnoreCondition_Never()
+        {
+            var options = new YamlSerializerOptions
+            {
+                Resolver = StandardResolver.Instance,
+                DefaultIgnoreCondition = YamlIgnoreCondition.Never,
+            };
+
+            var obj = new TypeWithNullableProperties();
+            var result = Serialize(obj, options);
+
+            Assert.That(result, Does.Contain("nullableString:"));
+            Assert.That(result, Does.Contain("nonNullableString:"));
+            Assert.That(result, Does.Contain("nullableInt:"));
+            Assert.That(result, Does.Contain("nonNullableInt:"));
+            Assert.That(result, Does.Contain("boolValue:"));
+            Assert.That(result, Does.Contain("doubleValue:"));
+            Assert.That(result, Does.Contain("nullableObject:"));
+            Assert.That(result, Does.Contain("nonNullableObject:"));
+        }
+
+        [Test]
+        public void Serialize_DefaultIgnoreCondition_WhenWritingNull()
+        {
+            var options = new YamlSerializerOptions
+            {
+                Resolver = StandardResolver.Instance,
+                DefaultIgnoreCondition = YamlIgnoreCondition.WhenWritingNull,
+            };
+
+            var obj = new TypeWithNullableProperties
+            {
+                NullableString = null,
+                NullableInt = null,
+                NullableObject = null,
+                NonNullableInt = 0,
+                BoolValue = false,
+                DoubleValue = 0.0,
+            };
+            var result = Serialize(obj, options);
+
+            Assert.That(result, Does.Not.Contain("nullableString:"));
+            Assert.That(result, Does.Contain("nonNullableString:"));
+            Assert.That(result, Does.Not.Contain("nullableInt:"));
+            Assert.That(result, Does.Contain("nonNullableInt:"));
+            Assert.That(result, Does.Contain("boolValue:"));
+            Assert.That(result, Does.Contain("doubleValue:"));
+            Assert.That(result, Does.Not.Contain("nullableObject:"));
+            Assert.That(result, Does.Contain("nonNullableObject:"));
+        }
+
+        [Test]
+        public void Serialize_DefaultIgnoreCondition_WhenWritingNull_WithValues()
+        {
+            var options = new YamlSerializerOptions
+            {
+                Resolver = StandardResolver.Instance,
+                DefaultIgnoreCondition = YamlIgnoreCondition.WhenWritingNull,
+            };
+
+            var obj = new TypeWithNullableProperties
+            {
+                NullableString = "hello",
+                NullableInt = 42,
+                NullableObject = new SimpleTypeOne { One = 1 },
+            };
+            var result = Serialize(obj, options);
+
+            Assert.That(result, Does.Contain("nullableString:"));
+            Assert.That(result, Does.Contain("nullableInt:"));
+            Assert.That(result, Does.Contain("nullableObject:"));
+        }
+
+        [Test]
+        public void Serialize_DefaultIgnoreCondition_WhenWritingDefault()
+        {
+            var options = new YamlSerializerOptions
+            {
+                Resolver = StandardResolver.Instance,
+                DefaultIgnoreCondition = YamlIgnoreCondition.WhenWritingDefault,
+            };
+
+            var obj = new TypeWithNullableProperties
+            {
+                NullableString = null,
+                NonNullableString = "default",
+                NullableInt = null,
+                NonNullableInt = 0,
+                BoolValue = false,
+                DoubleValue = 0.0,
+                NullableObject = null,
+            };
+            var result = Serialize(obj, options);
+
+            Assert.That(result, Does.Not.Contain("nullableString:"));
+            Assert.That(result, Does.Contain("nonNullableString:"));
+            Assert.That(result, Does.Not.Contain("nullableInt:"));
+            Assert.That(result, Does.Not.Contain("nonNullableInt:"));
+            Assert.That(result, Does.Not.Contain("boolValue:"));
+            Assert.That(result, Does.Not.Contain("doubleValue:"));
+            Assert.That(result, Does.Not.Contain("nullableObject:"));
+            Assert.That(result, Does.Contain("nonNullableObject:"));
+        }
+
+        [Test]
+        public void Serialize_DefaultIgnoreCondition_WhenWritingDefault_WithValues()
+        {
+            var options = new YamlSerializerOptions
+            {
+                Resolver = StandardResolver.Instance,
+                DefaultIgnoreCondition = YamlIgnoreCondition.WhenWritingDefault,
+            };
+
+            var obj = new TypeWithNullableProperties
+            {
+                NullableString = "hello",
+                NonNullableInt = 42,
+                BoolValue = true,
+                DoubleValue = 3.14,
+                NullableInt = 10,
+            };
+            var result = Serialize(obj, options);
+
+            Assert.That(result, Does.Contain("nullableString:"));
+            Assert.That(result, Does.Contain("nonNullableInt:"));
+            Assert.That(result, Does.Contain("boolValue:"));
+            Assert.That(result, Does.Contain("doubleValue:"));
+            Assert.That(result, Does.Contain("nullableInt:"));
         }
 
     }
