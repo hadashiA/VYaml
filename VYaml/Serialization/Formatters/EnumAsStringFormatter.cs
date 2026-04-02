@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using VYaml.Annotations;
 using VYaml.Emitter;
@@ -10,7 +11,6 @@ using VYaml.Parser;
 
 namespace VYaml.Serialization
 {
-    // TODO:
     static class EnumAsStringNonGenericHelper
     {
         static readonly ConcurrentDictionary<object, string?> AliasStringValues = new();
@@ -19,10 +19,14 @@ namespace VYaml.Serialization
         static readonly Func<object, Type, string?> AliasStringValueFactory = AnalyzeAliasStringValue;
         static readonly Func<Type, NamingConvention?> NamingConventionFactory = AnalyzeNamingConventionByType;
 
-        public static string? GetAliasStringValue(Type type, object value) => AliasStringValues.GetOrAdd(value, AliasStringValueFactory!, type);
-        public static NamingConvention? GetNamingConventionByType(Type type) => NamingConventionsByType.GetOrAdd(type, NamingConventionFactory);
+        public static string? GetAliasStringValue(Type type, object value) =>
+            AliasStringValues.GetOrAdd(value, AliasStringValueFactory!, type);
 
-        public static void Serialize(ref Utf8YamlEmitter emitter, Type type, object value, YamlSerializationContext context)
+        public static NamingConvention? GetNamingConventionByType(Type type) =>
+            NamingConventionsByType.GetOrAdd(type, NamingConventionFactory);
+
+        public static void Serialize(ref Utf8YamlEmitter emitter, Type type, object value,
+            YamlSerializationContext context)
         {
             var aliasStringValue = GetAliasStringValue(type, value);
             if (aliasStringValue != null)
@@ -60,41 +64,51 @@ namespace VYaml.Serialization
             {
                 return enumMemberValue;
             }
+
             if (attributes.OfType<DataMemberAttribute>().FirstOrDefault() is { Name: { } dataMemberName })
             {
                 return dataMemberName;
             }
+
             return null;
         }
     }
+}
 
-    public class EnumAsStringFormatter<T> : IYamlFormatter<T> where T : Enum
+namespace VYaml.Serialization
+{
+    public class EnumAsStringFormatter<T> : IYamlFormatter<T> where T : struct, Enum
     {
-        // ReSharper disable once StaticMemberInGenericType
-        internal static readonly NamingConvention? NamingConventionByType;
+        private static readonly bool IsFlagsEnum = typeof(T).IsDefined(typeof(FlagsAttribute), inherit: false);
 
-        static readonly Dictionary<T, (string Value, bool Alias)> StringValues = new();
-        static readonly Dictionary<string, T> Values = new();
+        private static readonly Dictionary<T, (string Value, bool IsAlias)> StringValues = new();
+        private static readonly Dictionary<string, T> Values = new(StringComparer.OrdinalIgnoreCase);
 
         static EnumAsStringFormatter()
         {
             var type = typeof(T);
-            NamingConventionByType = EnumAsStringNonGenericHelper.GetNamingConventionByType(type);
 
-            foreach (var item in type.GetFields().Where(x => x.FieldType == type))
+            foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.Static))
             {
-                var value = item.GetValue(null)!;
+                if (field.FieldType != type) continue;
+
+                var value = (T)field.GetValue(null)!;
                 var aliasValue = EnumAsStringNonGenericHelper.GetAliasStringValue(type, value);
+
                 if (aliasValue != null)
                 {
-                    StringValues.Add((T)value, (aliasValue, true));
-                    Values.Add(aliasValue, (T)value);
+                    StringValues[value] = (aliasValue, true);
+                    Values[aliasValue] = value;
                 }
                 else
                 {
-                    var mutator = NamingConventionMutator.Of(NamingConventionByType ?? YamlSerializerOptions.DefaultNamingConvention);
+                    var namingConvention = EnumAsStringNonGenericHelper.GetNamingConventionByType(type)
+                                           ?? YamlSerializerOptions.DefaultNamingConvention;
+
                     var name = Enum.GetName(type, value)!;
-                    Span<char> destination = stackalloc char[name.Length];
+                    var mutator = NamingConventionMutator.Of(namingConvention);
+
+                    Span<char> destination = stackalloc char[name.Length * 2];
                     int written;
                     while (!mutator.TryMutate(name.AsSpan(), destination, out written))
                     {
@@ -103,44 +117,37 @@ namespace VYaml.Serialization
                     }
 
                     var stringValue = destination[..written].ToString();
-                    StringValues.Add((T)value, (stringValue, false));
-                    Values.Add(stringValue, (T)value);
+                    StringValues[value] = (stringValue, false);
+                    Values[stringValue] = value;
                 }
             }
         }
 
         public void Serialize(ref Utf8YamlEmitter emitter, T value, YamlSerializationContext context)
         {
-            if (!StringValues.TryGetValue(value, out var t))
+            if (!IsFlagsEnum)
             {
-                YamlSerializerException.ThrowInvalidType<T>(value.ToString());
-                return;
-            }
-
-            var (stringValue, alias) = t;
-            if (alias || context.Options.NamingConvention == (NamingConventionByType ?? YamlSerializerOptions.DefaultNamingConvention))
-            {
-                emitter.WriteString(stringValue);
-                return;
-            }
-
-            var mutator = NamingConventionMutator.Of(NamingConventionByType ?? context.Options.NamingConvention);
-            Span<char> buffer = stackalloc char[stringValue.Length];
-
-            int bytesWritten;
-            while (!mutator.TryMutate(stringValue.AsSpan(), buffer, out bytesWritten))
-            {
-                // ReSharper disable once StackAllocInsideLoop
-                buffer = stackalloc char[buffer.Length * 2];
-            }
-
-            unsafe
-            {
-                fixed (char* ptr = buffer)
+                // For normal enums
+                if (StringValues.TryGetValue(value, out var t))
                 {
-                    emitter.WriteString(ptr, bytesWritten);
+                    var (stringValue, alias) = t;
+                    if (alias || context.Options.NamingConvention ==
+                        (EnumAsStringNonGenericHelper.GetNamingConventionByType(typeof(T))
+                         ?? YamlSerializerOptions.DefaultNamingConvention))
+                    {
+                        emitter.WriteString(stringValue);
+                        return;
+                    }
                 }
+
+                // Fallback
+                EnumAsStringNonGenericHelper.Serialize(ref emitter, typeof(T), value, context);
+                return;
             }
+
+            // Output as comma-separated names (e.g. "Read, Write, Execute")
+            string flagsString = value.ToString();
+            emitter.WriteString(flagsString);
         }
 
         public T Deserialize(ref YamlParser parser, YamlDeserializationContext context)
@@ -149,32 +156,76 @@ namespace VYaml.Serialization
             if (scalar == null)
             {
                 YamlSerializerException.ThrowInvalidType<T>("null");
-                return default!;
+                return default;
             }
 
-            if (Values.TryGetValue(scalar, out var value))
+            if (!IsFlagsEnum)
             {
-                return value;
+                // Original normal enum deserialization
+                if (Values.TryGetValue(scalar, out var value))
+                    return value;
+
+                // Try with naming convention mutation
+                var mutator = NamingConventionMutator.Of(
+                    EnumAsStringNonGenericHelper.GetNamingConventionByType(typeof(T))
+                    ?? YamlSerializerOptions.DefaultNamingConvention);
+
+                Span<char> buffer = stackalloc char[scalar.Length * 2];
+                int written;
+                while (!mutator.TryMutate(scalar.AsSpan(), buffer, out written))
+                {
+                    buffer = stackalloc char[buffer.Length * 2];
+                }
+
+                var mutated = buffer[..written].ToString();
+                if (Values.TryGetValue(mutated, out value))
+                    return value;
+
+                YamlSerializerException.ThrowInvalidType<T>(scalar);
+                return default;
             }
 
+            return ParseFlags(scalar);
+        }
 
-            var mutator = NamingConventionMutator.Of(NamingConventionByType ?? YamlSerializerOptions.DefaultNamingConvention);
-            Span<char> buffer = stackalloc char[scalar.Length];
-            int bytesWritten;
-            while (!mutator.TryMutate(scalar.AsSpan(), buffer, out bytesWritten))
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static T ParseFlags(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+                return default;
+
+            // Support: "Read, Write", "Read | Write", "Read Write"
+            var parts = input.Split(new[] { ',', '|', ' ' },
+                StringSplitOptions.RemoveEmptyEntries);
+
+            T result = default;
+
+            foreach (var part in parts)
             {
-                // ReSharper disable once StackAllocInsideLoop
-                buffer = stackalloc char[buffer.Length * 2];
+                if (Values.TryGetValue(part, out var flag))
+                {
+                    result = Or(result, flag);
+                }
+                else if (ulong.TryParse(part, out var num))
+                {
+                    result = Or(result, (T)Enum.ToObject(typeof(T), num));
+                }
+                else
+                {
+                    throw new YamlSerializerException($"Unknown flag value '{part}' for Flags enum {typeof(T)}");
+                }
             }
 
-            var mutatedScalar = buffer[..bytesWritten].ToString();
-            parser.Read();
-            if (Values.TryGetValue(mutatedScalar, out value))
-            {
-                return value;
-            }
-            YamlSerializerException.ThrowInvalidType<T>(mutatedScalar);
-            return default!;
+            return result;
+        }
+
+        /// Fast bitwise OR helper
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static T Or(T left, T right)
+        {
+            ulong l = Convert.ToUInt64(left);
+            ulong r = Convert.ToUInt64(right);
+            return (T)Enum.ToObject(typeof(T), l | r);
         }
     }
 }
