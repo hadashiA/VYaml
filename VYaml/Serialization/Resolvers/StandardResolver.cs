@@ -26,7 +26,7 @@ namespace VYaml.Serialization
                 }
                 else
                 {
-                    foreach (IYamlFormatterResolver item in DefaultResolvers)
+                    foreach (var item in DefaultResolvers)
                     {
                         var f = item.GetFormatter<T>();
                         if (f == null)
