@@ -19,6 +19,12 @@ namespace VYaml.Tests.Serialization
         {
             Assert.That(Serialize(EnumMemberLabeledEnum.C), Is.EqualTo("c-alias"));
         }
+        
+        [Test]
+        public void Serialize_WithEnumFlagMember()
+        {
+            Assert.That(Serialize(EnumFlagMember.A), Is.EqualTo("A"));
+        }
 
         [Test]
         public void Serialize_WithDataMember()
@@ -50,6 +56,13 @@ namespace VYaml.Tests.Serialization
         {
             var result = Deserialize<EnumMemberLabeledEnum>("c-alias");
             Assert.That(result, Is.EqualTo(EnumMemberLabeledEnum.C));
+        }
+        
+        [Test]
+        public void Deserialize_WithEnumFlagMember()
+        {
+            var result = Deserialize<EnumFlagMember>("A, B");
+            Assert.That(result, Is.EqualTo(EnumFlagMember.C));
         }
 
         [Test]

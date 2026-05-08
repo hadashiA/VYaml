@@ -34,8 +34,8 @@
         <PrivateAssets>all</PrivateAssets>
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
-      <PackageReference Include="System.Buffers" Version="4.6.0" />
-      <PackageReference Include="System.Memory" Version="4.6.0" />
+      <PackageReference Include="System.Buffers" Version="4.6.0"/>
+      <PackageReference Include="System.Memory" Version="4.6.0"/>
       <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.6.0" />
     </ItemGroup>
 
@@ -46,5 +46,8 @@
         <ProjectReference Include="..\VYaml.Annotations\VYaml.Annotations.csproj" />
         <ProjectReference Include="..\VYaml.SourceGenerator\VYaml.SourceGenerator.csproj"
                           ReferenceOutputAssembly="false" />
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.*" />
     </ItemGroup>
 </Project>

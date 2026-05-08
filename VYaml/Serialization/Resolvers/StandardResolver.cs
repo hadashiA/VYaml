@@ -29,11 +29,12 @@ namespace VYaml.Serialization
                     foreach (var item in DefaultResolvers)
                     {
                         var f = item.GetFormatter<T>();
-                        if (f != null)
+                        if (f == null)
                         {
-                            Formatter = f;
-                            return;
+                            continue; // Short-circuit.
                         }
+                        Formatter = f;
+                        return;
                     }
                 }
             }

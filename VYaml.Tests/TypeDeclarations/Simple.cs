@@ -116,6 +116,14 @@ namespace VYaml.Tests.TypeDeclarations
         C,
     }
 
+    [Flags, YamlObject]
+    public enum EnumFlagMember
+    {
+        A = 1,
+        B = 2,
+        C = 3,
+    }
+    
     [YamlObject]
     [YamlObjectUnion("!impl1", typeof(InterfaceImpl1))]
     [YamlObjectUnion("!impl2", typeof(InterfaceImpl2))]
