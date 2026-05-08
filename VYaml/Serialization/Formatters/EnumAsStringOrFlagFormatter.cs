@@ -8,6 +8,7 @@ using System.Runtime.Serialization;
 using VYaml.Annotations;
 using VYaml.Emitter;
 using VYaml.Parser;
+using static System.Runtime.CompilerServices.Unsafe;
 
 namespace VYaml.Serialization
 {
@@ -20,7 +21,7 @@ namespace VYaml.Serialization
         static readonly Func<Type, NamingConvention?> NamingConventionFactory = AnalyzeNamingConventionByType;
 
         public static string? GetAliasStringValue(Type type, object value) =>
-            AliasStringValues.GetOrAdd(value, AliasStringValueFactory!, type);
+            AliasStringValues.GetOrAdd(value, AliasStringValueFactory, type);
 
         public static NamingConvention? GetNamingConventionByType(Type type) =>
             NamingConventionsByType.GetOrAdd(type, NamingConventionFactory);
@@ -77,14 +78,14 @@ namespace VYaml.Serialization
 
 namespace VYaml.Serialization
 {
-    public class EnumAsStringFormatter<T> : IYamlFormatter<T> where T : struct, Enum
+    public class EnumAsStringOrFlagFormatter<T> : IYamlFormatter<T> where T : struct, Enum
     {
-        private static readonly bool IsFlagsEnum = typeof(T).IsDefined(typeof(FlagsAttribute), inherit: false);
+        // All fields below are implicitly private. Consider making them explicit.
+        static readonly bool IsFlagsEnum = typeof(T).IsDefined(typeof(FlagsAttribute), inherit: false);
+        static readonly Dictionary<T, (string Value, bool IsAlias)> StringValues = new();
+        static readonly Dictionary<string, T> Values = new(StringComparer.OrdinalIgnoreCase);
 
-        private static readonly Dictionary<T, (string Value, bool IsAlias)> StringValues = new();
-        private static readonly Dictionary<string, T> Values = new(StringComparer.OrdinalIgnoreCase);
-
-        static EnumAsStringFormatter()
+        static EnumAsStringOrFlagFormatter()
         {
             var type = typeof(T);
 
@@ -159,57 +160,59 @@ namespace VYaml.Serialization
                 return default;
             }
 
-            if (!IsFlagsEnum)
+            // If a flagging enum, then parse as one.
+            if (IsFlagsEnum)
+                return ParseFlags(scalar); // Short-circuit.
+            
+            // Original normal enum deserialization.
+            if (Values.TryGetValue(scalar, out var value))
+                return value; // If it gets a value immediately, then it is a 1:1 enum value, and it'll be fine.
+
+            // Try with naming convention mutation
+            var mutator = NamingConventionMutator.Of(
+                EnumAsStringNonGenericHelper.GetNamingConventionByType(typeof(T))
+                ?? YamlSerializerOptions.DefaultNamingConvention);
+
+            Span<char> buffer = stackalloc char[scalar.Length * 2];
+            int written;
+            while (!mutator.TryMutate(scalar.AsSpan(), buffer, out written))
             {
-                // Original normal enum deserialization
-                if (Values.TryGetValue(scalar, out var value))
-                    return value;
-
-                // Try with naming convention mutation
-                var mutator = NamingConventionMutator.Of(
-                    EnumAsStringNonGenericHelper.GetNamingConventionByType(typeof(T))
-                    ?? YamlSerializerOptions.DefaultNamingConvention);
-
-                Span<char> buffer = stackalloc char[scalar.Length * 2];
-                int written;
-                while (!mutator.TryMutate(scalar.AsSpan(), buffer, out written))
-                {
-                    buffer = stackalloc char[buffer.Length * 2];
-                }
-
-                var mutated = buffer[..written].ToString();
-                if (Values.TryGetValue(mutated, out value))
-                    return value;
-
-                YamlSerializerException.ThrowInvalidType<T>(scalar);
-                return default;
+                // There is a memory alloc. in a loop. Hopefully this is fine. -Z
+                buffer = stackalloc char[buffer.Length * 2];
             }
 
-            return ParseFlags(scalar);
+            var mutated = buffer[..written].ToString();
+            if (Values.TryGetValue(mutated, out value))
+                return value;
+
+            YamlSerializerException.ThrowInvalidType<T>(scalar);
+            return default;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static T ParseFlags(string input)
+        static T ParseFlags(string input)
         {
             if (string.IsNullOrWhiteSpace(input))
                 return default;
 
             // Support: "Read, Write", "Read | Write", "Read Write"
-            var parts = input.Split(new[] { ',', '|', ' ' },
-                StringSplitOptions.RemoveEmptyEntries);
+            var parts = input.Split(new[] { ',', '|', ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
             T result = default;
 
             foreach (var part in parts)
             {
+                // Attempt to extract a flag directly from a string
                 if (Values.TryGetValue(part, out var flag))
                 {
                     result = Or(result, flag);
                 }
+                // Attempt to extract a number instead, which may just be a flag-value.
                 else if (ulong.TryParse(part, out var num))
                 {
-                    result = Or(result, (T)Enum.ToObject(typeof(T), num));
+                    result = Or(result, FromUInt64(num));
                 }
+                // If all else fails: throw an exception.
                 else
                 {
                     throw new YamlSerializerException($"Unknown flag value '{part}' for Flags enum {typeof(T)}");
@@ -217,15 +220,58 @@ namespace VYaml.Serialization
             }
 
             return result;
-        }
 
-        /// Fast bitwise OR helper
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static T Or(T left, T right)
-        {
-            ulong l = Convert.ToUInt64(left);
-            ulong r = Convert.ToUInt64(right);
-            return (T)Enum.ToObject(typeof(T), l | r);
+            // Note: The following methods do not live outside of this one, and so have been in-lined.
+
+            // Fast bitwise OR helper
+            static T Or(T left, T right)
+            {
+                ulong l = ToUInt64(left);
+                ulong r = ToUInt64(right);
+                ulong v = l | r;
+
+                return FromUInt64(v);
+            }
+
+            // Provided numeric value, get size and determine type w. As().
+            // Doesn't box, but is more unsafe.
+            static ulong ToUInt64(T value)
+            {
+                switch (SizeOf<T>())
+                {
+                    case 1:
+                        return As<T, byte>(ref value);
+                    case 2:
+                        return As<T, ushort>(ref value);
+                    case 4:
+                        return As<T, uint>(ref value);
+                    case 8:
+                        return As<T, ulong>(ref value);
+                    default:
+                        YamlSerializerException.ThrowInvalidType<T>(value.ToString());
+                        return default;
+                }
+            }
+
+            // Provided ulong value, cast to type T enum. ulong is max-size supported for flags enums.
+            // Requires enums to be explicitly defined. (E.g. "enum MyEnum : byte")
+            static T FromUInt64(ulong number)
+            {
+                switch (SizeOf<T>())
+                {
+                    case 1:
+                        return As<byte, T>(ref As<ulong, byte>(ref number));
+                    case 2:
+                        return As<ushort, T>(ref As<ulong, ushort>(ref number));
+                    case 4:
+                        return As<uint, T>(ref As<ulong, uint>(ref number));
+                    case 8:
+                        return As<ulong, T>(ref number);
+                    default:
+                        YamlSerializerException.ThrowInvalidType<T>(number.ToString());
+                        return default;
+                }
+            }
         }
     }
 }
