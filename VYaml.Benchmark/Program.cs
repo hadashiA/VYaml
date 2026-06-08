@@ -19,6 +19,12 @@ static class Program
             return 0;
         }
 
+        if (args.Length > 0 && args[0] == "compare")
+        {
+            Compare();
+            return 0;
+        }
+
         var switcher = new BenchmarkSwitcher([
             typeof(DeserializationBenchmark),
             typeof(SerializationBenchmark),
@@ -59,5 +65,52 @@ static class Program
                           $"iters={iterations} {nsPerOp:F0} ns/op  {mbPerSec:F1} MB/s  " +
                           $"total={sw.Elapsed.TotalSeconds:F2}s");
 
+    }
+
+    static void Compare()
+    {
+        var path = Path.Combine(Directory.GetCurrentDirectory(), "Examples", "sample_envoy.yaml");
+        var yamlBytes = File.ReadAllBytes(path);
+        var yamlString = System.Text.Encoding.UTF8.GetString(yamlBytes);
+
+        var ydnDeserializer = new YamlDotNet.Serialization.DeserializerBuilder()
+            .WithNamingConvention(YamlDotNet.Serialization.NamingConventions.UnderscoredNamingConvention.Instance)
+            .IgnoreUnmatchedProperties()
+            .Build();
+        var ydnSerializer = new YamlDotNet.Serialization.SerializerBuilder()
+            .WithNamingConvention(YamlDotNet.Serialization.NamingConventions.UnderscoredNamingConvention.Instance)
+            .Build();
+
+        var sample = YamlSerializer.Deserialize<SampleEnvoy>(yamlBytes);
+
+        Console.WriteLine($"bytes={yamlBytes.Length}");
+        Measure("VYaml_Deserialize", () => YamlSerializer.Deserialize<SampleEnvoy>(yamlBytes));
+        Measure("YamlDotNet_Deserialize", () => ydnDeserializer.Deserialize<SampleEnvoy>(yamlString));
+        Measure("VYaml_Serialize", () => YamlSerializer.Serialize(sample));
+        Measure("YamlDotNet_Serialize", () => ydnSerializer.Serialize(sample));
+    }
+
+    static void Measure(string name, Action action)
+    {
+        for (var i = 0; i < 2_000; i++) action();
+
+        const int iterations = 50_000;
+        var best = double.MaxValue;
+        for (var rep = 0; rep < 5; rep++)
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            for (var i = 0; i < iterations; i++) action();
+            sw.Stop();
+            var us = sw.Elapsed.TotalMilliseconds * 1000.0 / iterations;
+            if (us < best) best = us;
+        }
+
+        const int allocIters = 2_000;
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < allocIters; i++) action();
+        var after = GC.GetAllocatedBytesForCurrentThread();
+        var bytesPerOp = (after - before) / (double)allocIters;
+
+        Console.WriteLine($"{name,-26} {best,8:F2} us  {bytesPerOp,10:F0} B/op");
     }
 }

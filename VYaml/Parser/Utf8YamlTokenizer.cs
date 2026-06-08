@@ -1094,10 +1094,31 @@ namespace VYaml.Parser
             var maxIndent = 0;
             while (true)
             {
+                // Bulk-skip indentation spaces, capped at blockIndent. The outer `while`
+                // keeps the original semantics across segment boundaries.
                 while ((blockIndent == 0 || mark.Col < blockIndent) &&
                        currentCode == YamlCodes.Space)
                 {
-                    Advance(1);
+                    var window = reader.UnreadSpan;
+#if NET8_0_OR_GREATER
+                    var nonSpace = window.IndexOfAnyExcept(YamlCodes.Space);
+                    var spaceRun = nonSpace < 0 ? window.Length : nonSpace;
+#else
+                    var spaceRun = 0;
+                    while (spaceRun < window.Length && window[spaceRun] == YamlCodes.Space)
+                    {
+                        spaceRun++;
+                    }
+#endif
+                    if (blockIndent != 0)
+                    {
+                        var allowed = blockIndent - mark.Col;
+                        if (spaceRun > allowed)
+                        {
+                            spaceRun = allowed;
+                        }
+                    }
+                    AdvanceWithinLine(spaceRun);
                 }
 
                 if (mark.Col > maxIndent)
