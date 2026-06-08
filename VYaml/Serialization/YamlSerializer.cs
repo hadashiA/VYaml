@@ -9,7 +9,7 @@ using VYaml.Parser;
 
 namespace VYaml.Serialization
 {
-    public class YamlSerializerException : Exception
+    public class YamlSerializerException : YamlException
     {
         public static void ThrowInvalidType<T>()
         {

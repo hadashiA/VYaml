@@ -7,7 +7,7 @@ using VYaml.Internal;
 
 namespace VYaml.Emitter
 {
-    public class YamlEmitterException(string message) : Exception(message);
+    public class YamlEmitterException(string message) : YamlException(message);
 
     enum EmitState
     {

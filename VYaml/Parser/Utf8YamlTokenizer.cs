@@ -5,7 +5,7 @@ using VYaml.Internal;
 
 namespace VYaml.Parser
 {
-    class YamlTokenizerException(in Marker marker, string message) : Exception($"{message} at {marker}");
+    public class YamlTokenizerException(in Marker marker, string message) : YamlException($"{message} at {marker}");
 
     struct SimpleKeyState
     {

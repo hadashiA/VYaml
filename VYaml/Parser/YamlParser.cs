@@ -7,7 +7,7 @@ using VYaml.Internal;
 
 namespace VYaml.Parser
 {
-    public class YamlParserException : Exception
+    public class YamlParserException : YamlException
     {
         public static void Throw(in Marker marker, string message)
         {
