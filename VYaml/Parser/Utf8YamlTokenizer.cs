@@ -1613,8 +1613,26 @@ namespace VYaml.Parser
                 switch (currentCode)
                 {
                     case YamlCodes.Space:
+                    {
                         Advance(1);
+                        // Bulk-skip the run of consecutive spaces that follows.
+                        var window = reader.UnreadSpan;
+#if NET8_0_OR_GREATER
+                        var nonSpace = window.IndexOfAnyExcept(YamlCodes.Space);
+                        var spaceRun = nonSpace < 0 ? window.Length : nonSpace;
+#else
+                        var spaceRun = 0;
+                        while (spaceRun < window.Length && window[spaceRun] == YamlCodes.Space)
+                        {
+                            spaceRun++;
+                        }
+#endif
+                        if (spaceRun > 0)
+                        {
+                            AdvanceWithinLine(spaceRun);
+                        }
                         break;
+                    }
                     case YamlCodes.Tab when flowLevel > 0 || !simpleKeyAllowed:
                         Advance(1);
                         break;
@@ -1624,11 +1642,22 @@ namespace VYaml.Parser
                         if (flowLevel == 0) simpleKeyAllowed = true;
                         break;
                     case YamlCodes.Comment:
+                    {
+                        // Bulk-skip the comment body up to the next line break.
+                        var window = reader.UnreadSpan;
+                        var lineBreakIndex = window.IndexOfAny(YamlCodes.Lf, YamlCodes.Cr);
+                        var commentLength = lineBreakIndex < 0 ? window.Length : lineBreakIndex;
+                        if (commentLength > 0)
+                        {
+                            AdvanceWithinLine(commentLength);
+                        }
+                        // Fall back to per-byte advance across segment boundaries.
                         while (!reader.End && !YamlCodes.IsLineBreak(currentCode))
                         {
                             Advance(1);
                         }
                         break;
+                    }
                     case 0xEF:
                         if (!ConsumeBom()) return;
                         break;
