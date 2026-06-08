@@ -13,7 +13,6 @@ The reason VYaml is fast is it handles utf8 byte sequences directly with newface
 In parsing, scalar values are pooled and no allocation occurs until `Scalar.ToString()`. This works with very low memory footprint and low performance overhead, in environments such as Unity.
 
 ![.NET benchmark: VYaml vs YamlDotNet](./screenshots/benchmark_dotnet.svg)
-![screenshot_benchmark_unity.png](./screenshots/screenshot_benchmark_unity.png)
 
 Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular yaml library in C#), VYaml deserializes about 6x faster with roughly 1/80 of the heap allocations, and serializes even faster.
 
