@@ -1,0 +1,241 @@
+items:
+  - id: 0
+    title: "The quick brown fox jumps over the lazy dog number 0 repeated content here"
+    description: "A longer description string for item 0 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/0/details?format=json&verbose=true"
+  - id: 1
+    title: "The quick brown fox jumps over the lazy dog number 1 repeated content here"
+    description: "A longer description string for item 1 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/1/details?format=json&verbose=true"
+  - id: 2
+    title: "The quick brown fox jumps over the lazy dog number 2 repeated content here"
+    description: "A longer description string for item 2 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/2/details?format=json&verbose=true"
+  - id: 3
+    title: "The quick brown fox jumps over the lazy dog number 3 repeated content here"
+    description: "A longer description string for item 3 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/3/details?format=json&verbose=true"
+  - id: 4
+    title: "The quick brown fox jumps over the lazy dog number 4 repeated content here"
+    description: "A longer description string for item 4 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/4/details?format=json&verbose=true"
+  - id: 5
+    title: "The quick brown fox jumps over the lazy dog number 5 repeated content here"
+    description: "A longer description string for item 5 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/5/details?format=json&verbose=true"
+  - id: 6
+    title: "The quick brown fox jumps over the lazy dog number 6 repeated content here"
+    description: "A longer description string for item 6 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/6/details?format=json&verbose=true"
+  - id: 7
+    title: "The quick brown fox jumps over the lazy dog number 7 repeated content here"
+    description: "A longer description string for item 7 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/7/details?format=json&verbose=true"
+  - id: 8
+    title: "The quick brown fox jumps over the lazy dog number 8 repeated content here"
+    description: "A longer description string for item 8 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/8/details?format=json&verbose=true"
+  - id: 9
+    title: "The quick brown fox jumps over the lazy dog number 9 repeated content here"
+    description: "A longer description string for item 9 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/9/details?format=json&verbose=true"
+  - id: 10
+    title: "The quick brown fox jumps over the lazy dog number 10 repeated content here"
+    description: "A longer description string for item 10 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/10/details?format=json&verbose=true"
+  - id: 11
+    title: "The quick brown fox jumps over the lazy dog number 11 repeated content here"
+    description: "A longer description string for item 11 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/11/details?format=json&verbose=true"
+  - id: 12
+    title: "The quick brown fox jumps over the lazy dog number 12 repeated content here"
+    description: "A longer description string for item 12 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/12/details?format=json&verbose=true"
+  - id: 13
+    title: "The quick brown fox jumps over the lazy dog number 13 repeated content here"
+    description: "A longer description string for item 13 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/13/details?format=json&verbose=true"
+  - id: 14
+    title: "The quick brown fox jumps over the lazy dog number 14 repeated content here"
+    description: "A longer description string for item 14 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/14/details?format=json&verbose=true"
+  - id: 15
+    title: "The quick brown fox jumps over the lazy dog number 15 repeated content here"
+    description: "A longer description string for item 15 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/15/details?format=json&verbose=true"
+  - id: 16
+    title: "The quick brown fox jumps over the lazy dog number 16 repeated content here"
+    description: "A longer description string for item 16 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/16/details?format=json&verbose=true"
+  - id: 17
+    title: "The quick brown fox jumps over the lazy dog number 17 repeated content here"
+    description: "A longer description string for item 17 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/17/details?format=json&verbose=true"
+  - id: 18
+    title: "The quick brown fox jumps over the lazy dog number 18 repeated content here"
+    description: "A longer description string for item 18 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/18/details?format=json&verbose=true"
+  - id: 19
+    title: "The quick brown fox jumps over the lazy dog number 19 repeated content here"
+    description: "A longer description string for item 19 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/19/details?format=json&verbose=true"
+  - id: 20
+    title: "The quick brown fox jumps over the lazy dog number 20 repeated content here"
+    description: "A longer description string for item 20 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/20/details?format=json&verbose=true"
+  - id: 21
+    title: "The quick brown fox jumps over the lazy dog number 21 repeated content here"
+    description: "A longer description string for item 21 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/21/details?format=json&verbose=true"
+  - id: 22
+    title: "The quick brown fox jumps over the lazy dog number 22 repeated content here"
+    description: "A longer description string for item 22 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/22/details?format=json&verbose=true"
+  - id: 23
+    title: "The quick brown fox jumps over the lazy dog number 23 repeated content here"
+    description: "A longer description string for item 23 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/23/details?format=json&verbose=true"
+  - id: 24
+    title: "The quick brown fox jumps over the lazy dog number 24 repeated content here"
+    description: "A longer description string for item 24 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/24/details?format=json&verbose=true"
+  - id: 25
+    title: "The quick brown fox jumps over the lazy dog number 25 repeated content here"
+    description: "A longer description string for item 25 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/25/details?format=json&verbose=true"
+  - id: 26
+    title: "The quick brown fox jumps over the lazy dog number 26 repeated content here"
+    description: "A longer description string for item 26 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/26/details?format=json&verbose=true"
+  - id: 27
+    title: "The quick brown fox jumps over the lazy dog number 27 repeated content here"
+    description: "A longer description string for item 27 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/27/details?format=json&verbose=true"
+  - id: 28
+    title: "The quick brown fox jumps over the lazy dog number 28 repeated content here"
+    description: "A longer description string for item 28 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/28/details?format=json&verbose=true"
+  - id: 29
+    title: "The quick brown fox jumps over the lazy dog number 29 repeated content here"
+    description: "A longer description string for item 29 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/29/details?format=json&verbose=true"
+  - id: 30
+    title: "The quick brown fox jumps over the lazy dog number 30 repeated content here"
+    description: "A longer description string for item 30 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/30/details?format=json&verbose=true"
+  - id: 31
+    title: "The quick brown fox jumps over the lazy dog number 31 repeated content here"
+    description: "A longer description string for item 31 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/31/details?format=json&verbose=true"
+  - id: 32
+    title: "The quick brown fox jumps over the lazy dog number 32 repeated content here"
+    description: "A longer description string for item 32 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/32/details?format=json&verbose=true"
+  - id: 33
+    title: "The quick brown fox jumps over the lazy dog number 33 repeated content here"
+    description: "A longer description string for item 33 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/33/details?format=json&verbose=true"
+  - id: 34
+    title: "The quick brown fox jumps over the lazy dog number 34 repeated content here"
+    description: "A longer description string for item 34 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/34/details?format=json&verbose=true"
+  - id: 35
+    title: "The quick brown fox jumps over the lazy dog number 35 repeated content here"
+    description: "A longer description string for item 35 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/35/details?format=json&verbose=true"
+  - id: 36
+    title: "The quick brown fox jumps over the lazy dog number 36 repeated content here"
+    description: "A longer description string for item 36 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/36/details?format=json&verbose=true"
+  - id: 37
+    title: "The quick brown fox jumps over the lazy dog number 37 repeated content here"
+    description: "A longer description string for item 37 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/37/details?format=json&verbose=true"
+  - id: 38
+    title: "The quick brown fox jumps over the lazy dog number 38 repeated content here"
+    description: "A longer description string for item 38 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/38/details?format=json&verbose=true"
+  - id: 39
+    title: "The quick brown fox jumps over the lazy dog number 39 repeated content here"
+    description: "A longer description string for item 39 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/39/details?format=json&verbose=true"
+  - id: 40
+    title: "The quick brown fox jumps over the lazy dog number 40 repeated content here"
+    description: "A longer description string for item 40 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/40/details?format=json&verbose=true"
+  - id: 41
+    title: "The quick brown fox jumps over the lazy dog number 41 repeated content here"
+    description: "A longer description string for item 41 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/41/details?format=json&verbose=true"
+  - id: 42
+    title: "The quick brown fox jumps over the lazy dog number 42 repeated content here"
+    description: "A longer description string for item 42 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/42/details?format=json&verbose=true"
+  - id: 43
+    title: "The quick brown fox jumps over the lazy dog number 43 repeated content here"
+    description: "A longer description string for item 43 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/43/details?format=json&verbose=true"
+  - id: 44
+    title: "The quick brown fox jumps over the lazy dog number 44 repeated content here"
+    description: "A longer description string for item 44 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/44/details?format=json&verbose=true"
+  - id: 45
+    title: "The quick brown fox jumps over the lazy dog number 45 repeated content here"
+    description: "A longer description string for item 45 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/45/details?format=json&verbose=true"
+  - id: 46
+    title: "The quick brown fox jumps over the lazy dog number 46 repeated content here"
+    description: "A longer description string for item 46 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/46/details?format=json&verbose=true"
+  - id: 47
+    title: "The quick brown fox jumps over the lazy dog number 47 repeated content here"
+    description: "A longer description string for item 47 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/47/details?format=json&verbose=true"
+  - id: 48
+    title: "The quick brown fox jumps over the lazy dog number 48 repeated content here"
+    description: "A longer description string for item 48 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/48/details?format=json&verbose=true"
+  - id: 49
+    title: "The quick brown fox jumps over the lazy dog number 49 repeated content here"
+    description: "A longer description string for item 49 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/49/details?format=json&verbose=true"
+  - id: 50
+    title: "The quick brown fox jumps over the lazy dog number 50 repeated content here"
+    description: "A longer description string for item 50 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/50/details?format=json&verbose=true"
+  - id: 51
+    title: "The quick brown fox jumps over the lazy dog number 51 repeated content here"
+    description: "A longer description string for item 51 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/51/details?format=json&verbose=true"
+  - id: 52
+    title: "The quick brown fox jumps over the lazy dog number 52 repeated content here"
+    description: "A longer description string for item 52 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/52/details?format=json&verbose=true"
+  - id: 53
+    title: "The quick brown fox jumps over the lazy dog number 53 repeated content here"
+    description: "A longer description string for item 53 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/53/details?format=json&verbose=true"
+  - id: 54
+    title: "The quick brown fox jumps over the lazy dog number 54 repeated content here"
+    description: "A longer description string for item 54 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/54/details?format=json&verbose=true"
+  - id: 55
+    title: "The quick brown fox jumps over the lazy dog number 55 repeated content here"
+    description: "A longer description string for item 55 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/55/details?format=json&verbose=true"
+  - id: 56
+    title: "The quick brown fox jumps over the lazy dog number 56 repeated content here"
+    description: "A longer description string for item 56 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/56/details?format=json&verbose=true"
+  - id: 57
+    title: "The quick brown fox jumps over the lazy dog number 57 repeated content here"
+    description: "A longer description string for item 57 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/57/details?format=json&verbose=true"
+  - id: 58
+    title: "The quick brown fox jumps over the lazy dog number 58 repeated content here"
+    description: "A longer description string for item 58 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/58/details?format=json&verbose=true"
+  - id: 59
+    title: "The quick brown fox jumps over the lazy dog number 59 repeated content here"
+    description: "A longer description string for item 59 that contains many ordinary characters without escapes so the bulk copy fast path can shine across the run."
+    url: "https://example.com/api/v3/resources/59/details?format=json&verbose=true"
