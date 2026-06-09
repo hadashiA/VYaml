@@ -1346,6 +1346,22 @@ namespace VYaml.Tests.Parser
         }
 
         [Test]
+        public void Issue180_TokenizerException_IsCatchableAsYamlException()
+        {
+            // `key: *` triggers a tokenizer-level error (alias without an anchor name).
+            // The thrown YamlTokenizerException must be public and catchable via the
+            // shared YamlException base type. See GitHub issue #180.
+            var yamlException = Assert.Throws<YamlTokenizerException>(() =>
+            {
+                var parser = YamlParser.FromBytes(StringEncoding.Utf8.GetBytes("key: *"));
+                while (parser.Read())
+                {
+                }
+            });
+            Assert.That(yamlException, Is.InstanceOf<YamlException>());
+        }
+
+        [Test]
         public void Ex6_28_NonSpecificTags()
         {
             AssertParseEvents(SpecExamples.Ex6_28, new []
