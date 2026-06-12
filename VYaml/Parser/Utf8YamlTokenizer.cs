@@ -17,18 +17,6 @@ namespace VYaml.Parser
 
     public ref struct Utf8YamlTokenizer
     {
-        [ThreadStatic]
-        static InsertionQueue<Token>? tokensBufferStatic;
-
-        [ThreadStatic]
-        static ExpandBuffer<SimpleKeyState>? simpleKeyBufferStatic;
-
-        [ThreadStatic]
-        static ExpandBuffer<int>? indentsBufferStatic;
-
-        [ThreadStatic]
-        static ExpandBuffer<byte>? lineBreaksBufferStatic;
-
         // Byte sets that terminate a contiguous run of plain-scalar characters.
         // Used to bulk-copy runs instead of consuming one byte at a time.
         // Line breaks (Lf/Cr) are included so a run never spans multiple lines,
@@ -125,6 +113,7 @@ namespace VYaml.Parser
         readonly InsertionQueue<Token> tokens;
         readonly ExpandBuffer<SimpleKeyState> simpleKeyCandidates;
         readonly ExpandBuffer<int> indents;
+        ExpandBuffer<byte> lineBreaksBuffer;
 
         public Utf8YamlTokenizer(ReadOnlySequence<byte> sequence)
         {
@@ -142,14 +131,10 @@ namespace VYaml.Parser
 
             currentToken = default;
 
-            tokens = tokensBufferStatic ??= new InsertionQueue<Token>(16);
-            tokens.Clear();
-
-            simpleKeyCandidates = simpleKeyBufferStatic ??= new ExpandBuffer<SimpleKeyState>(16);
-            simpleKeyCandidates.Clear();
-
-            indents = indentsBufferStatic ??= new ExpandBuffer<int>(16);
-            indents.Clear();
+            tokens = new InsertionQueue<Token>(16);
+            simpleKeyCandidates = new ExpandBuffer<SimpleKeyState>(16);
+            indents = new ExpandBuffer<int>(16);
+            lineBreaksBuffer = new ExpandBuffer<byte>(64);
 
             reader.TryPeek(out currentCode);
         }
@@ -961,8 +946,7 @@ namespace VYaml.Parser
             var leadingBreak = LineBreakState.None;
             var scalar = ScalarPool.Shared.Rent();
 
-            lineBreaksBufferStatic ??= new ExpandBuffer<byte>(64);
-            lineBreaksBufferStatic.Clear();
+            lineBreaksBuffer.Clear();
 
             // skip '|' or '>'
             Advance(1);
@@ -1032,7 +1016,7 @@ namespace VYaml.Parser
             }
 
             // Scan the leading line breaks and determine the indentation level if needed.
-            ConsumeBlockScalarBreaks(ref blockIndent, ref lineBreaksBufferStatic);
+            ConsumeBlockScalarBreaks(ref blockIndent, ref lineBreaksBuffer);
 
             while (mark.Col == blockIndent)
             {
@@ -1043,7 +1027,7 @@ namespace VYaml.Parser
                     !leadingBlank &&
                     !trailingBlank)
                 {
-                    if (lineBreaksBufferStatic.Length <= 0)
+                    if (lineBreaksBuffer.Length <= 0)
                     {
                         scalar.Write(YamlCodes.Space);
                     }
@@ -1053,9 +1037,9 @@ namespace VYaml.Parser
                     scalar.Write(leadingBreak);
                 }
 
-                scalar.Write(lineBreaksBufferStatic.AsSpan());
+                scalar.Write(lineBreaksBuffer.AsSpan());
                 leadingBlank = YamlCodes.IsBlank(currentCode);
-                lineBreaksBufferStatic.Clear();
+                lineBreaksBuffer.Clear();
 
                 while (!reader.End && !YamlCodes.IsLineBreak(currentCode))
                 {
@@ -1072,7 +1056,7 @@ namespace VYaml.Parser
 
                 leadingBreak = ConsumeLineBreaks();
                 // Eat the following indentation spaces and line breaks.
-                ConsumeBlockScalarBreaks(ref blockIndent, ref lineBreaksBufferStatic);
+                ConsumeBlockScalarBreaks(ref blockIndent, ref lineBreaksBuffer);
             }
 
             // Chomp the tail.
@@ -1082,7 +1066,7 @@ namespace VYaml.Parser
             }
             if (chomping == 1)
             {
-                scalar.Write(lineBreaksBufferStatic.AsSpan());
+                scalar.Write(lineBreaksBuffer.AsSpan());
             }
 
             var tokenType = literal ? TokenType.LiteralScalar : TokenType.FoldedScalar;
