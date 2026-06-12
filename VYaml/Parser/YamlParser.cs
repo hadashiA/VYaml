@@ -69,12 +69,6 @@ namespace VYaml.Parser
 
     public ref partial struct YamlParser
     {
-        [ThreadStatic]
-        static Dictionary<string, int>? anchorsBufferStatic;
-
-        [ThreadStatic]
-        static ExpandBuffer<ParseState>? stateStackBufferStatic;
-
         public static YamlParser FromBytes(Memory<byte> bytes)
         {
             var sequence = new ReadOnlySequence<byte>(bytes);
@@ -120,11 +114,8 @@ namespace VYaml.Parser
             CurrentEventType = default;
             lastAnchorId = -1;
 
-            anchors = anchorsBufferStatic ??= new Dictionary<string, int>();
-            anchors.Clear();
-
-            stateStack = stateStackBufferStatic ??= new ExpandBuffer<ParseState>(16);
-            stateStack.Clear();
+            anchors = new Dictionary<string, int>();
+            stateStack = new ExpandBuffer<ParseState>(16);
 
             currentScalar = null;
             currentTag = null;
@@ -923,4 +914,3 @@ namespace VYaml.Parser
         }
     }
 }
-
