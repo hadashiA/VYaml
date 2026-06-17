@@ -463,6 +463,38 @@ enum Foo
 YamlSerializer.Serialize(Foo.ItemOne); // #=> "item_one"
 ```
 
+Enums marked with `[Flags]` are also supported. A combined value that does not match a
+single member is serialized as its member names joined by ` | `:
+
+``` csharp
+[Flags]
+enum Permissions
+{
+    None = 0,
+    Read = 1,
+    Write = 2,
+    Execute = 4,
+    All = Read | Write | Execute,
+}
+```
+
+``` csharp
+YamlSerializer.Serialize(Permissions.Read);                     // #=> "read"
+YamlSerializer.Serialize(Permissions.Read | Permissions.Write); // #=> "read | write"
+YamlSerializer.Serialize(Permissions.All);                      // #=> "all"  (a single matching member wins)
+```
+
+`|` is used as the separator (rather than `,`) so the value stays an unquoted YAML scalar.
+Deserialization accepts the same form; whitespace around `|` is ignored, and `,` is also
+accepted as a separator:
+
+``` csharp
+YamlSerializer.Deserialize<Permissions>(yamlUtf8Bytes); // "read | write" #=> Permissions.Read | Permissions.Write
+```
+
+`[EnumMember]` / `[DataMember]` aliases and the naming convention are applied to each member,
+the same as for non-flags enums.
+
 #### Polymorphism (Union)
 
 VYaml supports deserialize interface or abstract class objects for. In VYaml this feature is called Union. 
