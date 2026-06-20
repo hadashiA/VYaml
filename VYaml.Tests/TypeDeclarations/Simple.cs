@@ -92,6 +92,37 @@ namespace VYaml.Tests.TypeDeclarations
         BarGuz,
     }
 
+    [Flags]
+    public enum FlagsEnum
+    {
+        None = 0,
+        Read = 1,
+        Write = 2,
+        Execute = 4,
+        All = Read | Write | Execute,
+    }
+
+    [Flags]
+    public enum FlagsAliasEnum
+    {
+        [EnumMember(Value = "r")] Read = 1,
+        [EnumMember(Value = "w")] Write = 2,
+        [EnumMember(Value = "x")] Execute = 4,
+    }
+
+    [Flags, YamlObject(NamingConvention.SnakeCase)]
+    public enum FlagsNamingConventionEnum
+    {
+        ReadOnly = 1,
+        WriteOnly = 2,
+    }
+
+    public enum QuoteRequiringAliasEnum
+    {
+        [EnumMember(Value = "true")] Yes,   // reserved word -> must be quoted
+        [EnumMember(Value = "a: b")] Pair,  // contains ': ' -> must be quoted
+    }
+
     public enum EnumMemberLabeledEnum
     {
         [EnumMember(Value = "a-alias")]
