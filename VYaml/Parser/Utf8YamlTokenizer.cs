@@ -131,12 +131,27 @@ namespace VYaml.Parser
 
             currentToken = default;
 
-            tokens = new InsertionQueue<Token>(16);
-            simpleKeyCandidates = new ExpandBuffer<SimpleKeyState>(16);
-            indents = new ExpandBuffer<int>(16);
-            lineBreaksBuffer = new ExpandBuffer<byte>(64);
+            tokens = ThreadLocalObjectPool<InsertionQueue<Token>>.Rent(static () => new InsertionQueue<Token>(16));
+            simpleKeyCandidates = ThreadLocalObjectPool<ExpandBuffer<SimpleKeyState>>.Rent(static () => new ExpandBuffer<SimpleKeyState>(16));
+            indents = ThreadLocalObjectPool<ExpandBuffer<int>>.Rent(static () => new ExpandBuffer<int>(16));
+            lineBreaksBuffer = ThreadLocalObjectPool<ExpandBuffer<byte>>.Rent(static () => new ExpandBuffer<byte>(64));
 
             reader.TryPeek(out currentCode);
+        }
+
+        internal void ReturnPool()
+        {
+            tokens.Clear();
+            ThreadLocalObjectPool<InsertionQueue<Token>>.Return(tokens);
+
+            simpleKeyCandidates.Clear();
+            ThreadLocalObjectPool<ExpandBuffer<SimpleKeyState>>.Return(simpleKeyCandidates);
+
+            indents.Clear();
+            ThreadLocalObjectPool<ExpandBuffer<int>>.Return(indents);
+
+            lineBreaksBuffer.Clear();
+            ThreadLocalObjectPool<ExpandBuffer<byte>>.Return(lineBreaksBuffer);
         }
 
         public bool Read()
@@ -1341,8 +1356,8 @@ namespace VYaml.Parser
                                             }
                                         }
                                     }
-                                } 
-                                
+                                }
+
                                 scalar.WriteUnicodeCodepoint(codepoint);
                             }
 

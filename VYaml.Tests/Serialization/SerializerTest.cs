@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using NUnit.Framework;
 using VYaml.Emitter;
 using VYaml.Internal;
@@ -203,6 +204,24 @@ namespace VYaml.Tests.Serialization
             Assert.That(result[0].Id, Is.EqualTo("A"));
             Assert.That(result[0].Child!.Id, Is.EqualTo("A"));
             Assert.That(result[0].Other!.Id, Is.EqualTo("B"));
+        }
+
+        [Test]
+        public void Deserialize_Concurrent_DoesNotShareBuffersAcrossThreads()
+        {
+            // The pooled working buffers are per-thread; deserializing in parallel must not
+            // corrupt one another.
+            var yaml = """
+                one: 1
+                two: 2
+                """u8.ToArray();
+
+            Parallel.For(0, 2000, _ =>
+            {
+                var result = YamlSerializer.Deserialize<SimpleTypeTwo>(yaml);
+                Assert.That(result.One, Is.EqualTo(1));
+                Assert.That(result.Two, Is.EqualTo(2));
+            });
         }
 
         sealed class NestedParent
