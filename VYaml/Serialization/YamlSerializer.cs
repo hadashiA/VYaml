@@ -32,29 +32,26 @@ namespace VYaml.Serialization
 
     public static partial class YamlSerializer
     {
-        [ThreadStatic]
-        static YamlDeserializationContext? deserializationContext;
-
-        [ThreadStatic]
-        static YamlSerializationContext? serializationContext;
-
-        static YamlDeserializationContext GetThreadLocalDeserializationContext(YamlSerializerOptions? options = null)
+        static YamlDeserializationContext CreateDeserializationContext(YamlSerializerOptions? options = null)
         {
             options ??= DefaultOptions;
-            var contextLocal = deserializationContext ??= new YamlDeserializationContext(options);
-            contextLocal.Options = options;
-            contextLocal.Resolver = options.Resolver;
-            return contextLocal;
+            var context = ThreadLocalObjectPool<YamlDeserializationContext>.Rent(
+                static () => new YamlDeserializationContext(DefaultOptions));
+            context.Options = options;
+            context.Resolver = options.Resolver;
+            context.Reset();
+            return context;
         }
 
-        static YamlSerializationContext GetThreadLocalSerializationContext(YamlSerializerOptions? options = null)
+        static void ReturnDeserializationContext(YamlDeserializationContext context)
+        {
+            ThreadLocalObjectPool<YamlDeserializationContext>.Return(context);
+        }
+
+        static YamlSerializationContext CreateSerializationContext(YamlSerializerOptions? options = null)
         {
             options ??= DefaultOptions;
-            var contextLocal = serializationContext ??= new YamlSerializationContext(options);
-            contextLocal.Options = options;
-            contextLocal.Resolver = options.Resolver;
-            contextLocal.EmitOptions = options.EmitOptions;
-            return contextLocal;
+            return new YamlSerializationContext(options);
         }
 
         public static YamlSerializerOptions DefaultOptions
@@ -68,10 +65,9 @@ namespace VYaml.Serialization
         public static ReadOnlyMemory<byte> Serialize<T>(T value, YamlSerializerOptions? options = null)
         {
             options ??= DefaultOptions;
-            var contextLocal = GetThreadLocalSerializationContext(options);
+            using var contextLocal = CreateSerializationContext(options);
             var writer = contextLocal.GetArrayBufferWriterInternal();
             var emitter = new Utf8YamlEmitter(writer);
-            contextLocal.Reset();
             var formatter = contextLocal.Resolver.GetFormatterWithVerify<T>();
             formatter.Serialize(ref emitter, value, contextLocal);
             return writer.WrittenMemory;
@@ -86,8 +82,7 @@ namespace VYaml.Serialization
         public static void Serialize<T>(ref Utf8YamlEmitter emitter, T value, YamlSerializerOptions? options = null)
         {
             options ??= DefaultOptions;
-            var contextLocal = GetThreadLocalSerializationContext(options);
-            contextLocal.Reset();
+            using var contextLocal = CreateSerializationContext(options);
 
             var formatter = contextLocal.Resolver.GetFormatterWithVerify<T>();
             formatter.Serialize(ref emitter, value, contextLocal);
@@ -102,13 +97,27 @@ namespace VYaml.Serialization
         public static T Deserialize<T>(ReadOnlyMemory<byte> memory, YamlSerializerOptions? options = null)
         {
             var parser = YamlParser.FromSequence(new ReadOnlySequence<byte>(memory));
-            return Deserialize<T>(ref parser, options);
+            try
+            {
+                return Deserialize<T>(ref parser, options);
+            }
+            finally
+            {
+                parser.ReturnPool();
+            }
         }
 
         public static T Deserialize<T>(in ReadOnlySequence<byte> sequence, YamlSerializerOptions? options = null)
         {
             var parser = YamlParser.FromSequence(sequence);
-            return Deserialize<T>(ref parser, options);
+            try
+            {
+                return Deserialize<T>(ref parser, options);
+            }
+            finally
+            {
+                parser.ReturnPool();
+            }
         }
 
         public static async ValueTask<T> DeserializeAsync<T>(Stream stream, YamlSerializerOptions? options = null)
@@ -128,14 +137,19 @@ namespace VYaml.Serialization
         public static T Deserialize<T>(ref YamlParser parser, YamlSerializerOptions? options = null)
         {
             options ??= DefaultOptions;
-            var contextLocal = GetThreadLocalDeserializationContext(options);
-            contextLocal.Reset();
+            var contextLocal = CreateDeserializationContext(options);
+            try
+            {
+                parser.SkipHeader();
+                if (parser.End) return default!;
 
-            parser.SkipHeader();
-            if (parser.End) return default!;
-
-            var formatter = options.Resolver.GetFormatterWithVerify<T>();
-            return contextLocal.DeserializeWithAlias(formatter, ref parser);
+                var formatter = options.Resolver.GetFormatterWithVerify<T>();
+                return contextLocal.DeserializeWithAlias(formatter, ref parser);
+            }
+            finally
+            {
+                ReturnDeserializationContext(contextLocal);
+            }
         }
 
         public static async ValueTask<IEnumerable<T>> DeserializeMultipleDocumentsAsync<T>(Stream stream, YamlSerializerOptions? options = null)
@@ -155,21 +169,35 @@ namespace VYaml.Serialization
         public static IEnumerable<T> DeserializeMultipleDocuments<T>(ReadOnlyMemory<byte> memory, YamlSerializerOptions? options = null)
         {
             var parser = YamlParser.FromSequence(new ReadOnlySequence<byte>(memory));
-            return DeserializeMultipleDocuments<T>(ref parser, options);
+            try
+            {
+                return DeserializeMultipleDocuments<T>(ref parser, options);
+            }
+            finally
+            {
+                parser.ReturnPool();
+            }
         }
 
         public static IEnumerable<T> DeserializeMultipleDocuments<T>(in ReadOnlySequence<byte> sequence, YamlSerializerOptions? options = null)
         {
             var parser = YamlParser.FromSequence(sequence);
-            return DeserializeMultipleDocuments<T>(ref parser, options);
+            try
+            {
+                return DeserializeMultipleDocuments<T>(ref parser, options);
+            }
+            finally
+            {
+                parser.ReturnPool();
+            }
         }
 
         public static IEnumerable<T> DeserializeMultipleDocuments<T>(ref YamlParser parser, YamlSerializerOptions? options = null)
         {
-            // try
-            // {
-                options ??= DefaultOptions;
-                var contextLocal = GetThreadLocalDeserializationContext(options);
+            options ??= DefaultOptions;
+            var contextLocal = CreateDeserializationContext(options);
+            try
+            {
                 var formatter = options.Resolver.GetFormatterWithVerify<T>();
                 var documents = new List<T>();
 
@@ -186,11 +214,11 @@ namespace VYaml.Serialization
                     documents.Add(document);
                 }
                 return documents;
-            // }
-            // finally
-            // {
-            //     parser.Dispose();
-            // }
+            }
+            finally
+            {
+                ReturnDeserializationContext(contextLocal);
+            }
         }
     }
 }

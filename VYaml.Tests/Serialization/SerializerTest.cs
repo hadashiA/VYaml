@@ -1,7 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using NUnit.Framework;
+using VYaml.Emitter;
 using VYaml.Internal;
+using VYaml.Parser;
 using VYaml.Serialization;
 using VYaml.Tests.TypeDeclarations;
 
@@ -186,6 +190,141 @@ namespace VYaml.Tests.Serialization
             var empty = new ReadOnlyMemory<byte>(Array.Empty<byte>());
             var result1 = YamlSerializer.Deserialize<dynamic>(empty);
             Assert.That(result1, Is.Null);
+        }
+
+        [Test]
+        public void Deserialize_NestedYamlInsideFormatter_DoesNotCorruptOuterState()
+        {
+            var result = YamlSerializer.Deserialize<List<NestedParent>>(NestedYaml.Parents, new YamlSerializerOptions
+            {
+                Resolver = new NestedYamlFormatterResolver(),
+            });
+
+            Assert.That(result, Has.Count.EqualTo(1));
+            Assert.That(result[0].Id, Is.EqualTo("A"));
+            Assert.That(result[0].Child!.Id, Is.EqualTo("A"));
+            Assert.That(result[0].Other!.Id, Is.EqualTo("B"));
+        }
+
+        [Test]
+        public void Deserialize_Concurrent_DoesNotShareBuffersAcrossThreads()
+        {
+            // The pooled working buffers are per-thread; deserializing in parallel must not
+            // corrupt one another.
+            var yaml = """
+                one: 1
+                two: 2
+                """u8.ToArray();
+
+            Parallel.For(0, 2000, _ =>
+            {
+                var result = YamlSerializer.Deserialize<SimpleTypeTwo>(yaml);
+                Assert.That(result.One, Is.EqualTo(1));
+                Assert.That(result.Two, Is.EqualTo(2));
+            });
+        }
+
+        sealed class NestedParent
+        {
+            public string? Id { get; init; }
+            public NestedChild? Child { get; init; }
+            public NestedChild? Other { get; init; }
+        }
+
+        sealed class NestedChild
+        {
+            public NestedChild(string id)
+            {
+                Id = id;
+            }
+
+            public string Id { get; }
+        }
+
+        static class NestedYaml
+        {
+            public static readonly byte[] Parents = """
+                - id: A
+                  child: A
+                  other: B
+                """u8.ToArray();
+
+            public static readonly byte[] Children = """
+                - id: A
+                - id: B
+                - id: C
+                """u8.ToArray();
+        }
+
+        sealed class NestedYamlFormatterResolver : IYamlFormatterResolver
+        {
+            public IYamlFormatter<T>? GetFormatter<T>()
+            {
+                if (typeof(T) == typeof(NestedParent))
+                {
+                    return (IYamlFormatter<T>)(object)new NestedParentYamlFormatter();
+                }
+
+                if (typeof(T) == typeof(NestedChild))
+                {
+                    return (IYamlFormatter<T>)(object)new NestedChildYamlFormatter();
+                }
+
+                return StandardResolver.Instance.GetFormatter<T>();
+            }
+        }
+
+        sealed class NestedParentYamlFormatter : IYamlFormatter<NestedParent>
+        {
+            public void Serialize(ref Utf8YamlEmitter emitter, NestedParent value, YamlSerializationContext context)
+            {
+                throw new NotImplementedException();
+            }
+
+            public NestedParent Deserialize(ref YamlParser parser, YamlDeserializationContext context)
+            {
+                string? id = null;
+                NestedChild? child = null;
+                NestedChild? other = null;
+
+                parser.ReadWithVerify(ParseEventType.MappingStart);
+                while (!parser.End && parser.CurrentEventType != ParseEventType.MappingEnd)
+                {
+                    var key = parser.ReadScalarAsString();
+                    switch (key)
+                    {
+                        case "id":
+                            id = parser.ReadScalarAsString();
+                            break;
+                        case "child":
+                            child = context.DeserializeWithAlias<NestedChild>(ref parser);
+                            break;
+                        case "other":
+                            other = context.DeserializeWithAlias<NestedChild>(ref parser);
+                            break;
+                        default:
+                            throw new YamlSerializerException($"Unexpected key: {key}");
+                    }
+                }
+                parser.ReadWithVerify(ParseEventType.MappingEnd);
+
+                return new NestedParent { Id = id, Child = child, Other = other };
+            }
+        }
+
+        sealed class NestedChildYamlFormatter : IYamlFormatter<NestedChild>
+        {
+            public void Serialize(ref Utf8YamlEmitter emitter, NestedChild value, YamlSerializationContext context)
+            {
+                throw new NotImplementedException();
+            }
+
+            public NestedChild Deserialize(ref YamlParser parser, YamlDeserializationContext context)
+            {
+                var childId = parser.ReadScalarAsString();
+                var children = YamlSerializer.Deserialize<List<Dictionary<string, string>>>(NestedYaml.Children);
+                return new NestedChild(children.First(x => x["id"] == childId)["id"]);
+            }
         }
     }
 }

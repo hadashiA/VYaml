@@ -69,12 +69,6 @@ namespace VYaml.Parser
 
     public ref partial struct YamlParser
     {
-        [ThreadStatic]
-        static Dictionary<string, int>? anchorsBufferStatic;
-
-        [ThreadStatic]
-        static ExpandBuffer<ParseState>? stateStackBufferStatic;
-
         public static YamlParser FromBytes(Memory<byte> bytes)
         {
             var sequence = new ReadOnlySequence<byte>(bytes);
@@ -120,11 +114,8 @@ namespace VYaml.Parser
             CurrentEventType = default;
             lastAnchorId = -1;
 
-            anchors = anchorsBufferStatic ??= new Dictionary<string, int>();
-            anchors.Clear();
-
-            stateStack = stateStackBufferStatic ??= new ExpandBuffer<ParseState>(16);
-            stateStack.Clear();
+            anchors = ThreadLocalObjectPool<Dictionary<string, int>>.Rent(static () => new Dictionary<string, int>());
+            stateStack = ThreadLocalObjectPool<ExpandBuffer<ParseState>>.Rent(static () => new ExpandBuffer<ParseState>(16));
 
             currentScalar = null;
             currentTag = null;
@@ -139,14 +130,25 @@ namespace VYaml.Parser
             currentState = ParseState.StreamStart;
             CurrentEventType = default;
             lastAnchorId = -1;
-            anchors = new Dictionary<string, int>();
-            stateStack = new ExpandBuffer<ParseState>(16);
+            anchors = ThreadLocalObjectPool<Dictionary<string, int>>.Rent(static () => new Dictionary<string, int>());
+            stateStack = ThreadLocalObjectPool<ExpandBuffer<ParseState>>.Rent(static () => new ExpandBuffer<ParseState>(16));
 
             currentScalar = null;
             currentTag = null;
             currentAnchor = null;
 
             UnityStrippedMark = false;
+        }
+
+        internal void ReturnPool()
+        {
+            anchors.Clear();
+            ThreadLocalObjectPool<Dictionary<string, int>>.Return(anchors);
+
+            stateStack.Clear();
+            ThreadLocalObjectPool<ExpandBuffer<ParseState>>.Return(stateStack);
+
+            tokenizer.ReturnPool();
         }
 
         public bool Read()
@@ -923,4 +925,3 @@ namespace VYaml.Parser
         }
     }
 }
-
