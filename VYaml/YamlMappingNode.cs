@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-namespace VYaml.Parser
+namespace VYaml
 {
     /// <summary>
     /// A YAML mapping node. Insertion order is preserved.

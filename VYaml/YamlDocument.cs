@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using VYaml.Internal;
 using VYaml.Serialization;
 
-namespace VYaml.Parser
+namespace VYaml
 {
     /// <summary>
     /// A single YAML document (one <c>---</c> section), wrapping its root <see cref="YamlNode"/>.

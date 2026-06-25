@@ -1,9 +1,10 @@
 #nullable enable
 using System;
 using VYaml.Internal;
+using VYaml.Parser;
 using VYaml.Serialization;
 
-namespace VYaml.Parser
+namespace VYaml
 {
     public enum YamlNodeType
     {

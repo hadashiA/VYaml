@@ -3,8 +3,9 @@ using System;
 using System.Globalization;
 using VYaml.Emitter;
 using VYaml.Internal;
+using VYaml.Parser;
 
-namespace VYaml.Parser
+namespace VYaml
 {
     /// <summary>
     /// A scalar leaf of a <see cref="YamlNode"/> tree.

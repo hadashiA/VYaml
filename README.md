@@ -279,7 +279,7 @@ There are three node kinds, all deriving from the abstract `YamlNode`:
 ##### Parsing
 
 ```csharp
-using VYaml.Parser;
+using VYaml;
 
 YamlNode node = YamlNode.Parse("""
     name: vyaml

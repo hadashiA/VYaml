@@ -1,5 +1,6 @@
 using System.Linq;
 using NUnit.Framework;
+using VYaml;
 using VYaml.Emitter;
 using VYaml.Parser;
 using VYaml.Serialization;
