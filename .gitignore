@@ -2,6 +2,7 @@
 bin/
 .vs/
 obj/
+TestResults/
 *.DotSettings.user
 .idea
 

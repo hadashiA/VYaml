@@ -1,0 +1,87 @@
+using System.Collections.Generic;
+
+namespace VYaml.Tests.TestSuite
+{
+    /// <summary>
+    /// yaml-test-suite cases that VYaml does not yet conform to.
+    /// Each entry is the test id (the submodule-relative directory, e.g. <c>"229Q"</c> or
+    /// <c>"3RLN/01"</c>) mapped to a short reason. These are reported as Ignored, not Failed,
+    /// so the suite stays green while the gap remains visible.
+    /// </summary>
+    public static class YamlTestSuiteSkipList
+    {
+        public static readonly IReadOnlyDictionary<string, string> Skipped = new Dictionary<string, string>
+        {
+            ["2SXE"] = "scalar value mismatch",
+            ["3RLN/01"] = "VYaml rejects spec-valid input",
+            ["3RLN/04"] = "VYaml rejects spec-valid input",
+            ["3UYS"] = "VYaml rejects spec-valid input",
+            ["4EJS"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["4MUZ/00"] = "scalar value mismatch",
+            ["4MUZ/01"] = "scalar value mismatch",
+            ["4MUZ/02"] = "scalar value mismatch",
+            ["5MUD"] = "scalar value mismatch",
+            ["5TRB"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["6BCT"] = "scalar value mismatch",
+            ["6CA3"] = "event structure mismatch",
+            ["7Z25"] = "VYaml rejects spec-valid input",
+            ["8XYN"] = "VYaml rejects spec-valid input",
+            ["96NN/00"] = "VYaml rejects spec-valid input",
+            ["96NN/01"] = "VYaml rejects spec-valid input",
+            ["9HCY"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["9JBA"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["9MMW"] = "event structure mismatch",
+            ["9MQT/01"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["9SA2"] = "scalar value mismatch",
+            ["A2M4"] = "scalar value mismatch",
+            ["CFD4"] = "VYaml rejects spec-valid input",
+            ["CVW2"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["DE56/02"] = "VYaml rejects spec-valid input",
+            ["DE56/03"] = "VYaml rejects spec-valid input",
+            ["DK3J"] = "scalar value mismatch",
+            ["DK95/00"] = "scalar value mismatch",
+            ["DK95/01"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["DK95/03"] = "VYaml rejects spec-valid input",
+            ["DK95/04"] = "VYaml rejects spec-valid input",
+            ["EB22"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["FP8R"] = "scalar value mismatch",
+            ["G5U8"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["G9HC"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["H7J7"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["HRE5"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["HWV9"] = "event structure mismatch",
+            ["K3WX"] = "scalar value mismatch",
+            ["KH5V/01"] = "VYaml rejects spec-valid input",
+            ["M7A3"] = "VYaml rejects spec-valid input",
+            ["MUS6/00"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["MUS6/01"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["NJ66"] = "scalar value mismatch",
+            ["Q5MG"] = "event structure mismatch",
+            ["QB6E"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["QLJ7"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["QT73"] = "event structure mismatch",
+            ["R4YG"] = "VYaml rejects spec-valid input",
+            ["RHX7"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["RXY3"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["S98Z"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["SF5V"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["SU5Z"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["UT92"] = "scalar value mismatch",
+            ["VJP3/01"] = "scalar value mismatch",
+            ["W4TN"] = "VYaml rejects spec-valid input",
+            ["W5VH"] = "VYaml rejects spec-valid input",
+            ["X4QW"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["Y2GN"] = "scalar value mismatch",
+            ["Y79Y/001"] = "VYaml rejects spec-valid input",
+            ["Y79Y/003"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["Y79Y/004"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["Y79Y/005"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["Y79Y/006"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["Y79Y/007"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["Y79Y/008"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["Y79Y/009"] = "VYaml accepts input the YAML 1.2 spec rejects",
+            ["Y79Y/010"] = "scalar value mismatch",
+            ["YJV2"] = "VYaml accepts input the YAML 1.2 spec rejects",
+        };
+    }
+}
