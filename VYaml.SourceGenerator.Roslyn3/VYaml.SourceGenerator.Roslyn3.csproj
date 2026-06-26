@@ -19,7 +19,7 @@
 
     <ItemGroup>
         <Compile Include="../VYaml.SourceGenerator/**/*.cs"
-                 Exclude="**/obj/**;**/VYamlIncrementalSourceGenerator.cs;**/Shims/**" />
+                 Exclude="**/obj/**;**/VYamlIncrementalSourceGenerator.cs;**/Shims/**;**/Incremental/**" />
     </ItemGroup>
 
     <ItemGroup>
