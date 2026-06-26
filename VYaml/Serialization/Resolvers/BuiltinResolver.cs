@@ -116,6 +116,12 @@ namespace VYaml.Serialization
             { typeof(System.Numerics.BigInteger?), new StaticNullableFormatter<System.Numerics.BigInteger>(BigIntegerFormatter.Instance) },
             { typeof(System.Numerics.Complex), ComplexFormatter.Instance },
             { typeof(System.Numerics.Complex?), new StaticNullableFormatter<System.Numerics.Complex>(ComplexFormatter.Instance) },
+
+            // Node tree representation
+            { typeof(YamlNode), YamlNodeFormatter.Instance },
+            { typeof(YamlScalarNode), new YamlNodeFormatter.SubtypeFormatter<YamlScalarNode>() },
+            { typeof(YamlMappingNode), new YamlNodeFormatter.SubtypeFormatter<YamlMappingNode>() },
+            { typeof(YamlSequenceNode), new YamlNodeFormatter.SubtypeFormatter<YamlSequenceNode>() },
         };
 
         public static readonly Dictionary<Type, Type> KnownGenericTypes = new()

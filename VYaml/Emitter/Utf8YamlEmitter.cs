@@ -68,6 +68,7 @@ namespace VYaml.Emitter
         readonly ExpandBuffer<EmitState> stateStack;
         readonly ExpandBuffer<int> elementCountStack;
         readonly ExpandBuffer<string> tagStack;
+        readonly ExpandBuffer<string> anchorStack;
 
         int currentIndentLevel;
         int currentElementCount;
@@ -92,6 +93,7 @@ namespace VYaml.Emitter
             currentElementCount = 0;
 
             tagStack = new ExpandBuffer<string>(4);
+            anchorStack = new ExpandBuffer<string>(4);
         }
 
         internal readonly IBufferWriter<byte> GetWriter() => writer;
@@ -115,6 +117,27 @@ namespace VYaml.Emitter
                         case EmitState.BlockMappingKey:
                             throw new YamlEmitterException(
                                 "To start block-sequence in the mapping key is not supported.");
+
+                        case EmitState.BlockMappingValue:
+                        case EmitState.None:
+                            // Flush the block sequence's own node properties (&anchor / !tag) here,
+                            // before the entries, so they attach to the sequence and not its first entry.
+                            if (anchorStack.Length > 0 || tagStack.Length > 0)
+                            {
+                                var output = writer.GetSpan(GetTagLength() + 2);
+                                var offset = 0;
+                                if (CurrentState == EmitState.BlockMappingValue)
+                                {
+                                    output[offset++] = YamlCodes.Space;
+                                }
+                                TryWriteTag(output, false, ref offset);
+                                if (CurrentState == EmitState.None)
+                                {
+                                    output[offset++] = YamlCodes.Lf;
+                                }
+                                writer.Advance(offset);
+                            }
+                            break;
                     }
 
                     PushState(EmitState.BlockSequenceEntry);
@@ -355,10 +378,21 @@ namespace VYaml.Emitter
                     {
                         var lineBreak = CurrentState is EmitState.BlockSequenceEntry or EmitState.BlockMappingValue;
                         var space = CurrentState is EmitState.BlockMappingValue or EmitState.FlowMappingValue or EmitState.BlockSequenceEntry;
-                        if (tagStack.TryPop(out var tag))
+                        var hasAnchor = anchorStack.TryPop(out var anchor);
+                        var hasTag = tagStack.TryPop(out var tag);
+                        if (hasAnchor || hasTag)
                         {
-                            var tagBytes = StringEncoding.Utf8.GetBytes((space ? " " : "") + tag + " "); // TODO:
-                            WriteRaw(tagBytes, FlowMappingEmpty, false, lineBreak);
+                            var prefix = space ? " " : "";
+                            if (hasAnchor)
+                            {
+                                prefix += "&" + anchor + " ";
+                            }
+                            if (hasTag)
+                            {
+                                prefix += tag + " ";
+                            }
+                            var prefixBytes = StringEncoding.Utf8.GetBytes(prefix); // TODO:
+                            WriteRaw(prefixBytes, FlowMappingEmpty, false, lineBreak);
                         }
                         else
                         {
@@ -485,6 +519,28 @@ namespace VYaml.Emitter
         public void Tag(string value)
         {
             tagStack.Add(value);
+        }
+
+        /// <summary>
+        /// Declares an anchor (<c>&amp;name</c>) for the next node to be written.
+        /// </summary>
+        public void Anchor(string value)
+        {
+            anchorStack.Add(value);
+        }
+
+        /// <summary>
+        /// Writes an alias node (<c>*name</c>) in the current position.
+        /// </summary>
+        public void WriteAlias(string name)
+        {
+            var output = writer.GetSpan(CalculateMaxScalarBufferLength(StringEncoding.Utf8.GetMaxByteCount(name.Length) + 1));
+            var offset = 0;
+            BeginScalar(output, ref offset);
+            output[offset++] = YamlCodes.Alias;
+            offset += StringEncoding.Utf8.GetBytes(name, output[offset..]);
+            EndScalar(output, ref offset);
+            writer.Advance(offset);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -793,10 +849,24 @@ namespace VYaml.Emitter
                                 IncreaseIndent();
                                 output[offset++] = YamlCodes.Space;
 
-                                // Try write tag
-                                if (tagStack.TryPop(out var tag))
+                                // Try write node properties (anchor and/or tag)
+                                var hasAnchor = anchorStack.TryPop(out var anchor);
+                                var hasTag = tagStack.TryPop(out var tag);
+                                if (hasAnchor || hasTag)
                                 {
-                                    offset += StringEncoding.Utf8.GetBytes(tag, output[offset..]);
+                                    if (hasAnchor)
+                                    {
+                                        output[offset++] = YamlCodes.Anchor;
+                                        offset += StringEncoding.Utf8.GetBytes(anchor, output[offset..]);
+                                        if (hasTag)
+                                        {
+                                            output[offset++] = YamlCodes.Space;
+                                        }
+                                    }
+                                    if (hasTag)
+                                    {
+                                        offset += StringEncoding.Utf8.GetBytes(tag, output[offset..]);
+                                    }
                                     output[offset++] = YamlCodes.Lf;
                                     WriteIndent(output, ref offset);
                                 }
@@ -950,23 +1020,49 @@ namespace VYaml.Emitter
                 currentIndentLevel--;
         }
 
+        // Writes the pending node properties (anchor and/or tag) as a prefix: `&anchor !tag`.
         bool TryWriteTag(Span<byte> output, bool beforeSpace, ref int offset)
         {
-            if (tagStack.TryPop(out var tag))
+            var hasAnchor = anchorStack.TryPop(out var anchor);
+            var hasTag = tagStack.TryPop(out var tag);
+            if (!hasAnchor && !hasTag)
             {
-                if (beforeSpace)
+                return false;
+            }
+
+            if (beforeSpace)
+            {
+                output[offset++] = YamlCodes.Space;
+            }
+            if (hasAnchor)
+            {
+                output[offset++] = YamlCodes.Anchor;
+                offset += StringEncoding.Utf8.GetBytes(anchor, output[offset..]);
+                if (hasTag)
                 {
                     output[offset++] = YamlCodes.Space;
                 }
-                offset += StringEncoding.Utf8.GetBytes(tag, output[offset..]);
-                return true;
             }
-            return false;
+            if (hasTag)
+            {
+                offset += StringEncoding.Utf8.GetBytes(tag, output[offset..]);
+            }
+            return true;
         }
 
         int GetTagLength()
         {
-            return tagStack.Length > 0 ? StringEncoding.Utf8.GetMaxByteCount(tagStack.Peek().Length) : 0;
+            var length = 0;
+            if (anchorStack.Length > 0)
+            {
+                // '&' + name + separating space
+                length += 2 + StringEncoding.Utf8.GetMaxByteCount(anchorStack.Peek().Length);
+            }
+            if (tagStack.Length > 0)
+            {
+                length += StringEncoding.Utf8.GetMaxByteCount(tagStack.Peek().Length);
+            }
+            return length;
         }
     }
 }
