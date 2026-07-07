@@ -360,6 +360,11 @@ namespace VYaml.Parser
             return false;
         }
 
+        // Exposes the current scalar (UTF-8 bytes + token type) for building a node tree.
+        // Returns null for an empty / implicit-null scalar.
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal readonly Scalar? GetCurrentScalar() => currentScalar;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly bool TryGetCurrentTag(out Tag tag)
         {

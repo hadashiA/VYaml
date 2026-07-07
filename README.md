@@ -34,6 +34,7 @@ Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular y
   - Supports interface-typed and abstract class-typed objects.
   - Supports anchor (`&`) and alias (`*`) in the YAML spec.
   - Supports deserializing multiple YAML documents into a C# collection.
+  - Provides a mutable [node tree representation (`YamlNode`)](#node-tree-representation-yamlnode), comparable to `System.Text.Json`'s `JsonNode`.
   - Customization
     - Rename key
     - Ignore member
@@ -42,7 +43,7 @@ Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular y
 
 ## Most recent roadmap
 
-- [ ] Support node tree representation
+- [x] Support node tree representation
 
 ## Installation
 
@@ -261,6 +262,131 @@ var documents = YamlSerializer.DeserializeMultipleDocuments<dynamic>(yaml);
 documents[0]["Warning"] // #=> "This is an error message for the log file"
 documents[1]["Warning"] // #=> "A slightly different error message."
 documents[2]["Fatal"]   // #=> "Unknown variable \"bar\""
+```
+
+#### Node tree representation (`YamlNode`)
+
+If you want to inspect or edit YAML without mapping it to a fixed C# type, you can deserialize into a `YamlNode` tree. This is similar to `System.Text.Json`'s `JsonNode`.
+
+There are three node kinds, all deriving from the abstract `YamlNode`:
+
+| Node kind          | Underlying collection                       | Accessor      |
+| ------------------ | ------------------------------------------- | ------------- |
+| `YamlScalarNode`   | a scalar leaf                               | `AsScalar()`  |
+| `YamlMappingNode`  | `IDictionary<YamlNode, YamlNode>` (ordered) | `AsMapping()` |
+| `YamlSequenceNode` | `IList<YamlNode>`                            | `AsSequence()`|
+
+##### Parsing
+
+```csharp
+using VYaml;
+
+YamlNode node = YamlNode.Parse("""
+    name: vyaml
+    tags:
+      - fast
+      - allocation-free
+    """);
+```
+
+`YamlNode.Parse` accepts a `string`, a `ReadOnlyMemory<byte>` (UTF-8), or a `ref YamlParser`. You can also go through `YamlSerializer`, including the typed subtype overloads:
+
+```csharp
+var node    = YamlSerializer.Deserialize<YamlNode>(utf8Bytes);
+var mapping = YamlSerializer.Deserialize<YamlMappingNode>(utf8Bytes);
+```
+
+##### Navigating
+
+Indexers and `As*()` make traversal concise. `this[string]` / `this[YamlNode]` index a mapping, `this[int]` indexes a sequence.
+
+```csharp
+node["name"].AsScalar().Value;                 // #=> "vyaml"
+node["tags"].AsSequence()[0].AsScalar().Value; // #=> "fast"
+
+// kind checks
+node.NodeType;    // #=> YamlNodeType.Mapping
+node.IsMapping;   // #=> true
+
+// iterate
+foreach (var item in node["tags"].AsSequence())
+{
+    System.Console.WriteLine(item.AsScalar().Value);
+}
+
+foreach (var (key, value) in node.AsMapping())
+{
+    // key and value are both YamlNode
+}
+```
+
+##### Reading scalar values
+
+Scalars resolve typed values lazily, using the same rules as the parser. Quoted scalars are always treated as strings (so `"123"` will not parse as a number).
+
+```csharp
+var scalar = (YamlScalarNode)YamlNode.Parse("123");
+
+scalar.Value;                       // #=> "123" (the raw text)
+scalar.GetInt32();                  // #=> 123
+scalar.GetValue<int>();             // #=> 123
+scalar.TryGetValue(out double d);   // #=> true
+scalar.IsNull;                      // #=> false
+scalar.Style;                       // #=> ScalarStyle.Plain
+```
+
+Available typed getters: `GetBool()`, `GetInt32()`, `GetInt64()`, `GetUInt32()`, `GetUInt64()`, `GetSingle()`, `GetDouble()`, `GetString()` (returns `null` for a null scalar), and the generic `GetValue<T>()` / `TryGetValue(out T)`.
+
+##### Building and editing
+
+The tree is mutable. You can build one from scratch (primitives convert implicitly), edit a parsed one, and serialize back:
+
+```csharp
+var root = new YamlMappingNode
+{
+    ["name"] = "vyaml",
+    ["count"] = 3,
+    ["tags"] = new YamlSequenceNode { "fast", "allocation-free" },
+};
+
+// edit
+root["count"] = 4;
+root.AsMapping().Remove("tags");
+
+string yaml = YamlSerializer.SerializeToString(root);
+```
+
+A scalar's presentation style is preserved on round-trip, and can be set explicitly:
+
+```csharp
+var quoted = new YamlScalarNode("123", ScalarStyle.DoubleQuoted); // emits "123"
+```
+
+##### Anchors and aliases
+
+Anchors and aliases are represented as **shared references**: an alias (`*name`) resolves to the same `YamlNode` instance that the anchor (`&name`) was declared on. This is preserved across a parse / serialize round-trip, and even self-referential (cyclic) structures are supported.
+
+```csharp
+var node = YamlNode.Parse("""
+    a: &x
+      value: 1
+    b: *x
+    """).AsMapping();
+
+ReferenceEquals(node["a"], node["b"]); // #=> true
+```
+
+When serializing, any node instance that is referenced more than once (or that carries an explicit `Anchor`) is emitted once with an anchor and as aliases afterwards.
+
+##### Multiple documents
+
+Use `YamlDocument` to load one or many documents:
+
+```csharp
+YamlDocument document = YamlDocument.Load(yaml);
+YamlNode root = document.RootNode;
+
+IReadOnlyList<YamlDocument> documents = YamlDocument.LoadAll(yaml);
 ```
 
 #### DefaultIgnoreCondition

@@ -46,7 +46,15 @@ namespace VYaml.Serialization
             return result;
         }
 
-        void RegisterAnchor(Anchor anchor, object? value)
+        /// <summary>
+        /// Registers an anchor -> value mapping.
+        /// </summary>
+        /// <remarks>
+        /// Normally called automatically after a node is deserialized. A formatter that builds a
+        /// mutable container up-front (e.g. the YamlNode tree) may call this *before* reading the
+        /// node's children so that self-referential aliases resolve to the same instance.
+        /// </remarks>
+        internal void RegisterAnchor(Anchor anchor, object? value)
         {
             aliases[anchor] = value;
         }
