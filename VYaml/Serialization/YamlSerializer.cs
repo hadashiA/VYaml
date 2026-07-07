@@ -2,6 +2,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using VYaml.Emitter;
 using VYaml.Internal;
@@ -120,9 +121,12 @@ namespace VYaml.Serialization
             }
         }
 
-        public static async ValueTask<T> DeserializeAsync<T>(Stream stream, YamlSerializerOptions? options = null)
+        public static async ValueTask<T> DeserializeAsync<T>(
+            Stream stream,
+            YamlSerializerOptions? options = null,
+            CancellationToken cancellationToken = default)
         {
-            var byteSequenceBuilder = await StreamHelper.ReadAsSequenceAsync(stream);
+            var byteSequenceBuilder = await StreamHelper.ReadAsSequenceAsync(stream, cancellationToken).ConfigureAwait(false);
             try
             {
                 var sequence = byteSequenceBuilder.Build();
@@ -152,9 +156,12 @@ namespace VYaml.Serialization
             }
         }
 
-        public static async ValueTask<IEnumerable<T>> DeserializeMultipleDocumentsAsync<T>(Stream stream, YamlSerializerOptions? options = null)
+        public static async ValueTask<IEnumerable<T>> DeserializeMultipleDocumentsAsync<T>(
+            Stream stream,
+            YamlSerializerOptions? options = null,
+            CancellationToken cancellationToken = default)
         {
-            var byteSequenceBuilder = await StreamHelper.ReadAsSequenceAsync(stream);
+            var byteSequenceBuilder = await StreamHelper.ReadAsSequenceAsync(stream, cancellationToken).ConfigureAwait(false);
             try
             {
                 var sequence = byteSequenceBuilder.Build();
