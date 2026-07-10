@@ -224,6 +224,96 @@ namespace VYaml.Tests.Serialization
             });
         }
 
+        [Test]
+        public async Task DeserializeAsync_FromMemoryStream()
+        {
+            var yamlBytes = StringEncoding.Utf8.GetBytes("one: 1\n" +
+                                                         "two: 2\n");
+            using var stream = new System.IO.MemoryStream();
+            stream.Write(yamlBytes, 0, yamlBytes.Length);
+            stream.Position = 0;
+
+            var result = await YamlSerializer.DeserializeAsync<SimpleTypeTwo>(stream);
+            Assert.That(result.One, Is.EqualTo(1));
+            Assert.That(result.Two, Is.EqualTo(2));
+        }
+
+        [Test]
+        public async Task DeserializeMultipleDocumentsAsync_FromStream()
+        {
+            var yamlBytes = StringEncoding.Utf8.GetBytes(SpecExamples.Ex2_28);
+            using var stream = new ChunkedStream(yamlBytes, chunkSize: 16);
+
+            var documents = (await YamlSerializer.DeserializeMultipleDocumentsAsync<dynamic>(stream)).ToArray();
+            Assert.That(documents.Length, Is.EqualTo(3));
+            Assert.That(documents[0]["Warning"], Is.EqualTo("This is an error message for the log file"));
+            Assert.That(documents[1]["Warning"], Is.EqualTo("A slightly different error message."));
+            Assert.That(documents[2]["Fatal"], Is.EqualTo("Unknown variable \"bar\""));
+        }
+
+        [Test]
+        public async Task DeserializeAsync_FromNonSeekableStream()
+        {
+            var yamlBytes = StringEncoding.Utf8.GetBytes("one: 1\n" +
+                                                         "two: 2\n");
+            using var stream = new ChunkedStream(yamlBytes, chunkSize: 3);
+
+            var result = await YamlSerializer.DeserializeAsync<SimpleTypeTwo>(stream);
+            Assert.That(result.One, Is.EqualTo(1));
+            Assert.That(result.Two, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void DeserializeAsync_Cancelled()
+        {
+            var yamlBytes = StringEncoding.Utf8.GetBytes("one: 1\n");
+            using var stream = new ChunkedStream(yamlBytes, chunkSize: 3);
+            using var cts = new System.Threading.CancellationTokenSource();
+            cts.Cancel();
+
+            Assert.ThrowsAsync(
+                Is.InstanceOf<OperationCanceledException>(),
+                async () => await YamlSerializer.DeserializeAsync<SimpleTypeTwo>(stream, cancellationToken: cts.Token));
+        }
+
+        // Non-seekable stream that feeds data a few bytes at a time,
+        // to exercise the buffer-growing read loop in StreamHelper.
+        sealed class ChunkedStream : System.IO.Stream
+        {
+            readonly byte[] data;
+            readonly int chunkSize;
+            int position;
+
+            public ChunkedStream(byte[] data, int chunkSize)
+            {
+                this.data = data;
+                this.chunkSize = chunkSize;
+            }
+
+            public override bool CanRead => true;
+            public override bool CanSeek => false;
+            public override bool CanWrite => false;
+            public override long Length => throw new NotSupportedException();
+            public override long Position
+            {
+                get => throw new NotSupportedException();
+                set => throw new NotSupportedException();
+            }
+
+            public override int Read(byte[] buffer, int offset, int count)
+            {
+                var bytesToCopy = Math.Min(Math.Min(count, chunkSize), data.Length - position);
+                Array.Copy(data, position, buffer, offset, bytesToCopy);
+                position += bytesToCopy;
+                return bytesToCopy;
+            }
+
+            public override void Flush() => throw new NotSupportedException();
+            public override long Seek(long offset, System.IO.SeekOrigin origin) => throw new NotSupportedException();
+            public override void SetLength(long value) => throw new NotSupportedException();
+            public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        }
+
         sealed class NestedParent
         {
             public string? Id { get; init; }
