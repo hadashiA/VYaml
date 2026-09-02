@@ -2,6 +2,7 @@ using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
@@ -21,10 +22,17 @@ namespace VYaml.Serialization
         static readonly Func<object, Type, string?> AliasStringValueFactory = AnalyzeAliasStringValue;
         static readonly Func<Type, NamingConvention?> NamingConventionFactory = AnalyzeNamingConventionByType;
 
-        public static string? GetAliasStringValue(Type type, object value) => AliasStringValues.GetOrAdd(value, AliasStringValueFactory!, type);
+        public static string? GetAliasStringValue(
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] Type type,
+            object value) => AliasStringValues.GetOrAdd(value, AliasStringValueFactory!, type);
+
         public static NamingConvention? GetNamingConventionByType(Type type) => NamingConventionsByType.GetOrAdd(type, NamingConventionFactory);
 
-        public static void Serialize(ref Utf8YamlEmitter emitter, Type type, object value, YamlSerializationContext context)
+        public static void Serialize(
+            ref Utf8YamlEmitter emitter,
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] Type type,
+            object value,
+            YamlSerializationContext context)
         {
             var aliasStringValue = GetAliasStringValue(type, value);
             if (aliasStringValue != null)
@@ -52,6 +60,8 @@ namespace VYaml.Serialization
             return type.GetCustomAttribute<YamlObjectAttribute>()?.NamingConvention;
         }
 
+        [UnconditionalSuppressMessage("Trimming", "IL2070",
+            Justification = "Only reached through GetAliasStringValue, whose Type parameter is annotated with DynamicallyAccessedMemberTypes.PublicFields; the GetOrAdd factory indirection hides the flow from the analyzer.")]
         static string? AnalyzeAliasStringValue(object value, Type type)
         {
             var name = Enum.GetName(type, value)!;
@@ -70,7 +80,8 @@ namespace VYaml.Serialization
         }
     }
 
-    public class EnumAsStringFormatter<T> : IYamlFormatter<T> where T : unmanaged, Enum
+    public class EnumAsStringFormatter<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] T> : IYamlFormatter<T>
+        where T : unmanaged, Enum
     {
         // ReSharper disable once StaticMemberInGenericType
         static readonly NamingConvention? NamingConventionByType;

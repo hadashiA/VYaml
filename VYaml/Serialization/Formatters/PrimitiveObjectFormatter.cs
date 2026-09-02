@@ -2,6 +2,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using VYaml.Emitter;
 using VYaml.Parser;
 
@@ -30,6 +31,12 @@ namespace VYaml.Serialization
             { typeof(byte[]), 14 },
         };
 
+        // Serializing a boxed enum discovered via GetType() reflects over its fields for the
+        // name/alias round-trip. The dynamic object path is best-effort on trimmed apps: an
+        // enum type whose fields were trimmed serializes through its statically registered
+        // EnumAsStringFormatter<T> instead when reached through a typed member.
+        [UnconditionalSuppressMessage("Trimming", "IL2072",
+            Justification = "value.GetType() cannot carry static annotations. Boxed-enum serialization through the dynamic object path is best-effort on trimmed apps; typed members flow through the annotated EnumAsStringFormatter<T> instead.")]
         public void Serialize(ref Utf8YamlEmitter emitter, object? value, YamlSerializationContext context)
         {
             if (value is null)

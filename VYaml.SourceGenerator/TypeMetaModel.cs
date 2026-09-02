@@ -39,6 +39,11 @@ sealed record TypeMetaModel
     public EquatableArray<string> SetterMemberNames { get; }
     public EquatableArray<UnionMetaModel> Unions { get; }
 
+    // Statements for the per-assembly module-initializer registration file: this type's own
+    // registration plus statically constructed closed generic formatters (enums, collections,
+    // closed user generics) harvested from the member graph. See RegistrationEmitter.
+    public EquatableArray<string> AotRegistrations { get; }
+
     public TypeMetaModel(
         string hintName,
         bool isValid,
@@ -58,7 +63,8 @@ sealed record TypeMetaModel
         EquatableArray<MemberMetaModel> members,
         EquatableArray<string> constructorParameterNames,
         EquatableArray<string> setterMemberNames,
-        EquatableArray<UnionMetaModel> unions)
+        EquatableArray<UnionMetaModel> unions,
+        EquatableArray<string> aotRegistrations)
     {
         HintName = hintName;
         IsValid = isValid;
@@ -79,6 +85,7 @@ sealed record TypeMetaModel
         ConstructorParameterNames = constructorParameterNames;
         SetterMemberNames = setterMemberNames;
         Unions = unions;
+        AotRegistrations = aotRegistrations;
     }
 }
 
