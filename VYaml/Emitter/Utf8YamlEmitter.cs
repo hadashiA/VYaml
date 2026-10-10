@@ -22,23 +22,29 @@ namespace VYaml.Emitter
 
     public ref struct Utf8YamlEmitter
     {
-        static byte[] whiteSpaces = "                                "u8.ToArray();
-        static readonly byte[] FlowSequenceEmpty = "[]"u8.ToArray();
-        static readonly byte[] FlowSequenceEmptyWithSpace = " []"u8.ToArray();
-        static readonly byte[] FlowSequenceSeparator = ", "u8.ToArray();
-        static readonly byte[] FlowMappingHeader = "{ "u8.ToArray();
-        static readonly byte[] FlowMappingFooter = " }"u8.ToArray();
-        static readonly byte[] FlowMappingEmpty = "{}"u8.ToArray();
-        static readonly byte[] FlowMappingEmptyWithSpace = " {}"u8.ToArray();
+        // IL2CPP does not emit GC write barriers for stores into static/thread-static fields declared
+        // on a value type (including ref structs). With the incremental GC enabled, objects stored
+        // there can be collected while still referenced, so keep them on a reference type instead.
+        static class Statics
+        {
+            public static byte[] WhiteSpaces = "                                "u8.ToArray();
+            public static readonly byte[] FlowSequenceEmpty = "[]"u8.ToArray();
+            public static readonly byte[] FlowSequenceEmptyWithSpace = " []"u8.ToArray();
+            public static readonly byte[] FlowSequenceSeparator = ", "u8.ToArray();
+            public static readonly byte[] FlowMappingHeader = "{ "u8.ToArray();
+            public static readonly byte[] FlowMappingFooter = " }"u8.ToArray();
+            public static readonly byte[] FlowMappingEmpty = "{}"u8.ToArray();
+            public static readonly byte[] FlowMappingEmptyWithSpace = " {}"u8.ToArray();
 
-        [ThreadStatic]
-        static ExpandBuffer<char>? stringBufferStatic;
+            [ThreadStatic]
+            public static ExpandBuffer<char>? StringBuffer;
 
-        [ThreadStatic]
-        static ExpandBuffer<EmitState>? stateBufferStatic;
+            [ThreadStatic]
+            public static ExpandBuffer<EmitState>? StateBuffer;
 
-        [ThreadStatic]
-        static ExpandBuffer<int>? elementCountBufferStatic;
+            [ThreadStatic]
+            public static ExpandBuffer<int>? ElementCountBuffer;
+        }
 
         // [ThreadStatic]
         // static ExpandBuffer<string>? tagBufferStatic;
@@ -79,13 +85,13 @@ namespace VYaml.Emitter
 
             currentIndentLevel = 0;
 
-            stringBuffer = stringBufferStatic ??= new ExpandBuffer<char>(1024);
+            stringBuffer = Statics.StringBuffer ??= new ExpandBuffer<char>(1024);
             stringBuffer.Clear();
 
-            stateStack = stateBufferStatic ??= new ExpandBuffer<EmitState>(16);
+            stateStack = Statics.StateBuffer ??= new ExpandBuffer<EmitState>(16);
             stateStack.Clear();
 
-            elementCountStack = elementCountBufferStatic ??= new ExpandBuffer<int>(16);
+            elementCountStack = Statics.ElementCountBuffer ??= new ExpandBuffer<int>(16);
             elementCountStack.Clear();
 
             stateStack.Add(EmitState.None);
@@ -139,12 +145,12 @@ namespace VYaml.Emitter
                         }
                         case EmitState.FlowSequenceEntry:
                         {
-                            var output = writer.GetSpan(FlowSequenceSeparator.Length + 1);
+                            var output = writer.GetSpan(Statics.FlowSequenceSeparator.Length + 1);
                             var offset = 0;
                             if (currentElementCount > 0)
                             {
-                                FlowSequenceSeparator.CopyTo(output);
-                                offset += FlowSequenceSeparator.Length;
+                                Statics.FlowSequenceSeparator.CopyTo(output);
+                                offset += Statics.FlowSequenceSeparator.Length;
                             }
                             output[offset++] = YamlCodes.FlowSequenceStart;
                             writer.Advance(offset);
@@ -190,7 +196,7 @@ namespace VYaml.Emitter
                     {
                         var lineBreak = CurrentState is EmitState.BlockSequenceEntry or EmitState.BlockMappingValue;
                         var space = CurrentState is EmitState.BlockMappingValue or EmitState.FlowMappingValue or EmitState.BlockSequenceEntry;
-                        WriteRaw(space ? FlowSequenceEmptyWithSpace : FlowSequenceEmpty, false, lineBreak);
+                        WriteRaw(space ? Statics.FlowSequenceEmptyWithSpace : Statics.FlowSequenceEmpty, false, lineBreak);
                     }
 
                     switch (CurrentState)
@@ -291,7 +297,7 @@ namespace VYaml.Emitter
 
                         case EmitState.BlockSequenceEntry:
                         {
-                            var output = writer.GetSpan(currentIndentLevel * options.IndentWidth + 3 + FlowMappingHeader.Length + GetTagLength() + 1);
+                            var output = writer.GetSpan(currentIndentLevel * options.IndentWidth + 3 + Statics.FlowMappingHeader.Length + GetTagLength() + 1);
                             var offset = 0;
                             WriteBlockSequenceEntryHeader(output, ref offset);
                             output[offset++] = YamlCodes.Space;
@@ -305,12 +311,12 @@ namespace VYaml.Emitter
                         }
                         case EmitState.FlowSequenceEntry:
                         {
-                            var output = writer.GetSpan(FlowSequenceSeparator.Length + FlowMappingHeader.Length);
+                            var output = writer.GetSpan(Statics.FlowSequenceSeparator.Length + Statics.FlowMappingHeader.Length);
                             var offset = 0;
                             if (!IsFirstElement)
                             {
-                                FlowSequenceSeparator.CopyTo(output);
-                                offset += FlowSequenceSeparator.Length;
+                                Statics.FlowSequenceSeparator.CopyTo(output);
+                                offset += Statics.FlowSequenceSeparator.Length;
                             }
                             output[offset++] = YamlCodes.FlowMapStart;
                             writer.Advance(offset);
@@ -358,11 +364,11 @@ namespace VYaml.Emitter
                         if (tagStack.TryPop(out var tag))
                         {
                             var tagBytes = StringEncoding.Utf8.GetBytes((space ? " " : "") + tag + " "); // TODO:
-                            WriteRaw(tagBytes, FlowMappingEmpty, false, lineBreak);
+                            WriteRaw(tagBytes, Statics.FlowMappingEmpty, false, lineBreak);
                         }
                         else
                         {
-                            WriteRaw(space ? FlowMappingEmptyWithSpace : FlowMappingEmpty,
+                            WriteRaw(space ? Statics.FlowMappingEmptyWithSpace : Statics.FlowMappingEmpty,
                                 false,
                                 lineBreak);
                         }
@@ -415,7 +421,7 @@ namespace VYaml.Emitter
                             break;
                     }
 
-                    var suffixLength = FlowMappingFooter.Length;
+                    var suffixLength = Statics.FlowMappingFooter.Length;
                     if (needsLineBreak) suffixLength++;
 
                     var offset = 0;
@@ -755,11 +761,11 @@ namespace VYaml.Emitter
                 return;
             }
 
-            if (length > whiteSpaces.Length)
+            if (length > Statics.WhiteSpaces.Length)
             {
-                whiteSpaces = Enumerable.Repeat(YamlCodes.Space, length * 2).ToArray();
+                Statics.WhiteSpaces = Enumerable.Repeat(YamlCodes.Space, length * 2).ToArray();
             }
-            whiteSpaces.AsSpan(0, length).CopyTo(output[offset..]);
+            Statics.WhiteSpaces.AsSpan(0, length).CopyTo(output[offset..]);
             offset += length;
         }
 
@@ -843,8 +849,8 @@ namespace VYaml.Emitter
                 case EmitState.FlowSequenceEntry:
                     if (!IsFirstElement)
                     {
-                        FlowSequenceSeparator.CopyTo(output[offset..]);
-                        offset += FlowSequenceSeparator.Length;
+                        Statics.FlowSequenceSeparator.CopyTo(output[offset..]);
+                        offset += Statics.FlowSequenceSeparator.Length;
                     }
                     if (TryWriteTag(output, false, ref offset))
                     {
@@ -858,8 +864,8 @@ namespace VYaml.Emitter
                     }
                     else
                     {
-                        FlowSequenceSeparator.CopyTo(output[offset..]);
-                        offset += FlowSequenceSeparator.Length;
+                        Statics.FlowSequenceSeparator.CopyTo(output[offset..]);
+                        offset += Statics.FlowSequenceSeparator.Length;
                     }
                     break;
                 case EmitState.FlowMappingValue:

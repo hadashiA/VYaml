@@ -17,72 +17,78 @@ namespace VYaml.Parser
 
     public ref struct Utf8YamlTokenizer
     {
-        // Byte sets that terminate a contiguous run of plain-scalar characters.
-        // Used to bulk-copy runs instead of consuming one byte at a time.
-        // Line breaks (Lf/Cr) are included so a run never spans multiple lines,
-        // which keeps mark.Col advancement a simple addition.
+        // IL2CPP does not emit GC write barriers for stores into static fields declared on a value type
+        // (including ref structs). With the incremental GC enabled, objects stored there can be collected
+        // while still referenced, so keep them on a reference type instead.
+        static class Statics
+        {
+            // Byte sets that terminate a contiguous run of plain-scalar characters.
+            // Used to bulk-copy runs instead of consuming one byte at a time.
+            // Line breaks (Lf/Cr) are included so a run never spans multiple lines,
+            // which keeps mark.Col advancement a simple addition.
 #if NET8_0_OR_GREATER
-        static readonly System.Buffers.SearchValues<byte> PlainScalarStopBlock =
-            System.Buffers.SearchValues.Create(
+            public static readonly System.Buffers.SearchValues<byte> PlainScalarStopBlock =
+                System.Buffers.SearchValues.Create(
+                [
+                    YamlCodes.Space, YamlCodes.Tab, YamlCodes.Lf, YamlCodes.Cr,
+                    YamlCodes.MapValueIndent,
+                ]);
+
+            public static readonly System.Buffers.SearchValues<byte> PlainScalarStopFlow =
+                System.Buffers.SearchValues.Create(
+                [
+                    YamlCodes.Space, YamlCodes.Tab, YamlCodes.Lf, YamlCodes.Cr,
+                    YamlCodes.MapValueIndent, YamlCodes.Comma,
+                    YamlCodes.FlowSequenceStart, YamlCodes.FlowSequenceEnd,
+                    YamlCodes.FlowMapStart, YamlCodes.FlowMapEnd,
+                ]);
+#else
+            public static readonly byte[] PlainScalarStopBlock =
             [
                 YamlCodes.Space, YamlCodes.Tab, YamlCodes.Lf, YamlCodes.Cr,
                 YamlCodes.MapValueIndent,
-            ]);
+            ];
 
-        static readonly System.Buffers.SearchValues<byte> PlainScalarStopFlow =
-            System.Buffers.SearchValues.Create(
+            public static readonly byte[] PlainScalarStopFlow =
             [
                 YamlCodes.Space, YamlCodes.Tab, YamlCodes.Lf, YamlCodes.Cr,
                 YamlCodes.MapValueIndent, YamlCodes.Comma,
                 YamlCodes.FlowSequenceStart, YamlCodes.FlowSequenceEnd,
                 YamlCodes.FlowMapStart, YamlCodes.FlowMapEnd,
-            ]);
-#else
-        static readonly byte[] PlainScalarStopBlock =
-        [
-            YamlCodes.Space, YamlCodes.Tab, YamlCodes.Lf, YamlCodes.Cr,
-            YamlCodes.MapValueIndent,
-        ];
-
-        static readonly byte[] PlainScalarStopFlow =
-        [
-            YamlCodes.Space, YamlCodes.Tab, YamlCodes.Lf, YamlCodes.Cr,
-            YamlCodes.MapValueIndent, YamlCodes.Comma,
-            YamlCodes.FlowSequenceStart, YamlCodes.FlowSequenceEnd,
-            YamlCodes.FlowMapStart, YamlCodes.FlowMapEnd,
-        ];
+            ];
 #endif
 
-        // Byte sets that terminate a contiguous run of ordinary characters inside a
-        // quoted scalar: blanks/line breaks (handled by the folding logic), the closing
-        // quote and, for double quotes, the escape byte.
+            // Byte sets that terminate a contiguous run of ordinary characters inside a
+            // quoted scalar: blanks/line breaks (handled by the folding logic), the closing
+            // quote and, for double quotes, the escape byte.
 #if NET8_0_OR_GREATER
-        static readonly System.Buffers.SearchValues<byte> FlowScalarStopSingle =
-            System.Buffers.SearchValues.Create(
+            public static readonly System.Buffers.SearchValues<byte> FlowScalarStopSingle =
+                System.Buffers.SearchValues.Create(
+                [
+                    YamlCodes.Space, YamlCodes.Tab, YamlCodes.Lf, YamlCodes.Cr,
+                    YamlCodes.SingleQuote,
+                ]);
+
+            public static readonly System.Buffers.SearchValues<byte> FlowScalarStopDouble =
+                System.Buffers.SearchValues.Create(
+                [
+                    YamlCodes.Space, YamlCodes.Tab, YamlCodes.Lf, YamlCodes.Cr,
+                    YamlCodes.DoubleQuote, (byte)'\\',
+                ]);
+#else
+            public static readonly byte[] FlowScalarStopSingle =
             [
                 YamlCodes.Space, YamlCodes.Tab, YamlCodes.Lf, YamlCodes.Cr,
                 YamlCodes.SingleQuote,
-            ]);
+            ];
 
-        static readonly System.Buffers.SearchValues<byte> FlowScalarStopDouble =
-            System.Buffers.SearchValues.Create(
+            public static readonly byte[] FlowScalarStopDouble =
             [
                 YamlCodes.Space, YamlCodes.Tab, YamlCodes.Lf, YamlCodes.Cr,
                 YamlCodes.DoubleQuote, (byte)'\\',
-            ]);
-#else
-        static readonly byte[] FlowScalarStopSingle =
-        [
-            YamlCodes.Space, YamlCodes.Tab, YamlCodes.Lf, YamlCodes.Cr,
-            YamlCodes.SingleQuote,
-        ];
-
-        static readonly byte[] FlowScalarStopDouble =
-        [
-            YamlCodes.Space, YamlCodes.Tab, YamlCodes.Lf, YamlCodes.Cr,
-            YamlCodes.DoubleQuote, (byte)'\\',
-        ];
+            ];
 #endif
+        }
 
         public TokenType CurrentTokenType
         {
@@ -1373,8 +1379,8 @@ namespace VYaml.Parser
                             if (window.Length > 0)
                             {
                                 var stop = window.IndexOfAny(singleQuote
-                                    ? FlowScalarStopSingle
-                                    : FlowScalarStopDouble);
+                                    ? Statics.FlowScalarStopSingle
+                                    : Statics.FlowScalarStopDouble);
                                 var runLength = stop < 0 ? window.Length : stop;
                                 if (runLength > 0)
                                 {
@@ -1559,8 +1565,8 @@ namespace VYaml.Parser
                     if (window.Length > 0)
                     {
                         var stop = window.IndexOfAny(flowLevel > 0
-                            ? PlainScalarStopFlow
-                            : PlainScalarStopBlock);
+                            ? Statics.PlainScalarStopFlow
+                            : Statics.PlainScalarStopBlock);
                         var runLength = stop < 0 ? window.Length : stop;
                         if (runLength > 0)
                         {
