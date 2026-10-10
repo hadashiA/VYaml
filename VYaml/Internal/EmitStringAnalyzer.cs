@@ -286,8 +286,6 @@ namespace VYaml.Internal
 
         static bool IsReservedWord(ReadOnlySpan<char> value)
         {
-            var b = new StringBuilder();
-            b.Append('\n');
             switch (value.Length)
             {
                 case 1:
