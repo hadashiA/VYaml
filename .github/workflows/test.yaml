@@ -23,3 +23,22 @@ jobs:
             9.0.x
       - run: dotnet build -c Debug
       - run: dotnet test -c Debug --no-build
+
+  test-native-aot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: |
+            9.0.x
+      - name: Publish with Native AOT (fails on any IL warning)
+        run: |
+          dotnet publish VYaml.Tests.NativeAot/VYaml.Tests.NativeAot.csproj -c Release -o ./aot-out | tee publish.log
+          if grep -E "warning IL[0-9]+" publish.log; then
+            echo "::error::trimming/AOT analysis warnings detected"
+            exit 1
+          fi
+      - name: Run Native AOT binary
+        run: ./aot-out/VYaml.Tests.NativeAot

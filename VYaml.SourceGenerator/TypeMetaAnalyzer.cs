@@ -107,6 +107,38 @@ static class TypeMetaAnalyzer
             .Replace(",", "_")
             .Replace(" ", "");
 
+        // Module-initializer registrations: this type's own registration (only closed types
+        // can self-register; closures of a generic [YamlObject] are harvested at their usage
+        // sites instead) plus statically constructed formatters for the closed generic shapes
+        // reachable from the member graph — what Native AOT cannot create at runtime.
+        var aotRegistrations = new List<string>();
+        if (valid)
+        {
+            var currentAssembly = symbol.ContainingAssembly;
+            if (!symbol.IsGenericType)
+            {
+                if (symbol.TypeKind == TypeKind.Interface)
+                {
+                    aotRegistrations.Add(
+                        $"global::VYaml.Serialization.GeneratedResolver.Register(new {fullTypeName}.{Sanitize(typeName)}GeneratedFormatter());");
+                }
+                else
+                {
+                    aotRegistrations.Add($"{fullTypeName}.__RegisterVYamlFormatter();");
+                }
+            }
+
+            var visited = new HashSet<string>();
+            foreach (var member in allMembers)
+            {
+                RegistrationHarvester.Harvest(member.MemberType, references, currentAssembly, visited, aotRegistrations);
+            }
+            foreach (var union in unions)
+            {
+                RegistrationHarvester.Harvest(union.SubTypeSymbol, references, currentAssembly, visited, aotRegistrations);
+            }
+        }
+
         return new TypeMetaModel(
             hintName: $"{fullType}.YamlFormatter.g.cs",
             isValid: valid,
@@ -126,7 +158,8 @@ static class TypeMetaAnalyzer
             members: members,
             constructorParameterNames: constructorParameterNames,
             setterMemberNames: setterMemberNames,
-            unions: unionModels);
+            unions: unionModels,
+            aotRegistrations: aotRegistrations.ToEquatableArray());
     }
 
     internal static string Sanitize(string typeName) =>

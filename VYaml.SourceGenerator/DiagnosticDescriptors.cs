@@ -127,4 +127,12 @@ static class DiagnosticDescriptors
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor YamlSerializableMustBeClosed = new(
+        id: "VYAML016",
+        title: "[assembly: YamlSerializable] type must be a closed type",
+        messageFormat: "The YamlSerializable root '{0}' must be a fully closed type: open generics and type parameters cannot be registered",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
 }

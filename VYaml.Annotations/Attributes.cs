@@ -64,6 +64,30 @@ namespace VYaml.Annotations
     }
 
     /// <summary>
+    /// Declares a serialization root for ahead-of-time environments (Native AOT / trimming).
+    ///
+    /// The formatters for types that appear as members of a [YamlObject] are registered
+    /// automatically at module initialization. A shape that only ever appears as a top-level
+    /// argument of YamlSerializer.Serialize/Deserialize (e.g. List&lt;MyObject&gt;,
+    /// Dictionary&lt;string, MyEnum&gt;, MyGeneric&lt;int&gt;) is invisible to that analysis;
+    /// declaring it here makes the source generator statically construct and register the
+    /// formatters for the whole reachable closure of the type.
+    /// </summary>
+    /// <remarks>
+    /// The declared type must be closed (no open generics / type parameters).
+    /// </remarks>
+    [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true, Inherited = false)]
+    public sealed class YamlSerializableAttribute : Attribute
+    {
+        public Type Type { get; }
+
+        public YamlSerializableAttribute(Type type)
+        {
+            Type = type;
+        }
+    }
+
+    /// <summary>
     /// Preserve for Unity IL2CPP(internal but used for code generator)
     /// </summary>
     /// <remarks>

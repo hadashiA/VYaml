@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace VYaml.Serialization
 {
@@ -183,7 +184,46 @@ namespace VYaml.Serialization
             return FormatterCache<T>.Formatter;
         }
 
+        // Closes a formatter over runtime type arguments via MakeGenericType. On Native AOT
+        // the instantiation may be missing (value-type arguments in particular); instead of
+        // letting the exception poison FormatterCache<T>'s static constructor, return null so
+        // StandardResolver falls through to GeneratedResolver, where the source generator
+        // registers statically constructed formatters for the closed shapes it harvested.
         static object? TryCreateGenericFormatter(Type type)
+        {
+            try
+            {
+                return TryCreateGenericFormatterCore(type);
+            }
+            catch (NotSupportedException)
+            {
+                // Native AOT: the generic instantiation was not compiled into the binary
+                return null;
+            }
+            catch (TypeLoadException)
+            {
+                return null;
+            }
+            catch (MemberAccessException)
+            {
+                // Native AOT: the instantiation exists (e.g. constructed statically by the
+                // source generator's registration) but its constructor has no reflection
+                // metadata for Activator.CreateInstance (MissingMethodException etc.)
+                return null;
+            }
+        }
+
+        [UnconditionalSuppressMessage("AOT", "IL3050",
+            Justification = "Failure is caught by TryCreateGenericFormatter and surfaces as null: on Native AOT the resolver chain falls through to GeneratedResolver, which serves the statically constructed formatters registered by the source generator.")]
+        [UnconditionalSuppressMessage("Trimming", "IL2055",
+            Justification = "The formatter generic definitions are rooted by the typeof references in FormatterMap/KnownGenericTypes; a trimmed instantiation surfaces as null and falls through to GeneratedResolver.")]
+        [UnconditionalSuppressMessage("Trimming", "IL2070",
+            Justification = "Formatter types always have a public parameterless constructor, rooted by the same typeof references; enum field metadata is preserved through the source generator's static EnumAsStringFormatter<T> registrations.")]
+        [UnconditionalSuppressMessage("Trimming", "IL2071",
+            Justification = "See IL2070 justification.")]
+        [UnconditionalSuppressMessage("Trimming", "IL2072",
+            Justification = "Formatter types always have a public parameterless constructor, rooted by the same typeof references.")]
+        static object? TryCreateGenericFormatterCore(Type type)
         {
             Type? formatterType = null;
 
@@ -233,6 +273,10 @@ namespace VYaml.Serialization
             return null;
         }
 
+        [UnconditionalSuppressMessage("AOT", "IL3050",
+            Justification = "Failure is caught by TryCreateGenericFormatter and surfaces as null; on Native AOT the resolver chain falls through to GeneratedResolver.")]
+        [UnconditionalSuppressMessage("Trimming", "IL2055",
+            Justification = "The formatter generic definitions are rooted by the typeof references in KnownGenericTypes; a trimmed instantiation surfaces as null and falls through to GeneratedResolver.")]
         static Type? TryCreateGenericFormatterType(Type type, IDictionary<Type, Type> knownTypes)
         {
             if (type.IsGenericType)
