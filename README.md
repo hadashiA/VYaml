@@ -133,9 +133,9 @@ You can also convert yaml to C#.
 
 ```csharp
 using var stream = File.OpenRead("/path/to/yaml");
-var sample = await YamlSerializer.DeserializeAsync<Sample>(stream);
+var sample = await YamlSerializer.DeserializeAsync<Sample>(stream, cancellationToken: cancellationToken);
 
-// Or
+// Or, from utf8 bytes:
 // var yamlUtf8Bytes = System.Text.Encoding.UTF8.GetBytes("<yaml string....>");
 // var sample = YamlSerializer.Deserialize<Sample>(yamlUtf8Bytes);
 ```
