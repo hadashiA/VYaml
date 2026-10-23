@@ -572,6 +572,29 @@ YamlSerializer.Deserialize<T>(yaml, options);
 YamlSerializer.Deserialize<T>(yaml, options);
 ```
 
+## Native AOT / Trimming
+
+VYaml supports .NET Native AOT and trimmed (`PublishTrimmed`) apps out of the box.
+The source generator emits a [module initializer](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/attributes/general#moduleinitializer-attribute) per assembly that statically registers:
+
+- The generated formatter of every `[YamlObject]` type.
+- Statically constructed formatters for the closed generic shapes reachable from their members — enums (`EnumAsStringFormatter<TEnum>`), collections (`List<T>`, `Dictionary<TKey, TValue>`, arrays, ...), `Nullable<T>` and closed instantiations of generic `[YamlObject]` types.
+
+Because the registrations are ordinary statically reachable code, nothing is trimmed away and every needed generic instantiation is compiled into the binary. No configuration is required.
+
+One case needs a declaration: a shape that is *only* ever used as a top-level argument of `Serialize`/`Deserialize` (never as a member of any `[YamlObject]`) is invisible to the member analysis when it involves generics. Declare such roots with an assembly attribute, and the whole reachable closure of the type is registered:
+
+``` csharp
+[assembly: YamlSerializable(typeof(List<MyObject>))]
+[assembly: YamlSerializable(typeof(Dictionary<string, MyEnum>))]
+[assembly: YamlSerializable(typeof(MyGenericObject<int>))]
+```
+
+Notes:
+
+- `Type` round-trips (`TypeFormatter`) use `Type.GetType(string)` and inherently require the application to preserve the named types itself.
+- The untyped/`dynamic` deserialization path works for the standard scalar/sequence/mapping object graph, but note that the C# `dynamic` keyword itself (the runtime binder) is not AOT-friendly; cast the resulting `object` graph instead.
+- On the JIT runtime nothing changes: the same reflection-based lazy registration as before also remains as a fallback (e.g. for assemblies compiled with an older VYaml).
 
 ## Low-Level API
 

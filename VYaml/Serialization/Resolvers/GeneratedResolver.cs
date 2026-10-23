@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using VYaml.Annotations;
 
@@ -24,6 +25,19 @@ namespace VYaml.Serialization
             }
         }
 
+        // Reflection fallback for environments where the module-initializer registration has
+        // not run yet: the JIT runs a module's initializer lazily (first method call or static
+        // field access of that module), so a type whose first contact is a generic
+        // Deserialize<T>() from another assembly may not be registered when Cache<T> warms up.
+        // It also serves assemblies compiled with a pre-module-initializer source generator.
+        // On Native AOT module initializers run eagerly before Main, so this path is never
+        // required for assemblies compiled with the current generator.
+        [UnconditionalSuppressMessage("Trimming", "IL2090",
+            Justification = "Fallback only. Assemblies compiled with the VYaml source generator register their formatters from a module initializer, which statically roots the generated members; this reflection path is for JIT lazy module initialization and legacy generated code.")]
+        [UnconditionalSuppressMessage("Trimming", "IL2075",
+            Justification = "Fallback only. See IL2090 justification.")]
+        [UnconditionalSuppressMessage("Trimming", "IL2072",
+            Justification = "Generated formatter types always have a public parameterless constructor and are rooted by the module-initializer registration.")]
         static bool TryInvokeRegisterYamlFormatter<T>()
         {
             var type = typeof(T);

@@ -17,7 +17,9 @@ public class ReferenceSymbols
             YamlIgnoreAttribute = compilation.GetTypeByMetadataName("VYaml.Annotations.YamlIgnoreAttribute")!,
             YamlConstructorAttribute = compilation.GetTypeByMetadataName("VYaml.Annotations.YamlConstructorAttribute")!,
             YamlObjectUnionAttribute = compilation.GetTypeByMetadataName("VYaml.Annotations.YamlObjectUnionAttribute")!,
-            NamingConventionEnum = compilation.GetTypeByMetadataName("VYaml.Annotations.NamingConvention")!
+            NamingConventionEnum = compilation.GetTypeByMetadataName("VYaml.Annotations.NamingConvention")!,
+            // Nullable: absent when compiling against an older VYaml.Annotations
+            YamlSerializableAttribute = compilation.GetTypeByMetadataName("VYaml.Annotations.YamlSerializableAttribute")
         };
     }
 
@@ -27,4 +29,5 @@ public class ReferenceSymbols
     public INamedTypeSymbol YamlConstructorAttribute { get; private set; } = default!;
     public INamedTypeSymbol YamlObjectUnionAttribute { get; private set; } = default!;
     public INamedTypeSymbol NamingConventionEnum { get; private set; } = default!;
+    public INamedTypeSymbol? YamlSerializableAttribute { get; private set; }
 }
