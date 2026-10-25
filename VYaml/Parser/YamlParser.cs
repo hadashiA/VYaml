@@ -429,6 +429,9 @@ namespace VYaml.Parser
                 tokenizer.Read();
             }
 
+            // Anchors are scoped to a single document (YAML 1.2, 9.1.1)
+            anchors.Clear();
+
             // TODO tag handling
             currentState = ParseState.DocumentStart;
             CurrentEventType = ParseEventType.DocumentEnd;
