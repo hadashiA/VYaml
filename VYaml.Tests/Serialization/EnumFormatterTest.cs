@@ -1,3 +1,6 @@
+using System;
+using System.Text;
+using System.Threading;
 using NUnit.Framework;
 using VYaml.Annotations;
 using VYaml.Serialization;
@@ -148,6 +151,34 @@ namespace VYaml.Tests.Serialization
             {
                 Assert.That(Deserialize<QuoteRequiringAliasEnum>(Serialize(value)), Is.EqualTo(value));
             }
+        }
+
+        [Test]
+        public void Deserialize_HugeScalar_DoesNotOverflowStack()
+        {
+            // Unknown names are mutated by naming convention; this used to stackalloc proportionally to the input.
+            var yaml = Encoding.UTF8.GetBytes(new string('x', 1_000_000));
+            Exception? caught = null;
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    YamlSerializer.Deserialize<SimpleEnum>(yaml);
+                }
+                catch (Exception ex)
+                {
+                    caught = ex;
+                }
+            }, maxStackSize: 256 * 1024);
+            thread.Start();
+            thread.Join();
+            Assert.That(caught, Is.InstanceOf<YamlSerializerException>());
+        }
+
+        [Test]
+        public void Deserialize_EmptyScalar_ThrowsSerializerException()
+        {
+            Assert.Throws<YamlSerializerException>(() => YamlSerializer.Deserialize<SimpleEnum>(Encoding.UTF8.GetBytes("''")));
         }
     }
 }

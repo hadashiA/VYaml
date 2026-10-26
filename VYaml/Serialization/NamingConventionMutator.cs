@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using VYaml.Annotations;
 
 namespace VYaml.Serialization
@@ -70,14 +71,43 @@ namespace VYaml.Serialization
 
         public static string Mutate(string source, NamingConvention namingConvention)
         {
-            var mutator = Of(namingConvention);
-            Span<char> destination = stackalloc char[source.Length * 2];
-            while (!mutator.TryMutate(source.AsSpan(), destination, out var written))
+            return MutateToString(Of(namingConvention), source.AsSpan());
+        }
+
+        const int StackallocCharThreshold = 256;
+
+        // Source may be untrusted input (e.g. a scalar), so never stackalloc proportionally to its length.
+        internal static string MutateToString(INamingConventionMutator mutator, ReadOnlySpan<char> source)
+        {
+            if (source.IsEmpty) return "";
+
+            int written;
+            if (source.Length * 2 <= StackallocCharThreshold)
             {
-                // ReSharper disable once StackAllocInsideLoop
-                destination = stackalloc char[destination.Length * 2];
+                Span<char> buffer = stackalloc char[StackallocCharThreshold];
+                if (mutator.TryMutate(source, buffer, out written))
+                {
+                    return buffer[..written].ToString();
+                }
             }
-            return destination.ToString();
+
+            var size = Math.Max(checked(source.Length * 2), StackallocCharThreshold * 2);
+            while (true)
+            {
+                var rented = ArrayPool<char>.Shared.Rent(size);
+                try
+                {
+                    if (mutator.TryMutate(source, rented, out written))
+                    {
+                        return new string(rented, 0, written);
+                    }
+                }
+                finally
+                {
+                    ArrayPool<char>.Shared.Return(rented);
+                }
+                size = checked(rented.Length * 2);
+            }
         }
 
         public static INamingConventionMutator Of(NamingConvention namingConvention) => namingConvention switch
