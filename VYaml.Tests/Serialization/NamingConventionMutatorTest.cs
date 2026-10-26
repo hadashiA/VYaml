@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Text;
 using NUnit.Framework;
 using VYaml.Annotations;
@@ -43,5 +44,23 @@ namespace VYaml.Tests.Serialization
             Assert.That(successUtf8, Is.True);
             Assert.That(Utf8.GetString(destinationUtf8[..written]), Is.EqualTo(expected));
         }
-   }
+   
+
+        [Test]
+        [TestCase(NamingConvention.SnakeCase)]
+        [TestCase(NamingConvention.LowerCamelCase)]
+        public void Mutate_String(NamingConvention convention)
+        {
+            Assert.That(NamingConventionMutator.Mutate("HadashiKickLand", convention),
+                Is.EqualTo(convention == NamingConvention.SnakeCase ? "hadashi_kick_land" : "hadashiKickLand"));
+
+            // Large inputs fall back from stackalloc to a pooled buffer.
+            var longInput = string.Concat(Enumerable.Repeat("FooBar", 100_000));
+            var result = NamingConventionMutator.Mutate(longInput, convention);
+            Assert.That(result.Length, Is.EqualTo(convention == NamingConvention.SnakeCase ? 800_000 - 1 : 600_000));
+            Assert.That(result.IndexOf('\0'), Is.EqualTo(-1));
+
+            Assert.That(NamingConventionMutator.Mutate("", convention), Is.EqualTo(""));
+        }
+    }
 }
