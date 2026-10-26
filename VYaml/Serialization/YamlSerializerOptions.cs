@@ -1,5 +1,6 @@
 using VYaml.Annotations;
 using VYaml.Emitter;
+using VYaml.Parser;
 
 namespace VYaml.Serialization
 {
@@ -16,5 +17,11 @@ namespace VYaml.Serialization
         public NamingConvention NamingConvention { get; set; } = DefaultNamingConvention;
         public YamlEmitOptions EmitOptions { get; set; } = new();
         public YamlIgnoreCondition DefaultIgnoreCondition { get; set; } = YamlIgnoreCondition.Never;
+
+        /// <summary>
+        /// The maximum nesting depth allowed when deserializing. Applied to the parser created by <see cref="YamlSerializer"/>;
+        /// a <see cref="VYaml.Parser.YamlParser"/> passed by ref keeps its own <see cref="VYaml.Parser.YamlParser.MaxDepth"/>.
+        /// </summary>
+        public int MaxDepth { get; set; } = YamlParser.DefaultMaxDepth;
     }
 }

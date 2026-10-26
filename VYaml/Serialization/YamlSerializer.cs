@@ -97,6 +97,7 @@ namespace VYaml.Serialization
         public static T Deserialize<T>(ReadOnlyMemory<byte> memory, YamlSerializerOptions? options = null)
         {
             var parser = YamlParser.FromSequence(new ReadOnlySequence<byte>(memory));
+            parser.MaxDepth = (options ?? DefaultOptions).MaxDepth;
             try
             {
                 return Deserialize<T>(ref parser, options);
@@ -110,6 +111,7 @@ namespace VYaml.Serialization
         public static T Deserialize<T>(in ReadOnlySequence<byte> sequence, YamlSerializerOptions? options = null)
         {
             var parser = YamlParser.FromSequence(sequence);
+            parser.MaxDepth = (options ?? DefaultOptions).MaxDepth;
             try
             {
                 return Deserialize<T>(ref parser, options);
@@ -169,6 +171,7 @@ namespace VYaml.Serialization
         public static IEnumerable<T> DeserializeMultipleDocuments<T>(ReadOnlyMemory<byte> memory, YamlSerializerOptions? options = null)
         {
             var parser = YamlParser.FromSequence(new ReadOnlySequence<byte>(memory));
+            parser.MaxDepth = (options ?? DefaultOptions).MaxDepth;
             try
             {
                 return DeserializeMultipleDocuments<T>(ref parser, options);
@@ -182,6 +185,7 @@ namespace VYaml.Serialization
         public static IEnumerable<T> DeserializeMultipleDocuments<T>(in ReadOnlySequence<byte> sequence, YamlSerializerOptions? options = null)
         {
             var parser = YamlParser.FromSequence(sequence);
+            parser.MaxDepth = (options ?? DefaultOptions).MaxDepth;
             try
             {
                 return DeserializeMultipleDocuments<T>(ref parser, options);
