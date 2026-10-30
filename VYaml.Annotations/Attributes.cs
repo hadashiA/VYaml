@@ -42,6 +42,19 @@ namespace VYaml.Annotations
     {
     }
 
+    /// <summary>
+    /// Makes the key of the member required when deserializing: a missing key throws YamlSerializerException.
+    /// Members with the C# <c>required</c> modifier are also required.
+    /// </summary>
+    /// <remarks>
+    /// A key with a null value (<c>key: ~</c>) satisfies it. Required members are always serialized regardless of
+    /// YamlSerializerOptions.DefaultIgnoreCondition.
+    /// </remarks>
+    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
+    public sealed class YamlRequiredAttribute : Attribute
+    {
+    }
+
     [AttributeUsage(AttributeTargets.Constructor, AllowMultiple = false, Inherited = false)]
     public sealed class YamlConstructorAttribute : Attribute
     {

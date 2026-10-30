@@ -555,6 +555,7 @@ static class TypeMetaAnalyzer
         public bool IsSettable { get; }
         public int Order { get; }
         public bool HasKeyNameAlias { get; }
+        public bool IsRequired { get; }
         public string KeyName { get; }
         public NamingConvention NamingConventionByType { get; }
 
@@ -591,6 +592,9 @@ static class TypeMetaAnalyzer
                     Order = (int)explicitOrder;
                 }
             }
+
+            IsRequired = (references.YamlRequiredAttribute is { } requiredAttribute && symbol.ContainsAttribute(requiredAttribute)) ||
+                         HasRequiredModifier(symbol);
 
             if (symbol is IFieldSymbol f)
             {
@@ -634,7 +638,25 @@ static class TypeMetaAnalyzer
                 isNullableValueType: isNullableValueType,
                 isValueType: MemberType.IsValueType,
                 defaultValueComparison: GetDefaultValueComparison(MemberType, Name),
-                defaultValueExpression: EmitDefaultValue());
+                defaultValueExpression: EmitDefaultValue(),
+                isRequired: IsRequired);
+        }
+
+        // IFieldSymbol/IPropertySymbol.IsRequired (C# 11) is only available since Roslyn 4.4, while this generator
+        // is built against Roslyn 4.1. The host compiler that runs it may be newer, so read it via reflection.
+        // (typeof(IPropertySymbol) is the host's Microsoft.CodeAnalysis at runtime, so it has the member if supported)
+        static readonly System.Reflection.PropertyInfo? PropertyIsRequired = typeof(IPropertySymbol).GetProperty("IsRequired", typeof(bool));
+        static readonly System.Reflection.PropertyInfo? FieldIsRequired = typeof(IFieldSymbol).GetProperty("IsRequired", typeof(bool));
+
+        static bool HasRequiredModifier(ISymbol symbol)
+        {
+            var isRequired = symbol switch
+            {
+                IPropertySymbol => PropertyIsRequired,
+                IFieldSymbol => FieldIsRequired,
+                _ => null,
+            };
+            return isRequired != null && (bool)isRequired.GetValue(symbol)!;
         }
 
         string EmitDefaultValue()

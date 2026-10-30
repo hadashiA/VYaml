@@ -149,7 +149,8 @@ static class Emitter
 
         foreach (var member in model.Members)
         {
-            var ignoreScope = EmitIgnoreConditionCheck(codeWriter, member);
+            // required members are always written, so that the output can be deserialized
+            var ignoreScope = member.IsRequired ? null : EmitIgnoreConditionCheck(codeWriter, member);
 
             if (member.HasKeyNameAlias || model.NamingConventionByType != NamingConvention.LowerCamelCase)
             {
@@ -274,9 +275,18 @@ static class Emitter
             return;
         }
 
+        var requiredMembers = model.Members.Where(x => x.IsRequired).ToArray();
+        if (requiredMembers.Length > 0)
+        {
+            codeWriter.AppendLine("var __mark__ = parser.CurrentMark;");
+        }
         foreach (var member in model.Members)
         {
             codeWriter.AppendLine($"var __{member.Name}__ = {member.DefaultValueExpression};");
+        }
+        foreach (var member in requiredMembers)
+        {
+            codeWriter.AppendLine($"var __{member.Name}__found = false;");
         }
 
         using (codeWriter.BeginBlockScope("while (!parser.End && parser.CurrentEventType != ParseEventType.MappingEnd)"))
@@ -312,6 +322,10 @@ static class Emitter
                             {
                                 codeWriter.AppendLine("parser.Read(); // skip key");
                                 codeWriter.AppendLine($"__{member.Name}__ = context.DeserializeWithAlias<{member.FullTypeName}>(ref parser);");
+                                if (member.IsRequired)
+                                {
+                                    codeWriter.AppendLine($"__{member.Name}__found = true;");
+                                }
                                 codeWriter.AppendLine("continue;");
                             }
                             branching = "else if";
@@ -329,6 +343,15 @@ static class Emitter
             }
         }
         codeWriter.AppendLine("parser.ReadWithVerify(ParseEventType.MappingEnd);");
+
+        if (requiredMembers.Length > 0)
+        {
+            using (codeWriter.BeginBlockScope($"if ({string.Join(" || ", requiredMembers.Select(x => $"!__{x.Name}__found"))})"))
+            {
+                var keyNames = string.Join(", ", requiredMembers.Select(x => $"__{x.Name}__found ? null : {Literal(x.KeyName)}"));
+                codeWriter.AppendLine($"YamlSerializerException.ThrowMissingRequiredKeys(__mark__, {Literal(model.TypeName)}, {keyNames});");
+            }
+        }
 
         codeWriter.Append("return new ");
         if (model.HasConstructor)

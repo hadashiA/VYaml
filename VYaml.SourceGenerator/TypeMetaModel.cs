@@ -109,6 +109,8 @@ sealed record MemberMetaModel
     public bool IsValueType { get; }
     public string DefaultValueComparison { get; }
     public string DefaultValueExpression { get; }
+    // [YamlRequired] or the C# `required` modifier
+    public bool IsRequired { get; }
 
     // Computed (no backing field), so it is derived on demand and excluded from record equality,
     // which is correct because it is a pure function of KeyName.
@@ -124,7 +126,8 @@ sealed record MemberMetaModel
         bool isNullableValueType,
         bool isValueType,
         string defaultValueComparison,
-        string defaultValueExpression)
+        string defaultValueExpression,
+        bool isRequired)
     {
         Name = name;
         KeyName = keyName;
@@ -136,6 +139,7 @@ sealed record MemberMetaModel
         IsValueType = isValueType;
         DefaultValueComparison = defaultValueComparison;
         DefaultValueExpression = defaultValueExpression;
+        IsRequired = isRequired;
     }
 }
 
