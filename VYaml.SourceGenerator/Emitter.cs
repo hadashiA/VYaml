@@ -75,9 +75,11 @@ static class Emitter
 
         codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
         var interfaces = model.IsUnion
-            ? $"IYamlFormatter<{returnType}>"
-            : $"IYamlFormatter<{returnType}>, global::VYaml.Serialization.IYamlObjectMembersFormatter<{returnType}>";
+            ? $"IYamlFormatter<{returnType}>, global::VYaml.Serialization.IYamlSchemaInfoProvider"
+            : $"IYamlFormatter<{returnType}>, global::VYaml.Serialization.IYamlObjectMembersFormatter<{returnType}>, global::VYaml.Serialization.IYamlSchemaInfoProvider";
         using var _ = codeWriter.BeginBlockScope($"public class {model.SanitizedTypeName}GeneratedFormatter : {interfaces}");
+
+        EmitGetSchemaInfoMethod(model, codeWriter);
 
         if (model.IsUnion)
         {
@@ -175,6 +177,70 @@ static class Emitter
                 ignoreScope.Dispose();
                 codeWriter.AppendLine("}");
             }
+        }
+    }
+
+    static void EmitGetSchemaInfoMethod(TypeMetaModel model, CodeWriter codeWriter)
+    {
+        codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
+        using var methodScope = codeWriter.BeginBlockScope(
+            "public global::VYaml.Serialization.YamlObjectSchemaInfo GetSchemaInfo()");
+
+        codeWriter.AppendLine("return new global::VYaml.Serialization.YamlObjectSchemaInfo(");
+        using (codeWriter.BeginIndentScope())
+        {
+            codeWriter.AppendLine($"typeof({model.FullTypeName}),");
+
+            if (model.IsUnion || model.Members.Count <= 0)
+            {
+                codeWriter.AppendLine("global::System.Array.Empty<global::VYaml.Serialization.YamlMemberSchemaInfo>(),");
+            }
+            else
+            {
+                codeWriter.AppendLine("new global::VYaml.Serialization.YamlMemberSchemaInfo[]");
+                codeWriter.AppendLine("{");
+                using (codeWriter.BeginIndentScope())
+                {
+                    foreach (var member in model.Members)
+                    {
+                        // same condition as EmitSerializeMembersMethod: otherwise the key follows YamlSerializerOptions.NamingConvention
+                        var isKeyNameFixed = member.HasKeyNameAlias || model.NamingConventionByType != NamingConvention.LowerCamelCase;
+                        var hasDefaultValue = member.SchemaDefaultValueExpression != null;
+                        codeWriter.AppendLine("new global::VYaml.Serialization.YamlMemberSchemaInfo(" +
+                                              $"{Literal(member.KeyName)}, " +
+                                              $"{(isKeyNameFixed ? "true" : "false")}, " +
+                                              $"typeof({member.TypeOfExpression}), " +
+                                              $"{(member.IsNullable ? "true" : "false")}, " +
+                                              $"{(member.IsRequired ? "true" : "false")}, " +
+                                              $"{(hasDefaultValue ? "true" : "false")}, " +
+                                              $"{(hasDefaultValue ? $"(object?)({member.SchemaDefaultValueExpression})" : "null")}, " +
+                                              $"{Literal(member.Description)}),");
+                    }
+                }
+                codeWriter.AppendLine("},");
+            }
+
+            if (model.IsUnion)
+            {
+                codeWriter.AppendLine("new global::VYaml.Serialization.YamlUnionSchemaInfo[]");
+                codeWriter.AppendLine("{");
+                using (codeWriter.BeginIndentScope())
+                {
+                    foreach (var union in model.Unions)
+                    {
+                        var requiredKey = model.IsUnionByKey ? Literal(union.KeyName) : "null";
+                        codeWriter.AppendLine($"new global::VYaml.Serialization.YamlUnionSchemaInfo({Literal(union.SubTypeTag)}, typeof({union.FullTypeName}), {requiredKey}),");
+                    }
+                }
+                codeWriter.AppendLine("},");
+            }
+            else
+            {
+                codeWriter.AppendLine("global::System.Array.Empty<global::VYaml.Serialization.YamlUnionSchemaInfo>(),");
+            }
+
+            codeWriter.AppendLine($"{Literal(model.Description)},");
+            codeWriter.AppendLine($"{Literal(model.UnionDiscriminatorKeyName)});");
         }
     }
 

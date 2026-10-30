@@ -70,6 +70,10 @@ namespace VYaml.Serialization
         {
             Check<T>.Registered = true; // avoid to call Cache() constructor called.
             Cache<T>.Formatter = formatter;
+            if (formatter is IYamlSchemaInfoProvider schemaInfoProvider)
+            {
+                YamlSchemaInfoRegistry.Register(typeof(T), schemaInfoProvider);
+            }
         }
 
         public static readonly GeneratedResolver Instance = new();
