@@ -31,6 +31,10 @@ sealed record TypeMetaModel
     public bool HasBaseYamlObject { get; }
     public string TypeDeclarationKeyword { get; }
     public bool IsUnion { get; }
+    // [YamlObjectUnionDiscriminator] key name; null for tag-based unions
+    public string? UnionDiscriminatorKeyName { get; }
+    // [YamlObjectUnionKey]: subtypes are identified by the presence of a key (UnionMetaModel.KeyName)
+    public bool IsUnionByKey { get; }
     public NamingConvention NamingConventionByType { get; }
     public bool HasConstructor { get; }
 
@@ -58,6 +62,8 @@ sealed record TypeMetaModel
         bool hasBaseYamlObject,
         string typeDeclarationKeyword,
         bool isUnion,
+        string? unionDiscriminatorKeyName,
+        bool isUnionByKey,
         NamingConvention namingConventionByType,
         bool hasConstructor,
         EquatableArray<MemberMetaModel> members,
@@ -79,6 +85,8 @@ sealed record TypeMetaModel
         HasBaseYamlObject = hasBaseYamlObject;
         TypeDeclarationKeyword = typeDeclarationKeyword;
         IsUnion = isUnion;
+        UnionDiscriminatorKeyName = unionDiscriminatorKeyName;
+        IsUnionByKey = isUnionByKey;
         NamingConventionByType = namingConventionByType;
         HasConstructor = hasConstructor;
         Members = members;
@@ -136,9 +144,15 @@ sealed record UnionMetaModel
     public string SubTypeTag { get; }
     public string FullTypeName { get; }
 
-    public UnionMetaModel(string subTypeTag, string fullTypeName)
+    // [YamlObjectUnionKey]: the key name of the subtype's member, and the subtype's naming convention
+    public string KeyName { get; }
+    public NamingConvention KeyNamingConvention { get; }
+
+    public UnionMetaModel(string subTypeTag, string fullTypeName, string keyName = "", NamingConvention keyNamingConvention = NamingConvention.LowerCamelCase)
     {
         SubTypeTag = subTypeTag;
         FullTypeName = fullTypeName;
+        KeyName = keyName;
+        KeyNamingConvention = keyNamingConvention;
     }
 }

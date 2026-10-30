@@ -145,8 +145,54 @@ namespace VYaml.Parser
             reader.TryPeek(out currentCode);
         }
 
+        // Deep copy for lookahead. The input is shared (immutable), but the clone owns its own working
+        // buffers and scalars, so reading the clone never affects the source. Call ReturnPool() when done.
+        internal Utf8YamlTokenizer(ref Utf8YamlTokenizer source)
+        {
+            reader = source.reader;
+            mark = source.mark;
+            currentToken = CloneToken(source.currentToken);
+            streamStartProduced = source.streamStartProduced;
+            streamEndProduced = source.streamEndProduced;
+            currentCode = source.currentCode;
+            indent = source.indent;
+            simpleKeyAllowed = source.simpleKeyAllowed;
+            adjacentValueAllowedAt = source.adjacentValueAllowedAt;
+            flowLevel = source.flowLevel;
+            tokensParsed = source.tokensParsed;
+            tokenAvailable = source.tokenAvailable;
+
+            tokens = ThreadLocalObjectPool<InsertionQueue<Token>>.Rent(static () => new InsertionQueue<Token>(16));
+            for (var i = 0; i < source.tokens.Count; i++)
+            {
+                tokens.Enqueue(CloneToken(source.tokens[i]));
+            }
+            simpleKeyCandidates = ThreadLocalObjectPool<ExpandBuffer<SimpleKeyState>>.Rent(static () => new ExpandBuffer<SimpleKeyState>(16));
+            simpleKeyCandidates.CopyFrom(source.simpleKeyCandidates);
+            indents = ThreadLocalObjectPool<ExpandBuffer<int>>.Rent(static () => new ExpandBuffer<int>(16));
+            indents.CopyFrom(source.indents);
+            lineBreaksBuffer = ThreadLocalObjectPool<ExpandBuffer<byte>>.Rent(static () => new ExpandBuffer<byte>(64));
+            lineBreaksBuffer.CopyFrom(source.lineBreaksBuffer);
+        }
+
+        // Scalars are pooled and returned on Read(), so they must not be shared. Other contents are immutable.
+        static Token CloneToken(Token token) =>
+            token.Content is Scalar scalar ? new Token(token.Type, scalar.CloneFromPool()) : token;
+
         internal void ReturnPool()
         {
+            if (currentToken.Content is Scalar scalar)
+            {
+                ScalarPool.Shared.Return(scalar);
+                currentToken = default;
+            }
+            while (tokens.Count > 0)
+            {
+                if (tokens.Dequeue().Content is Scalar queued)
+                {
+                    ScalarPool.Shared.Return(queued);
+                }
+            }
             tokens.Clear();
             ThreadLocalObjectPool<InsertionQueue<Token>>.Return(tokens);
 

@@ -64,6 +64,73 @@ namespace VYaml.Annotations
     }
 
     /// <summary>
+    /// Makes a union ([YamlObjectUnion]) identify the subtype by a mapping key instead of a YAML tag.
+    /// The tag string of each [YamlObjectUnion] is used as the value of the key.
+    /// </summary>
+    /// <example>
+    /// <code>
+    /// [YamlObject]
+    /// [YamlObjectUnionDiscriminator("type")]
+    /// [YamlObjectUnion("circle", typeof(Circle))]
+    /// public partial interface IShape { }
+    ///
+    /// // type: circle
+    /// // radius: 1.0
+    /// </code>
+    /// </example>
+    /// <remarks>
+    /// The discriminator key can be anywhere in the mapping, but deserialization is faster when it is the first key
+    /// (it is always written first).
+    /// </remarks>
+    [AttributeUsage(AttributeTargets.Interface |
+                    AttributeTargets.Class,
+        AllowMultiple = false,
+        Inherited = false)]
+    public sealed class YamlObjectUnionDiscriminatorAttribute : Attribute
+    {
+        public string KeyName { get; }
+
+        public YamlObjectUnionDiscriminatorAttribute(string keyName)
+        {
+            KeyName = keyName;
+        }
+    }
+
+    /// <summary>
+    /// Declares a subtype of a union identified by the presence of a key in the mapping, like the steps of
+    /// GitHub Actions workflows (a step with <c>uses:</c> or a step with <c>run:</c>).
+    /// </summary>
+    /// <remarks>
+    /// <para>The key is a member of the subtype, specified by its key name or its C# member name, and follows the
+    /// same naming rules as the member. When a mapping contains the keys of several subtypes, the subtype declared
+    /// first wins.</para>
+    /// <para>Cannot be combined with [YamlObjectUnion].</para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// [YamlObject]
+    /// [YamlObjectUnionKey("uses", typeof(ActionStep))]
+    /// [YamlObjectUnionKey("run", typeof(RunStep))]
+    /// public partial interface IStep { }
+    /// </code>
+    /// </example>
+    [AttributeUsage(AttributeTargets.Interface |
+                    AttributeTargets.Class,
+        AllowMultiple = true,
+        Inherited = false)]
+    public sealed class YamlObjectUnionKeyAttribute : Attribute
+    {
+        public string KeyName { get; }
+        public Type SubType { get; }
+
+        public YamlObjectUnionKeyAttribute(string keyName, Type subType)
+        {
+            KeyName = keyName;
+            SubType = subType;
+        }
+    }
+
+    /// <summary>
     /// Declares a serialization root for ahead-of-time environments (Native AOT / trimming).
     ///
     /// The formatters for types that appear as members of a [YamlObject] are registered

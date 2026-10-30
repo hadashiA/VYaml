@@ -542,6 +542,85 @@ Result:
 a: 100
 ```
 
+##### Discriminator key
+
+Instead of YAML tags, a union can identify the subtype by the value of a key with `[YamlObjectUnionDiscriminator]`.
+The tag string of each `[YamlObjectUnion]` is used as the value of the key.
+
+``` csharp
+[YamlObject]
+[YamlObjectUnionDiscriminator("type")]
+[YamlObjectUnion("circle", typeof(Circle))]
+[YamlObjectUnion("rect", typeof(Rect))]
+public partial interface IShape
+{
+}
+
+[YamlObject]
+public partial class Circle : IShape
+{
+    public double Radius { get; set; }
+}
+
+[YamlObject]
+public partial class Rect : IShape
+{
+    public double Width { get; set; }
+    public double Height { get; set; }
+}
+```
+
+``` yaml
+- type: circle
+  radius: 1.5
+- type: rect
+  width: 2
+  height: 3
+```
+
+- The discriminator key is always written first. It can be anywhere in the mapping when deserializing, but it is faster as the first key.
+- Subtypes must be `[YamlObject]` types that are not unions, and must not have a member with the same key as the discriminator.
+
+##### Subtype by key
+
+With `[YamlObjectUnionKey]`, a union identifies the subtype by which key the mapping contains, like the steps of GitHub Actions workflows.
+
+``` csharp
+[YamlObject]
+[YamlObjectUnionKey("uses", typeof(ActionStep))]
+[YamlObjectUnionKey("run", typeof(RunStep))]
+public partial interface IStep
+{
+}
+
+[YamlObject]
+public partial class ActionStep : IStep
+{
+    public string? Name { get; set; }
+    public string Uses { get; set; } = "";
+    public Dictionary<string, string>? With { get; set; }
+}
+
+[YamlObject]
+public partial class RunStep : IStep
+{
+    public string? Name { get; set; }
+    public string Run { get; set; } = "";
+}
+```
+
+``` yaml
+steps:
+  - name: Checkout
+    uses: actions/checkout@v4
+  - run: dotnet test
+```
+
+- The key is a member of the subtype, specified by its key name or its C# member name (e.g. `nameof(RunStep.Run)`). It follows the same naming rules as the member (`[YamlMember("name")]`, naming conventions).
+- When a mapping contains the keys of several subtypes, the subtype declared first wins.
+- Subtypes are serialized as is.
+- Subtypes must be `[YamlObject]` types that are not unions. `[YamlObjectUnionKey]` cannot be combined with `[YamlObjectUnion]`.
+
 ## Customize serialization behaviour
 
 - `IYamlFormatter<T>` customizes serialization behavior for a particular type.

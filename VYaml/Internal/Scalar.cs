@@ -156,6 +156,15 @@ namespace VYaml.Parser
             Length = 0;
         }
 
+        // A copy rented from ScalarPool, for a parser clone that owns (and returns) its own scalars
+        public Scalar CloneFromPool()
+        {
+            var clone = ScalarPool.Shared.Rent();
+            clone.Write(AsSpan());
+            clone.Type = Type;
+            return clone;
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override string ToString()
         {

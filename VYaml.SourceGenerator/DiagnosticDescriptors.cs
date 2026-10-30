@@ -135,4 +135,44 @@ static class DiagnosticDescriptors
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor UnionDiscriminatorRequiresUnion = new(
+        id: "VYAML017",
+        title: "[YamlObjectUnionDiscriminator] requires [YamlObjectUnion]",
+        messageFormat: "The VYaml object '{0}' has [YamlObjectUnionDiscriminator] but is not a union: add [YamlObjectUnion] attributes",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor UnionDiscriminatorConflictsWithMember = new(
+        id: "VYAML018",
+        title: "Union discriminator key conflicts with a member of the subtype",
+        messageFormat: "The union discriminator key '{0}' of '{1}' conflicts with the member '{2}' of the subtype '{3}'",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor UnionDiscriminatorSubTypeMustBeObject = new(
+        id: "VYAML019",
+        title: "Subtype of a union identified by keys must be a [YamlObject] that is not a union",
+        messageFormat: "The subtype '{1}' of the union '{0}' with [YamlObjectUnionDiscriminator] or [YamlObjectUnionKey] must be a [YamlObject] type that is not a union",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor UnionKeyCannotBeCombined = new(
+        id: "VYAML020",
+        title: "[YamlObjectUnionKey] cannot be combined with [YamlObjectUnion]",
+        messageFormat: "The VYaml object '{0}' cannot have both [YamlObjectUnionKey] and [YamlObjectUnion] or [YamlObjectUnionDiscriminator]",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor UnionKeyNotFoundInSubType = new(
+        id: "VYAML021",
+        title: "The key of [YamlObjectUnionKey] must be a member of the subtype",
+        messageFormat: "The key '{1}' of the union '{0}' must be a serialized member (key name or member name) of the subtype '{2}'",
+        category: Category,
+        defaultSeverity: DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
 }

@@ -44,6 +44,13 @@ namespace VYaml.Internal
             Length = 0;
         }
 
+        public void CopyFrom(ExpandBuffer<T> source)
+        {
+            SetCapacity(source.Length);
+            source.AsSpan().CopyTo(buffer);
+            Length = source.Length;
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref T Peek() => ref buffer[Length - 1];
 
