@@ -207,6 +207,7 @@ static class Emitter
                         var isKeyNameFixed = member.HasKeyNameAlias || model.NamingConventionByType != NamingConvention.LowerCamelCase;
                         var hasDefaultValue = member.SchemaDefaultValueExpression != null;
                         codeWriter.AppendLine("new global::VYaml.Serialization.YamlMemberSchemaInfo(" +
+                                              $"{Literal(member.Name)}, " +
                                               $"{Literal(member.KeyName)}, " +
                                               $"{(isKeyNameFixed ? "true" : "false")}, " +
                                               $"typeof({member.TypeOfExpression}), " +
@@ -320,7 +321,7 @@ static class Emitter
         }
 
         codeWriter.AppendLine("parser.ReadWithVerify(ParseEventType.MappingStart);");
-        codeWriter.AppendLine("return DeserializeMembers(ref parser, context);");
+        codeWriter.AppendLine("return DeserializeMembers(ref parser, context, default);");
     }
 
     static void EmitDeserializeMembersMethod(TypeMetaModel model, CodeWriter codeWriter)
@@ -328,13 +329,13 @@ static class Emitter
         var returnType = ReturnType(model);
         codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
         using var methodScope = codeWriter.BeginBlockScope(
-            $"public {returnType} DeserializeMembers(ref YamlParser parser, YamlDeserializationContext context)");
+            $"public {returnType} DeserializeMembers(ref YamlParser parser, YamlDeserializationContext context, global::System.ReadOnlySpan<byte> discriminatorKeyUtf8)");
 
         if (model.Members.Count <= 0)
         {
             using (codeWriter.BeginBlockScope("while (!parser.End && parser.CurrentEventType != ParseEventType.MappingEnd)"))
             {
-                codeWriter.AppendLine("parser.SkipCurrentNode(); // key or value");
+                codeWriter.AppendLine($"global::VYaml.Serialization.YamlObjectMembersFormatter.SkipUnmappedMember(ref parser, context, discriminatorKeyUtf8, {Literal(model.TypeName)});");
             }
             codeWriter.AppendLine("parser.ReadWithVerify(ParseEventType.MappingEnd);");
             codeWriter.AppendLine($"return new {model.TypeName}();");
@@ -402,8 +403,7 @@ static class Emitter
 
                 using (codeWriter.BeginIndentScope("default:"))
                 {
-                    codeWriter.AppendLine("parser.Read(); // skip key");
-                    codeWriter.AppendLine("parser.SkipCurrentNode(); // skip value");
+                    codeWriter.AppendLine($"global::VYaml.Serialization.YamlObjectMembersFormatter.SkipUnmappedMember(ref parser, context, discriminatorKeyUtf8, {Literal(model.TypeName)});");
                     codeWriter.AppendLine("continue;");
                 }
             }
@@ -548,7 +548,7 @@ static class Emitter
             foreach (var union in model.Unions)
             {
                 codeWriter.AppendLine($"case {Literal(union.SubTypeTag)}:");
-                codeWriter.AppendLine($"    return global::VYaml.Serialization.YamlObjectMembersFormatter.GetWithVerify<{union.FullTypeName}>(context.Resolver).DeserializeMembers(ref parser, context);");
+                codeWriter.AppendLine($"    return global::VYaml.Serialization.YamlObjectMembersFormatter.GetWithVerify<{union.FullTypeName}>(context.Resolver).DeserializeMembers(ref parser, context, UnionDiscriminatorKeyUtf8Bytes);");
             }
             codeWriter.AppendLine("default:");
             codeWriter.AppendLine($"    throw new YamlSerializerException(mark, {Literal($"Unknown discriminator '{keyName}': ")} + discriminator + {Literal($" for union {model.TypeName}")});");
@@ -633,7 +633,7 @@ static class Emitter
             {
                 var union = model.Unions[i];
                 codeWriter.AppendLine($"case {i}:");
-                codeWriter.AppendLine($"    return global::VYaml.Serialization.YamlObjectMembersFormatter.GetWithVerify<{union.FullTypeName}>(context.Resolver).DeserializeMembers(ref parser, context);");
+                codeWriter.AppendLine($"    return global::VYaml.Serialization.YamlObjectMembersFormatter.GetWithVerify<{union.FullTypeName}>(context.Resolver).DeserializeMembers(ref parser, context, default);");
             }
             var keys = string.Join(", ", model.Unions.Select(x => $"'{x.KeyName}'"));
             codeWriter.AppendLine("default:");

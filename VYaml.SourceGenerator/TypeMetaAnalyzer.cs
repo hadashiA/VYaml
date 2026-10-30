@@ -665,8 +665,9 @@ static class TypeMetaAnalyzer
         {
             if (!HasExplicitDefaultValueFromConstructor) return null;
 
+            // null (including `default` of a struct) is omitted: it is not a useful default to show
             var value = ExplicitDefaultValueFromConstructor;
-            if (value is null) return "null";
+            if (value is null) return null;
 
             var type = MemberType is INamedTypeSymbol { ConstructedFrom.SpecialType: SpecialType.System_Nullable_T } nullable
                 ? nullable.TypeArguments[0]

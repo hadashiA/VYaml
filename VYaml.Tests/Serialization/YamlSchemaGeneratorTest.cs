@@ -78,7 +78,7 @@ namespace VYaml.Tests.Serialization
             Assert.That(properties.GetProperty("label").GetProperty("default").GetString(), Is.EqualTo("a\"b"));
             Assert.That(properties.GetProperty("ratio").GetProperty("default").GetDouble(), Is.EqualTo(0.5));
             Assert.That(properties.GetProperty("level").GetProperty("default").GetString(), Is.EqualTo("err"));
-            Assert.That(properties.GetProperty("nothing").GetProperty("default").ValueKind, Is.EqualTo(JsonValueKind.Null));
+            Assert.That(properties.GetProperty("nothing").TryGetProperty("default", out _), Is.False);
         }
 
         [Test]
@@ -116,8 +116,9 @@ namespace VYaml.Tests.Serialization
 
             var anyOf = root.GetProperty("anyOf").EnumerateArray().ToArray();
             Assert.That(anyOf[0].GetProperty("properties").GetProperty("type").GetProperty("const").GetString(), Is.EqualTo("circle"));
-            Assert.That(anyOf[0].GetProperty("allOf")[0].GetProperty("$ref").GetString(), Is.EqualTo("#/definitions/DiscriminatorCircle"));
-            Assert.That(root.GetProperty("definitions").GetProperty("DiscriminatorRect").GetProperty("properties").TryGetProperty("width", out _), Is.True);
+            Assert.That(Strings(anyOf[0].GetProperty("required")), Is.EqualTo(new[] { "type" }));
+            Assert.That(anyOf[0].GetProperty("properties").GetProperty("radius").GetProperty("type").GetString(), Is.EqualTo("number"));
+            Assert.That(anyOf[1].GetProperty("properties").TryGetProperty("width", out _), Is.True);
         }
 
         [Test]
@@ -167,6 +168,77 @@ namespace VYaml.Tests.Serialization
             // no "required" when there is no required member
             var optional = Parse(YamlSchemaGenerator.Generate<SchemaEndpoint>());
             Assert.That(optional.TryGetProperty("required", out _), Is.False);
+        }
+
+        [Test]
+        public void AdditionalProperties()
+        {
+            var allowed = Parse(YamlSchemaGenerator.Generate<SchemaEndpoint>());
+            Assert.That(allowed.TryGetProperty("additionalProperties", out _), Is.False);
+
+            var disallowed = Parse(YamlSchemaGenerator.Generate<SchemaServerConfig>(null, new YamlSchemaGeneratorOptions { AdditionalProperties = false }));
+            Assert.That(disallowed.GetProperty("additionalProperties").GetBoolean(), Is.False);
+            Assert.That(disallowed.GetProperty("definitions").GetProperty("SchemaEndpoint").GetProperty("additionalProperties").GetBoolean(), Is.False);
+            // dictionaries keep their additionalProperties for values
+            Assert.That(disallowed.GetProperty("properties").GetProperty("weights").GetProperty("additionalProperties").GetProperty("type").GetString(),
+                Is.EqualTo("number"));
+
+            // follows UnmappedMemberHandling by default
+            var options = new YamlSerializerOptions { UnmappedMemberHandling = YamlUnmappedMemberHandling.Disallow };
+            Assert.That(Parse(YamlSchemaGenerator.Generate<SchemaEndpoint>(options)).GetProperty("additionalProperties").GetBoolean(), Is.False);
+            Assert.That(Parse(YamlSchemaGenerator.Generate<SchemaEndpoint>(options, new YamlSchemaGeneratorOptions { AdditionalProperties = true }))
+                .TryGetProperty("additionalProperties", out _), Is.False);
+        }
+
+        [Test]
+        public void AdditionalProperties_DiscriminatorKey()
+        {
+            // the subtypes are expanded so that "additionalProperties": false does not reject the discriminator key
+            var root = Parse(YamlSchemaGenerator.Generate<IDiscriminatorShape>(null, new YamlSchemaGeneratorOptions { AdditionalProperties = false }));
+            var circle = root.GetProperty("anyOf")[0];
+            Assert.That(circle.GetProperty("additionalProperties").GetBoolean(), Is.False);
+            Assert.That(circle.GetProperty("properties").EnumerateObject().Select(x => x.Name), Is.EqualTo(new[] { "type", "radius" }));
+            Assert.That(circle.GetProperty("properties").GetProperty("type").GetProperty("const").GetString(), Is.EqualTo("circle"));
+            Assert.That(Strings(circle.GetProperty("required")), Is.EqualTo(new[] { "type" }));
+        }
+
+        [Test]
+        public void CustomSchemas()
+        {
+            var schemaOptions = new YamlSchemaGeneratorOptions()
+                .AddTypeSchema<SchemaSkillRange>("""
+                    { "anyOf": [{ "type": "integer" }, { "const": "inf" }, { "type": "object", "properties": { "skip": { "type": "integer" }, "count": { "type": "integer" } } }] }
+                    """)
+                .AddMemberSchema<SchemaCard>(nameof(SchemaCard.Rarity), """{ "anyOf": [{ "type": "integer" }, { "const": "inf" }] }""");
+            var json = YamlSchemaGenerator.Generate<SchemaCard>(null, schemaOptions);
+            var properties = Parse(json).GetProperty("properties");
+
+            var range = properties.GetProperty("range").GetProperty("allOf")[0];
+            Assert.That(range.GetProperty("anyOf")[1].GetProperty("const").GetString(), Is.EqualTo("inf"));
+            // Nullable<T> of a custom type allows null
+            Assert.That(properties.GetProperty("optionalRange").GetProperty("anyOf")[1].GetProperty("type").GetString(), Is.EqualTo("null"));
+
+            var rarity = properties.GetProperty("rarity");
+            Assert.That(rarity.GetProperty("allOf")[0].GetProperty("anyOf")[1].GetProperty("const").GetString(), Is.EqualTo("inf"));
+            Assert.That(rarity.GetProperty("default").GetInt32(), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void DefaultValues_NullIsOmitted()
+        {
+            var properties = Parse(YamlSchemaGenerator.Generate<SchemaCard>()).GetProperty("properties");
+            Assert.That(properties.GetProperty("range").TryGetProperty("default", out _), Is.False);
+            Assert.That(properties.GetProperty("optionalRange").TryGetProperty("default", out _), Is.False);
+            Assert.That(properties.GetProperty("skills").TryGetProperty("default", out _), Is.False);
+        }
+
+        [Test]
+        public void EnumNamingConventionByType()
+        {
+            // [YamlObject(NamingConvention)] of the enum itself is used, same as EnumAsStringFormatter
+            var mood = Parse(YamlSchemaGenerator.Generate<SchemaCard>()).GetProperty("properties").GetProperty("mood");
+            Assert.That(Strings(mood.GetProperty("enum")), Is.EqualTo(new[] { "most-anxious", "calm" }));
+            Assert.That(mood.GetProperty("default").GetString(), Is.EqualTo("most-anxious"));
         }
 
         [Test]

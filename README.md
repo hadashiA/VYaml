@@ -284,6 +284,18 @@ List of possible values:
 - `YamlIgnoreCondition.WhenWritingNull` — Omit properties whose value is `null` (reference types and `Nullable<T>`)
 - `YamlIgnoreCondition.WhenWritingDefault` — Omit properties whose value is `null` or the default value for value types (`0`, `false`, `'\0'`, etc.)
 
+#### UnmappedMemberHandling
+
+By default, keys that do not match any member of a [YamlObject] type are skipped when deserializing.
+With `YamlUnmappedMemberHandling.Disallow`, they throw `YamlSerializerException`, which helps to find typos in YAML written by hand.
+
+```cs
+var options = YamlSerializerOptions.Standard;
+options.UnmappedMemberHandling = YamlUnmappedMemberHandling.Disallow;
+```
+
+The discriminator key of a union with `DiscriminatorKey` is not regarded as unmapped.
+
 #### Required members
 
 By default, a missing key is deserialized as the default value of the member.
@@ -682,9 +694,9 @@ endpoints:
 
 - Keys follow `[YamlMember("name")]`, `[YamlIgnore]`, the naming convention of `[YamlObject]`, and `YamlSerializerOptions.NamingConvention` passed to `Generate`.
 - [Required members](#required-members) are written as `required`.
-- Enums are written as their string values (`[EnumMember]` / `[DataMember]` aliases are respected).
+- Enums are written as their string values (`[EnumMember]` / `[DataMember]` aliases, and `[YamlObject(NamingConvention)]` of the enum are respected).
 - Nullable members (`string?`, `int?`, etc.) allow `null`.
-- Default values of constructor parameters are written as `default`.
+- Default values of constructor parameters are written as `default`, except `null` (and `default` of structs).
 - XML doc comments (`<summary>`, and `<param>` of positional records) are written as `description`. This requires `<GenerateDocumentationFile>true</GenerateDocumentationFile>` in the project of the types.
 - Union types are written as `anyOf` of the subtypes.
   - With `DiscriminatorKey`, the discriminator key is required and its values are completed.
@@ -692,6 +704,30 @@ endpoints:
   - With YAML tags, the subtypes are not distinguished, because JSON Schema cannot express YAML tags.
 
 Other [YamlObject] types are written to `definitions` and referenced with `$ref`.
+
+#### Options
+
+`YamlSchemaGeneratorOptions` can be passed to `Generate`:
+
+``` csharp
+var schemaOptions = new YamlSchemaGeneratorOptions
+{
+    // reject unknown keys ("additionalProperties": false)
+    AdditionalProperties = false,
+}
+// schemas of types serialized by custom formatters
+.AddTypeSchema<SkillRange>("""
+    { "anyOf": [{ "type": "integer" }, { "const": "inf" }, { "type": "object", "properties": { "skip": { "type": "integer" }, "count": { "type": "integer" } } }] }
+    """)
+// a schema of a particular member
+.AddMemberSchema<Card>(nameof(Card.Rarity), """{ "anyOf": [{ "type": "integer" }, { "const": "inf" }] }""");
+
+var json = YamlSchemaGenerator.Generate<Card>(options, schemaOptions);
+```
+
+- `AdditionalProperties` is applied to [YamlObject] types. When it is not set, it follows `YamlSerializerOptions.UnmappedMemberHandling` (`false` for `Disallow`).
+  - The subtypes of a union with `DiscriminatorKey` are expanded in the union, so that the discriminator key is not rejected.
+- Schemas given by `AddTypeSchema` / `AddMemberSchema` are embedded as is (wrapped in `allOf`). Types without a schema that are not [YamlObject] allow anything.
 
 ## Customize serialization behaviour
 

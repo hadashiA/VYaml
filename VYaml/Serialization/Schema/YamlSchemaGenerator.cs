@@ -24,11 +24,12 @@ namespace VYaml.Serialization
     {
         public const string SchemaUri = "http://json-schema.org/draft-07/schema#";
 
-        public static string Generate<T>(YamlSerializerOptions? options = null) => Generate(typeof(T), options);
+        public static string Generate<T>(YamlSerializerOptions? options = null, YamlSchemaGeneratorOptions? schemaOptions = null) =>
+            Generate(typeof(T), options, schemaOptions);
 
-        public static string Generate(Type type, YamlSerializerOptions? options = null)
+        public static string Generate(Type type, YamlSerializerOptions? options = null, YamlSchemaGeneratorOptions? schemaOptions = null)
         {
-            var builder = new SchemaBuilder(type, options ?? YamlSerializerOptions.Standard);
+            var builder = new SchemaBuilder(type, options ?? YamlSerializerOptions.Standard, schemaOptions ?? new YamlSchemaGeneratorOptions());
             var schema = builder.Build();
             var sb = new StringBuilder();
             JsonWriter.Write(sb, schema, 0);
@@ -40,21 +41,26 @@ namespace VYaml.Serialization
         {
             readonly Type rootType;
             readonly YamlSerializerOptions options;
+            readonly YamlSchemaGeneratorOptions schemaOptions;
+            readonly bool additionalProperties;
             readonly Dictionary<Type, string> definitionNames = new();
             readonly HashSet<string> usedDefinitionNames = new();
             readonly List<KeyValuePair<string, object?>> definitions = new();
 
-            public SchemaBuilder(Type rootType, YamlSerializerOptions options)
+            public SchemaBuilder(Type rootType, YamlSerializerOptions options, YamlSchemaGeneratorOptions schemaOptions)
             {
                 this.rootType = rootType;
                 this.options = options;
+                this.schemaOptions = schemaOptions;
+                additionalProperties = schemaOptions.AdditionalProperties ??
+                                       options.UnmappedMemberHandling != YamlUnmappedMemberHandling.Disallow;
             }
 
             public JsonObject Build()
             {
                 var root = new JsonObject { { "$schema", SchemaUri } };
 
-                var schema = YamlSchemaInfoRegistry.TryGetSchemaInfo(rootType, out var info)
+                var schema = !schemaOptions.TryGetTypeSchema(rootType, out _) && YamlSchemaInfoRegistry.TryGetSchemaInfo(rootType, out var info)
                     ? ObjectSchema(info)
                     : SchemaOf(rootType);
                 foreach (var entry in schema)
@@ -79,6 +85,11 @@ namespace VYaml.Serialization
                 if (Nullable.GetUnderlyingType(type) is { } underlyingType)
                 {
                     return WithNull(SchemaOf(underlyingType));
+                }
+
+                if (schemaOptions.TryGetTypeSchema(type, out var customSchema))
+                {
+                    return CustomSchema(customSchema);
                 }
 
                 if (PrimitiveSchemaOf(type) is { } primitive)
@@ -148,11 +159,9 @@ namespace VYaml.Serialization
                     {
                         { discriminatorKeyName, new JsonObject { { "enum", new JsonArray(info.Unions.Select(x => (object?)x.Tag)) } } }
                     });
-                    schema.Add("anyOf", new JsonArray(info.Unions.Select(x => (object?)new JsonObject
-                    {
-                        { "properties", new JsonObject { { discriminatorKeyName, new JsonObject { { "const", x.Tag } } } } },
-                        { "allOf", new JsonArray { SchemaOf(x.SubType) } },
-                    })));
+                    // The subtypes are expanded instead of $ref, so that the discriminator key is one of their properties.
+                    // (otherwise "additionalProperties": false of a subtype rejects it; draft-07 has no unevaluatedProperties)
+                    schema.Add("anyOf", new JsonArray(info.Unions.Select(x => (object?)DiscriminatedSubTypeSchema(x, discriminatorKeyName))));
                     return schema;
                 }
 
@@ -196,10 +205,18 @@ namespace VYaml.Serialization
                         required.Add(keyName);
                     }
 
-                    var memberSchema = SchemaOf(member.Type);
-                    if (member.IsNullable && Nullable.GetUnderlyingType(member.Type) == null)
+                    JsonObject memberSchema;
+                    if (schemaOptions.TryGetMemberSchema(info.Type, member.Name, out var customMemberSchema))
                     {
-                        memberSchema = WithNull(memberSchema);
+                        memberSchema = CustomSchema(customMemberSchema);
+                    }
+                    else
+                    {
+                        memberSchema = SchemaOf(member.Type);
+                        if (member.IsNullable && Nullable.GetUnderlyingType(member.Type) == null)
+                        {
+                            memberSchema = WithNull(memberSchema);
+                        }
                     }
 
                     var annotations = new JsonObject();
@@ -218,8 +235,59 @@ namespace VYaml.Serialization
                 {
                     schema.Add("required", required);
                 }
+                if (!additionalProperties)
+                {
+                    schema.Add("additionalProperties", false);
+                }
                 return schema;
             }
+
+            JsonObject DiscriminatedSubTypeSchema(YamlUnionSchemaInfo union, string discriminatorKeyName)
+            {
+                var discriminator = new JsonObject { { "const", union.Tag } };
+                if (!YamlSchemaInfoRegistry.TryGetSchemaInfo(union.SubType, out var subTypeInfo))
+                {
+                    return new JsonObject
+                    {
+                        { "properties", new JsonObject { { discriminatorKeyName, discriminator } } },
+                        { "allOf", new JsonArray { SchemaOf(union.SubType) } },
+                    };
+                }
+
+                var schema = ObjectSchema(subTypeInfo);
+                var result = new JsonObject();
+                foreach (var entry in schema)
+                {
+                    switch (entry.Key)
+                    {
+                        case "properties" when entry.Value is JsonObject subTypeProperties:
+                            var properties = new JsonObject { { discriminatorKeyName, discriminator } };
+                            foreach (var property in subTypeProperties)
+                            {
+                                properties[property.Key] = property.Value;
+                            }
+                            result.Add("properties", properties);
+                            if (!schema.ContainsKey("required"))
+                            {
+                                result.Add("required", new JsonArray { discriminatorKeyName });
+                            }
+                            break;
+                        case "required" when entry.Value is JsonArray subTypeRequired:
+                            result.Add("required", new JsonArray(new object?[] { discriminatorKeyName }.Concat(subTypeRequired)));
+                            break;
+                        default:
+                            result.Add(entry.Key, entry.Value);
+                            break;
+                    }
+                }
+                return result;
+            }
+
+            // A user-provided schema is embedded as is; allOf lets WithNull / WithAnnotations add keywords next to it.
+            static JsonObject CustomSchema(string jsonSchema) => new()
+            {
+                { "allOf", new JsonArray { new RawJson(jsonSchema) } },
+            };
 
             // The key in YAML, as the generated formatter writes it
             string KeyNameOf(YamlMemberSchemaInfo member) => member.IsKeyNameFixed
@@ -543,6 +611,12 @@ namespace VYaml.Serialization
             IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         }
 
+        sealed class RawJson
+        {
+            public string Json { get; }
+            public RawJson(string json) => Json = json.Trim();
+        }
+
         sealed class JsonArray : List<object?>
         {
             public JsonArray()
@@ -586,6 +660,9 @@ namespace VYaml.Serialization
                         break;
                     case JsonArray array:
                         WriteArray(sb, array, indent);
+                        break;
+                    case RawJson raw:
+                        sb.Append(raw.Json);
                         break;
                     default:
                         WriteString(sb, Convert.ToString(value, CultureInfo.InvariantCulture) ?? "");
@@ -637,7 +714,7 @@ namespace VYaml.Serialization
                     return;
                 }
                 // scalar-only arrays (e.g. enum values, type unions) are written inline
-                if (array.TrueForAll(x => x is not JsonObject and not JsonArray))
+                if (array.TrueForAll(x => x is not JsonObject and not JsonArray and not RawJson))
                 {
                     sb.Append('[');
                     for (var i = 0; i < array.Count; i++)
