@@ -471,7 +471,7 @@ static class Emitter
             codeWriter.AppendLine("parser.Read(); // skip key");
             codeWriter.AppendLine("discriminator = parser.ReadScalarAsString();");
         }
-        using (codeWriter.BeginBlockScope("else if (!global::VYaml.Serialization.YamlUnionLookahead.TryFindScalarValue(ref parser, UnionDiscriminatorKeyUtf8Bytes, out discriminator))"))
+        using (codeWriter.BeginBlockScope("else if (!global::VYaml.Serialization.YamlLookaheadHelper.TryFindScalarValueInMapping(ref parser, UnionDiscriminatorKeyUtf8Bytes, out discriminator))"))
         {
             codeWriter.AppendLine($"throw new YamlSerializerException(mark, {Literal($"Cannot find the discriminator '{keyName}' of the union {model.TypeName}")});");
         }
@@ -561,7 +561,7 @@ static class Emitter
 
         codeWriter.AppendLine("var mark = parser.CurrentMark;");
         codeWriter.AppendLine("parser.ReadWithVerify(ParseEventType.MappingStart);");
-        using (codeWriter.BeginBlockScope("switch (global::VYaml.Serialization.YamlUnionLookahead.FindFirstKey(ref parser, context, UnionKeysUtf8Bytes, UnionKeyNamingConventions))"))
+        using (codeWriter.BeginBlockScope("switch (global::VYaml.Serialization.YamlLookaheadHelper.IndexOfAnyKeyInMapping(ref parser, context, UnionKeysUtf8Bytes, UnionKeyNamingConventions))"))
         {
             for (var i = 0; i < model.Unions.Count; i++)
             {

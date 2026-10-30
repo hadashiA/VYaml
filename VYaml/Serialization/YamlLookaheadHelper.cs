@@ -5,18 +5,18 @@ using VYaml.Parser;
 namespace VYaml.Serialization
 {
     /// <summary>
-    /// Used by source-generated union formatters to identify the subtype from the keys of a mapping
-    /// before deserializing it. Each method scans the rest of the current mapping on a clone of the
-    /// parser, so the given parser does not move.
+    /// Inspects the rest of the current mapping without consuming it. Each method scans on a clone of
+    /// the parser, so the given parser does not move. Used by source-generated union formatters to
+    /// identify the subtype before deserializing it.
     /// </summary>
-    public static class YamlUnionLookahead
+    public static class YamlLookaheadHelper
     {
         /// <summary>
         /// Finds the scalar value of <paramref name="keyUtf8"/> in the current mapping.
         /// </summary>
         /// <param name="parser">Positioned inside a mapping (after the mapping start).</param>
         /// <returns>false if the key is not found or its value is not a scalar.</returns>
-        public static bool TryFindScalarValue(ref YamlParser parser, ReadOnlySpan<byte> keyUtf8, out string? value)
+        public static bool TryFindScalarValueInMapping(ref YamlParser parser, ReadOnlySpan<byte> keyUtf8, out string? value)
         {
             var lookahead = new YamlParser(ref parser);
             try
@@ -49,13 +49,17 @@ namespace VYaml.Serialization
 
         /// <summary>
         /// Finds which of <paramref name="keysUtf8"/> are contained in the current mapping, and returns the
-        /// smallest index of them. Keys are compared in the same way as the members of a generated formatter:
+        /// smallest index of them. All candidates are looked up in a single scan, and when several are
+        /// contained, the one that comes first in <paramref name="keysUtf8"/> wins regardless of its position
+        /// in the mapping. Keys are compared in the same way as the members of a generated formatter:
         /// when <see cref="YamlSerializerOptions.NamingConvention"/> differs from the naming convention of the
         /// key, the key in the YAML is mutated to it before comparison.
         /// </summary>
         /// <param name="parser">Positioned inside a mapping (after the mapping start).</param>
-        /// <returns>-1 if none of the keys are found.</returns>
-        public static int FindFirstKey(
+        /// <param name="keysUtf8">The candidate keys, in order of priority.</param>
+        /// <param name="namingConventions">The naming convention of each key in <paramref name="keysUtf8"/>.</param>
+        /// <returns>The index in <paramref name="keysUtf8"/>, or -1 if none of the keys are found.</returns>
+        public static int IndexOfAnyKeyInMapping(
             ref YamlParser parser,
             YamlDeserializationContext context,
             byte[][] keysUtf8,
