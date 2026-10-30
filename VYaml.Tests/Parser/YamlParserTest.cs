@@ -13,6 +13,29 @@ namespace VYaml.Tests.Parser
     public class YamlParserTest
     {
         [Test]
+        public void AnchorsAreNotSharedBetweenDocuments()
+        {
+            var parser = CreateParser(new[]
+            {
+                "--- &a foo",
+                "--- *a",
+            });
+
+            var thrown = false;
+            try
+            {
+                while (parser.Read() && parser.CurrentEventType != ParseEventType.StreamEnd)
+                {
+                }
+            }
+            catch (YamlParserException)
+            {
+                thrown = true;
+            }
+            Assert.That(thrown, Is.True);
+        }
+
+        [Test]
         public void IsNullScalar()
         {
             var parser = CreateParser(new []
