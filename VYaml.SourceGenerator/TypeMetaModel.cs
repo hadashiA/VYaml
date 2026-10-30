@@ -31,6 +31,10 @@ sealed record TypeMetaModel
     public bool HasBaseYamlObject { get; }
     public string TypeDeclarationKeyword { get; }
     public bool IsUnion { get; }
+    // DiscriminatorKey of [YamlObjectUnion]; null for tag-based unions
+    public string? UnionDiscriminatorKeyName { get; }
+    // RequiredKey of [YamlObjectUnion]: subtypes are identified by the presence of a key (UnionMetaModel.KeyName)
+    public bool IsUnionByKey { get; }
     public NamingConvention NamingConventionByType { get; }
     public bool HasConstructor { get; }
 
@@ -58,6 +62,8 @@ sealed record TypeMetaModel
         bool hasBaseYamlObject,
         string typeDeclarationKeyword,
         bool isUnion,
+        string? unionDiscriminatorKeyName,
+        bool isUnionByKey,
         NamingConvention namingConventionByType,
         bool hasConstructor,
         EquatableArray<MemberMetaModel> members,
@@ -79,6 +85,8 @@ sealed record TypeMetaModel
         HasBaseYamlObject = hasBaseYamlObject;
         TypeDeclarationKeyword = typeDeclarationKeyword;
         IsUnion = isUnion;
+        UnionDiscriminatorKeyName = unionDiscriminatorKeyName;
+        IsUnionByKey = isUnionByKey;
         NamingConventionByType = namingConventionByType;
         HasConstructor = hasConstructor;
         Members = members;
@@ -101,6 +109,8 @@ sealed record MemberMetaModel
     public bool IsValueType { get; }
     public string DefaultValueComparison { get; }
     public string DefaultValueExpression { get; }
+    // [YamlRequired] or the C# `required` modifier
+    public bool IsRequired { get; }
 
     // Computed (no backing field), so it is derived on demand and excluded from record equality,
     // which is correct because it is a pure function of KeyName.
@@ -116,7 +126,8 @@ sealed record MemberMetaModel
         bool isNullableValueType,
         bool isValueType,
         string defaultValueComparison,
-        string defaultValueExpression)
+        string defaultValueExpression,
+        bool isRequired)
     {
         Name = name;
         KeyName = keyName;
@@ -128,6 +139,7 @@ sealed record MemberMetaModel
         IsValueType = isValueType;
         DefaultValueComparison = defaultValueComparison;
         DefaultValueExpression = defaultValueExpression;
+        IsRequired = isRequired;
     }
 }
 
@@ -136,9 +148,15 @@ sealed record UnionMetaModel
     public string SubTypeTag { get; }
     public string FullTypeName { get; }
 
-    public UnionMetaModel(string subTypeTag, string fullTypeName)
+    // RequiredKey: the key name of the subtype's member, and the subtype's naming convention
+    public string KeyName { get; }
+    public NamingConvention KeyNamingConvention { get; }
+
+    public UnionMetaModel(string subTypeTag, string fullTypeName, string keyName = "", NamingConvention keyNamingConvention = NamingConvention.LowerCamelCase)
     {
         SubTypeTag = subTypeTag;
         FullTypeName = fullTypeName;
+        KeyName = keyName;
+        KeyNamingConvention = keyNamingConvention;
     }
 }

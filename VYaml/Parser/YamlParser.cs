@@ -162,8 +162,38 @@ namespace VYaml.Parser
             UnityStrippedMark = false;
         }
 
+        // Deep copy for lookahead: reading the clone does not move this parser. Call ReturnPool() when done.
+        internal YamlParser(ref YamlParser source)
+        {
+            tokenizer = new Utf8YamlTokenizer(ref source.tokenizer);
+            currentState = source.currentState;
+            CurrentEventType = source.CurrentEventType;
+            UnityStrippedMark = source.UnityStrippedMark;
+            lastAnchorId = source.lastAnchorId;
+            maxDepth = source.maxDepth;
+            currentDepth = source.currentDepth;
+
+            currentScalar = source.currentScalar?.CloneFromPool();
+            currentTag = source.currentTag;
+            currentAnchor = source.currentAnchor;
+
+            anchors = ThreadLocalObjectPool<Dictionary<string, int>>.Rent(static () => new Dictionary<string, int>());
+            foreach (var entry in source.anchors)
+            {
+                anchors.Add(entry.Key, entry.Value);
+            }
+            stateStack = ThreadLocalObjectPool<ExpandBuffer<ParseState>>.Rent(static () => new ExpandBuffer<ParseState>(16));
+            stateStack.CopyFrom(source.stateStack);
+        }
+
         internal void ReturnPool()
         {
+            if (currentScalar is { } scalar)
+            {
+                ScalarPool.Shared.Return(scalar);
+                currentScalar = null;
+            }
+
             anchors.Clear();
             ThreadLocalObjectPool<Dictionary<string, int>>.Return(anchors);
 

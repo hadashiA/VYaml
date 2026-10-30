@@ -74,12 +74,32 @@ static class Emitter
         var returnType = ReturnType(model);
 
         codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
-        using var _ = codeWriter.BeginBlockScope($"public class {model.SanitizedTypeName}GeneratedFormatter : IYamlFormatter<{returnType}>");
+        var interfaces = model.IsUnion
+            ? $"IYamlFormatter<{returnType}>"
+            : $"IYamlFormatter<{returnType}>, global::VYaml.Serialization.IYamlObjectMembersFormatter<{returnType}>";
+        using var _ = codeWriter.BeginBlockScope($"public class {model.SanitizedTypeName}GeneratedFormatter : {interfaces}");
 
         if (model.IsUnion)
         {
-            EmitSerializeMethodUnion(model, codeWriter);
-            EmitDeserializeMethodUnion(model, codeWriter);
+            if (model.UnionDiscriminatorKeyName is { } discriminatorKeyName)
+            {
+                codeWriter.Append("static readonly byte[] UnionDiscriminatorKeyUtf8Bytes = ");
+                codeWriter.AppendByteArrayString(System.Text.Encoding.UTF8.GetBytes(discriminatorKeyName));
+                codeWriter.AppendLine($"; // {discriminatorKeyName}", false);
+                codeWriter.AppendLine();
+                EmitSerializeMethodUnionWithDiscriminator(model, codeWriter);
+                EmitDeserializeMethodUnionWithDiscriminator(model, codeWriter);
+            }
+            else if (model.IsUnionByKey)
+            {
+                EmitSerializeMethodUnionByKey(model, codeWriter);
+                EmitDeserializeMethodUnionByKey(model, codeWriter);
+            }
+            else
+            {
+                EmitSerializeMethodUnion(model, codeWriter);
+                EmitDeserializeMethodUnion(model, codeWriter);
+            }
             return;
         }
 
@@ -92,7 +112,9 @@ static class Emitter
         }
 
         EmitSerializeMethod(model, codeWriter);
+        EmitSerializeMembersMethod(model, codeWriter);
         EmitDeserializeMethod(model, codeWriter);
+        EmitDeserializeMembersMethod(model, codeWriter);
     }
 
     static void EmitSerializeMethod(TypeMetaModel model, CodeWriter codeWriter)
@@ -113,9 +135,22 @@ static class Emitter
         }
 
         codeWriter.AppendLine("emitter.BeginMapping();");
+        codeWriter.AppendLine("SerializeMembers(ref emitter, value, context);");
+        codeWriter.AppendLine("emitter.EndMapping();");
+    }
+
+    static void EmitSerializeMembersMethod(TypeMetaModel model, CodeWriter codeWriter)
+    {
+        var returnType = ReturnType(model);
+
+        codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
+        using var methodScope = codeWriter.BeginBlockScope(
+            $"public void SerializeMembers(ref Utf8YamlEmitter emitter, {returnType} value, YamlSerializationContext context)");
+
         foreach (var member in model.Members)
         {
-            var ignoreScope = EmitIgnoreConditionCheck(codeWriter, member);
+            // required members are always written, so that the output can be deserialized
+            var ignoreScope = member.IsRequired ? null : EmitIgnoreConditionCheck(codeWriter, member);
 
             if (member.HasKeyNameAlias || model.NamingConventionByType != NamingConvention.LowerCamelCase)
             {
@@ -141,8 +176,10 @@ static class Emitter
                 codeWriter.AppendLine("}");
             }
         }
-        codeWriter.AppendLine("emitter.EndMapping();");
     }
+
+    static string Literal(string? value) =>
+        value is null ? "null" : Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(value, quote: true);
 
     static IDisposable? EmitIgnoreConditionCheck(CodeWriter codeWriter, MemberMetaModel member)
     {
@@ -217,10 +254,39 @@ static class Emitter
         }
 
         codeWriter.AppendLine("parser.ReadWithVerify(ParseEventType.MappingStart);");
-        codeWriter.AppendLine();
+        codeWriter.AppendLine("return DeserializeMembers(ref parser, context);");
+    }
+
+    static void EmitDeserializeMembersMethod(TypeMetaModel model, CodeWriter codeWriter)
+    {
+        var returnType = ReturnType(model);
+        codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
+        using var methodScope = codeWriter.BeginBlockScope(
+            $"public {returnType} DeserializeMembers(ref YamlParser parser, YamlDeserializationContext context)");
+
+        if (model.Members.Count <= 0)
+        {
+            using (codeWriter.BeginBlockScope("while (!parser.End && parser.CurrentEventType != ParseEventType.MappingEnd)"))
+            {
+                codeWriter.AppendLine("parser.SkipCurrentNode(); // key or value");
+            }
+            codeWriter.AppendLine("parser.ReadWithVerify(ParseEventType.MappingEnd);");
+            codeWriter.AppendLine($"return new {model.TypeName}();");
+            return;
+        }
+
+        var requiredMembers = model.Members.Where(x => x.IsRequired).ToArray();
+        if (requiredMembers.Length > 0)
+        {
+            codeWriter.AppendLine("var __mark__ = parser.CurrentMark;");
+        }
         foreach (var member in model.Members)
         {
             codeWriter.AppendLine($"var __{member.Name}__ = {member.DefaultValueExpression};");
+        }
+        foreach (var member in requiredMembers)
+        {
+            codeWriter.AppendLine($"var __{member.Name}__found = false;");
         }
 
         using (codeWriter.BeginBlockScope("while (!parser.End && parser.CurrentEventType != ParseEventType.MappingEnd)"))
@@ -256,6 +322,10 @@ static class Emitter
                             {
                                 codeWriter.AppendLine("parser.Read(); // skip key");
                                 codeWriter.AppendLine($"__{member.Name}__ = context.DeserializeWithAlias<{member.FullTypeName}>(ref parser);");
+                                if (member.IsRequired)
+                                {
+                                    codeWriter.AppendLine($"__{member.Name}__found = true;");
+                                }
                                 codeWriter.AppendLine("continue;");
                             }
                             branching = "else if";
@@ -273,6 +343,15 @@ static class Emitter
             }
         }
         codeWriter.AppendLine("parser.ReadWithVerify(ParseEventType.MappingEnd);");
+
+        if (requiredMembers.Length > 0)
+        {
+            using (codeWriter.BeginBlockScope($"if ({string.Join(" || ", requiredMembers.Select(x => $"!__{x.Name}__found"))})"))
+            {
+                var keyNames = string.Join(", ", requiredMembers.Select(x => $"__{x.Name}__found ? null : {Literal(x.KeyName)}"));
+                codeWriter.AppendLine($"YamlSerializerException.ThrowMissingRequiredKeys(__mark__, {Literal(model.TypeName)}, {keyNames});");
+            }
+        }
 
         codeWriter.Append("return new ");
         if (model.HasConstructor)
@@ -331,6 +410,168 @@ static class Emitter
         using (codeWriter.BeginBlockScope("else"))
         {
             codeWriter.AppendLine("throw new YamlSerializerException(parser.CurrentMark, \"Cannot find any subtype tag for union\");");
+        }
+    }
+
+    static void EmitSerializeMethodUnionWithDiscriminator(TypeMetaModel model, CodeWriter codeWriter)
+    {
+        var returnType = ReturnType(model);
+
+        codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
+        using var methodScope = codeWriter.BeginBlockScope(
+            $"public void Serialize(ref Utf8YamlEmitter emitter, {returnType} value, YamlSerializationContext context)");
+
+        if (!model.IsValueType)
+        {
+            using (codeWriter.BeginBlockScope("if (value is null)"))
+            {
+                codeWriter.AppendLine("emitter.WriteNull();");
+                codeWriter.AppendLine("return;");
+            }
+        }
+
+        using (codeWriter.BeginBlockScope("switch (value)"))
+        {
+            foreach (var union in model.Unions)
+            {
+                codeWriter.AppendLine($"case {union.FullTypeName} x:");
+                codeWriter.AppendLine("    emitter.BeginMapping();");
+                codeWriter.AppendLine("    emitter.WriteScalar(UnionDiscriminatorKeyUtf8Bytes);");
+                codeWriter.AppendLine($"    emitter.WriteString({Literal(union.SubTypeTag)});");
+                codeWriter.AppendLine($"    global::VYaml.Serialization.YamlObjectMembersFormatter.GetWithVerify<{union.FullTypeName}>(context.Resolver).SerializeMembers(ref emitter, x, context);");
+                codeWriter.AppendLine("    emitter.EndMapping();");
+                codeWriter.AppendLine("    break;");
+            }
+            codeWriter.AppendLine("default:");
+            codeWriter.AppendLine($"    throw new YamlSerializerException(value.GetType() + {Literal($" is not registered as a subtype of union {model.TypeName}")});");
+        }
+    }
+
+    static void EmitDeserializeMethodUnionWithDiscriminator(TypeMetaModel model, CodeWriter codeWriter)
+    {
+        var returnType = ReturnType(model);
+        var keyName = model.UnionDiscriminatorKeyName!;
+
+        codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
+        using var methodScope = codeWriter.BeginBlockScope(
+            $"public {returnType} Deserialize(ref YamlParser parser, YamlDeserializationContext context)");
+
+        using (codeWriter.BeginBlockScope("if (parser.IsNullScalar())"))
+        {
+            codeWriter.AppendLine("parser.Read();");
+            codeWriter.AppendLine("return default;");
+        }
+
+        codeWriter.AppendLine("var mark = parser.CurrentMark;");
+        codeWriter.AppendLine("parser.ReadWithVerify(ParseEventType.MappingStart);");
+        codeWriter.AppendLine("string? discriminator;");
+        // fast path: the discriminator is the first key (always written first)
+        using (codeWriter.BeginBlockScope("if (parser.CurrentEventType == ParseEventType.Scalar && parser.TryGetScalarAsSpan(out var key) && key.SequenceEqual(UnionDiscriminatorKeyUtf8Bytes))"))
+        {
+            codeWriter.AppendLine("parser.Read(); // skip key");
+            codeWriter.AppendLine("discriminator = parser.ReadScalarAsString();");
+        }
+        using (codeWriter.BeginBlockScope("else if (!global::VYaml.Serialization.YamlLookaheadHelper.TryFindScalarValueInMapping(ref parser, UnionDiscriminatorKeyUtf8Bytes, out discriminator))"))
+        {
+            codeWriter.AppendLine($"throw new YamlSerializerException(mark, {Literal($"Cannot find the discriminator '{keyName}' of the union {model.TypeName}")});");
+        }
+        codeWriter.AppendLine();
+
+        using (codeWriter.BeginBlockScope("switch (discriminator)"))
+        {
+            foreach (var union in model.Unions)
+            {
+                codeWriter.AppendLine($"case {Literal(union.SubTypeTag)}:");
+                codeWriter.AppendLine($"    return global::VYaml.Serialization.YamlObjectMembersFormatter.GetWithVerify<{union.FullTypeName}>(context.Resolver).DeserializeMembers(ref parser, context);");
+            }
+            codeWriter.AppendLine("default:");
+            codeWriter.AppendLine($"    throw new YamlSerializerException(mark, {Literal($"Unknown discriminator '{keyName}': ")} + discriminator + {Literal($" for union {model.TypeName}")});");
+        }
+    }
+
+    static void EmitSerializeMethodUnionByKey(TypeMetaModel model, CodeWriter codeWriter)
+    {
+        var returnType = ReturnType(model);
+
+        codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
+        using var methodScope = codeWriter.BeginBlockScope(
+            $"public void Serialize(ref Utf8YamlEmitter emitter, {returnType} value, YamlSerializationContext context)");
+
+        if (!model.IsValueType)
+        {
+            using (codeWriter.BeginBlockScope("if (value is null)"))
+            {
+                codeWriter.AppendLine("emitter.WriteNull();");
+                codeWriter.AppendLine("return;");
+            }
+        }
+
+        // the key identifying the subtype is a member of the subtype itself
+        using (codeWriter.BeginBlockScope("switch (value)"))
+        {
+            foreach (var union in model.Unions)
+            {
+                codeWriter.AppendLine($"case {union.FullTypeName} x:");
+                codeWriter.AppendLine("    context.Serialize(ref emitter, x);");
+                codeWriter.AppendLine("    break;");
+            }
+            codeWriter.AppendLine("default:");
+            codeWriter.AppendLine($"    throw new YamlSerializerException(value.GetType() + {Literal($" is not registered as a subtype of union {model.TypeName}")});");
+        }
+    }
+
+    static void EmitDeserializeMethodUnionByKey(TypeMetaModel model, CodeWriter codeWriter)
+    {
+        var returnType = ReturnType(model);
+
+        codeWriter.AppendLine("static readonly byte[][] UnionKeysUtf8Bytes =");
+        codeWriter.AppendLine("{");
+        using (codeWriter.BeginIndentScope())
+        {
+            foreach (var union in model.Unions)
+            {
+                codeWriter.Append("new byte[] ");
+                codeWriter.AppendByteArrayString(System.Text.Encoding.UTF8.GetBytes(union.KeyName));
+                codeWriter.AppendLine($", // {union.KeyName}", false);
+            }
+        }
+        codeWriter.AppendLine("};");
+        codeWriter.AppendLine();
+        codeWriter.AppendLine("static readonly global::VYaml.Annotations.NamingConvention[] UnionKeyNamingConventions =");
+        codeWriter.AppendLine("{");
+        using (codeWriter.BeginIndentScope())
+        {
+            foreach (var union in model.Unions)
+            {
+                codeWriter.AppendLine($"global::VYaml.Annotations.NamingConvention.{union.KeyNamingConvention},");
+            }
+        }
+        codeWriter.AppendLine("};");
+        codeWriter.AppendLine();
+
+        codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
+        using var methodScope = codeWriter.BeginBlockScope(
+            $"public {returnType} Deserialize(ref YamlParser parser, YamlDeserializationContext context)");
+
+        using (codeWriter.BeginBlockScope("if (parser.IsNullScalar())"))
+        {
+            codeWriter.AppendLine("parser.Read();");
+            codeWriter.AppendLine("return default;");
+        }
+
+        codeWriter.AppendLine("var mark = parser.CurrentMark;");
+        codeWriter.AppendLine("parser.ReadWithVerify(ParseEventType.MappingStart);");
+        using (codeWriter.BeginBlockScope("switch (global::VYaml.Serialization.YamlLookaheadHelper.IndexOfAnyKeyInMapping(ref parser, context, UnionKeysUtf8Bytes, UnionKeyNamingConventions))"))
+        {
+            for (var i = 0; i < model.Unions.Count; i++)
+            {
+                var union = model.Unions[i];
+                codeWriter.AppendLine($"case {i}:");
+                codeWriter.AppendLine($"    return global::VYaml.Serialization.YamlObjectMembersFormatter.GetWithVerify<{union.FullTypeName}>(context.Resolver).DeserializeMembers(ref parser, context);");
+            }
+            var keys = string.Join(", ", model.Unions.Select(x => $"'{x.KeyName}'"));
+            codeWriter.AppendLine("default:");
+            codeWriter.AppendLine($"    throw new YamlSerializerException(mark, {Literal($"Cannot find any of the keys {keys} to identify the subtype of the union {model.TypeName}")});");
         }
     }
 

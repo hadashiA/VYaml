@@ -42,6 +42,19 @@ namespace VYaml.Annotations
     {
     }
 
+    /// <summary>
+    /// Makes the key of the member required when deserializing: a missing key throws YamlSerializerException.
+    /// Members with the C# <c>required</c> modifier are also required.
+    /// </summary>
+    /// <remarks>
+    /// A key with a null value (<c>key: ~</c>) satisfies it. Required members are always serialized regardless of
+    /// YamlSerializerOptions.DefaultIgnoreCondition.
+    /// </remarks>
+    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
+    public sealed class YamlRequiredAttribute : Attribute
+    {
+    }
+
     [AttributeUsage(AttributeTargets.Constructor, AllowMultiple = false, Inherited = false)]
     public sealed class YamlConstructorAttribute : Attribute
     {
@@ -53,12 +66,64 @@ namespace VYaml.Annotations
         Inherited = false)]
     public class YamlObjectUnionAttribute : Attribute
     {
+        /// <summary>
+        /// The YAML tag of the subtype (e.g. <c>!circle</c>), or the value of <see cref="DiscriminatorKey"/>.
+        /// Empty for <see cref="RequiredKey"/>.
+        /// </summary>
         public string Tag { get; }
         public Type SubType { get; }
+
+        /// <summary>
+        /// Identifies the subtype by the value of this key instead of a YAML tag: <see cref="Tag"/> is used as the value.
+        /// When used, every [YamlObjectUnion] of the type must have the same DiscriminatorKey.
+        /// </summary>
+        /// <example>
+        /// <code>
+        /// [YamlObjectUnion("circle", typeof(Circle), DiscriminatorKey = "type")]
+        /// [YamlObjectUnion("rect", typeof(Rect), DiscriminatorKey = "type")]
+        /// public partial interface IShape { }
+        ///
+        /// // type: circle
+        /// // radius: 1.0
+        /// </code>
+        /// </example>
+        /// <remarks>
+        /// The key is always written first. It can be anywhere in the mapping when deserializing, but it is faster as
+        /// the first key.
+        /// </remarks>
+        public string? DiscriminatorKey { get; set; }
+
+        /// <summary>
+        /// Identifies the subtype by the presence of this key, like the steps of GitHub Actions workflows (a step with
+        /// <c>uses:</c> or a step with <c>run:</c>). Use the constructor without a tag.
+        /// When used, every [YamlObjectUnion] of the type must have a RequiredKey.
+        /// </summary>
+        /// <example>
+        /// <code>
+        /// [YamlObjectUnion(typeof(ActionStep), RequiredKey = "uses")]
+        /// [YamlObjectUnion(typeof(RunStep), RequiredKey = "run")]
+        /// public partial interface IStep { }
+        /// </code>
+        /// </example>
+        /// <remarks>
+        /// The key is a member of the subtype, specified by its key name or its C# member name, and follows the same
+        /// naming rules as the member. When a mapping contains the keys of several subtypes, the subtype declared
+        /// first wins.
+        /// </remarks>
+        public string? RequiredKey { get; set; }
 
         public YamlObjectUnionAttribute(string tagString, Type subType)
         {
             Tag = tagString;
+            SubType = subType;
+        }
+
+        /// <summary>
+        /// For <see cref="RequiredKey"/>.
+        /// </summary>
+        public YamlObjectUnionAttribute(Type subType)
+        {
+            Tag = "";
             SubType = subType;
         }
     }

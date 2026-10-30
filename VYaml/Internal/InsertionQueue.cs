@@ -32,6 +32,9 @@ namespace VYaml.Internal
             headIndex = tailIndex = Count = 0;
         }
 
+        // index from the head
+        public T this[int index] => array[(headIndex + index) % array.Length];
+
         public T Peek()
         {
             if (Count == 0) ThrowForEmptyQueue();

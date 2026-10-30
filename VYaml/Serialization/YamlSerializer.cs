@@ -2,6 +2,7 @@ using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using VYaml.Emitter;
 using VYaml.Internal;
@@ -19,6 +20,15 @@ namespace VYaml.Serialization
         public static void ThrowInvalidType<T>(string value)
         {
             throw new YamlSerializerException($"Cannot detect a scalar value of {typeof(T)}, {value}");
+        }
+
+        /// <summary>
+        /// Used by generated formatters. Null elements of <paramref name="keyNames"/> are ignored (found keys).
+        /// </summary>
+        public static void ThrowMissingRequiredKeys(Marker mark, string typeName, params string?[] keyNames)
+        {
+            var missing = string.Join(", ", keyNames.Where(x => x != null).Select(x => $"'{x}'"));
+            throw new YamlSerializerException(mark, $"Missing required key(s) {missing} for {typeName}");
         }
 
         public YamlSerializerException(string message) : base(message)

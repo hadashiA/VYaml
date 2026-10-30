@@ -282,6 +282,28 @@ List of possible values:
 - `YamlIgnoreCondition.WhenWritingNull` — Omit properties whose value is `null` (reference types and `Nullable<T>`)
 - `YamlIgnoreCondition.WhenWritingDefault` — Omit properties whose value is `null` or the default value for value types (`0`, `false`, `'\0'`, etc.)
 
+#### Required members
+
+By default, a missing key is deserialized as the default value of the member.
+Members with the C# `required` modifier or `[YamlRequired]` must be present in the YAML; otherwise `YamlSerializerException` is thrown.
+
+```cs
+[YamlObject]
+public partial class Config
+{
+    public required string Name { get; set; }
+
+    [YamlRequired] // for C# versions without `required` (e.g. Unity)
+    public int Port { get; set; }
+
+    public string? Comment { get; set; }
+}
+```
+
+- A key with a null value (`name: ~`) satisfies the requirement.
+- Required members are always serialized, regardless of `DefaultIgnoreCondition`.
+- Constructor parameters are not required unless they are marked. (Missing parameters are the default value, as before.)
+
 #### Naming convention
 
 :exclamation: By default, VYaml maps C# property names in lower camel case (e.g. `propertyName`) format to yaml keys.
@@ -541,6 +563,86 @@ Result:
 !foo
 a: 100
 ```
+
+##### Discriminator key
+
+Instead of YAML tags, a union can identify the subtype by the value of a key with `DiscriminatorKey`.
+The tag string of each `[YamlObjectUnion]` is used as the value of the key.
+
+``` csharp
+[YamlObject]
+[YamlObjectUnion("circle", typeof(Circle), DiscriminatorKey = "type")]
+[YamlObjectUnion("rect", typeof(Rect), DiscriminatorKey = "type")]
+public partial interface IShape
+{
+}
+
+[YamlObject]
+public partial class Circle : IShape
+{
+    public double Radius { get; set; }
+}
+
+[YamlObject]
+public partial class Rect : IShape
+{
+    public double Width { get; set; }
+    public double Height { get; set; }
+}
+```
+
+``` yaml
+- type: circle
+  radius: 1.5
+- type: rect
+  width: 2
+  height: 3
+```
+
+- The discriminator key is always written first. It can be anywhere in the mapping when deserializing, but it is faster as the first key.
+- Every `[YamlObjectUnion]` of the type must have the same `DiscriminatorKey`.
+- Subtypes must be `[YamlObject]` types that are not unions, and must not have a member with the same key as the discriminator.
+
+##### Required key
+
+With `RequiredKey`, a union identifies the subtype by which key the mapping contains, like the steps of GitHub Actions workflows.
+
+``` csharp
+[YamlObject]
+[YamlObjectUnion(typeof(ActionStep), RequiredKey = "uses")]
+[YamlObjectUnion(typeof(RunStep), RequiredKey = "run")]
+public partial interface IStep
+{
+}
+
+[YamlObject]
+public partial class ActionStep : IStep
+{
+    public string? Name { get; set; }
+    public string Uses { get; set; } = "";
+    public Dictionary<string, string>? With { get; set; }
+}
+
+[YamlObject]
+public partial class RunStep : IStep
+{
+    public string? Name { get; set; }
+    public string Run { get; set; } = "";
+}
+```
+
+``` yaml
+steps:
+  - name: Checkout
+    uses: actions/checkout@v4
+  - run: dotnet test
+```
+
+- The key is a member of the subtype, specified by its key name or its C# member name (e.g. `nameof(RunStep.Run)`). It follows the same naming rules as the member (`[YamlMember("name")]`, naming conventions).
+- When a mapping contains the keys of several subtypes, the subtype declared first wins.
+- Subtypes are serialized as is.
+- Every `[YamlObjectUnion]` of the type must have a `RequiredKey` (it cannot be mixed with tags or `DiscriminatorKey`).
+- Subtypes must be `[YamlObject]` types that are not unions.
 
 ## Customize serialization behaviour
 

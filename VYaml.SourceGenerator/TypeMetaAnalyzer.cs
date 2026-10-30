@@ -32,17 +32,21 @@ static class TypeMetaAnalyzer
             }
         }
 
-        var unions = symbol.GetAttributes()
-            .Where(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, references.YamlObjectUnionAttribute))
-            .Where(x => x.ConstructorArguments.Length == 2)
-            .Select(x => new UnionAnalysis(
-                (string)x.ConstructorArguments[0].Value!,
-                (INamedTypeSymbol)x.ConstructorArguments[1].Value!))
-            .ToArray();
+        var diagnostics = new List<DiagnosticInfo>();
+        var unionsValid = TryGetUnions(symbol, syntax, typeName, references, diagnostics,
+            out var unions, out var unionDiscriminatorKeyName, out var isUnionByKey);
         var isUnion = unions.Length > 0;
 
-        var diagnostics = new List<DiagnosticInfo>();
-        var valid = Validate(symbol, syntax, typeName, unions, isUnion, diagnostics);
+        // invalid [YamlObjectUnion] entries are already reported; avoid cascading "abstract must be union" errors
+        var valid = Validate(symbol, syntax, typeName, unions, isUnion || !unionsValid, diagnostics) && unionsValid;
+        if (unionsValid && unionDiscriminatorKeyName != null)
+        {
+            valid &= ValidateUnionDiscriminator(syntax, typeName, unions, unionDiscriminatorKeyName, references, diagnostics);
+        }
+        if (unionsValid && isUnionByKey)
+        {
+            valid &= ResolveUnionKeys(syntax, typeName, unions, references, diagnostics);
+        }
 
         var allMembers = SelectMembers(symbol, references, namingConvention);
 
@@ -91,7 +95,7 @@ static class TypeMetaAnalyzer
 
         var members = allMembers.Select(x => x.ToModel()).ToEquatableArray();
         var unionModels = unions
-            .Select(x => new UnionMetaModel(x.SubTypeTag, x.FullTypeName))
+            .Select(x => new UnionMetaModel(x.SubTypeTag, x.FullTypeName, x.KeyName, x.KeyNamingConvention))
             .ToEquatableArray();
 
         var ns = symbol.ContainingNamespace;
@@ -153,6 +157,8 @@ static class TypeMetaAnalyzer
             hasBaseYamlObject: hasBaseYamlObject,
             typeDeclarationKeyword: GetTypeDeclarationKeyword(symbol, isUnion),
             isUnion: isUnion,
+            unionDiscriminatorKeyName: unionDiscriminatorKeyName,
+            isUnionByKey: isUnionByKey,
             namingConventionByType: namingConvention,
             hasConstructor: hasConstructor,
             members: members,
@@ -263,6 +269,164 @@ static class TypeMetaAnalyzer
         }
 
         return !error;
+    }
+
+    // [YamlObjectUnion] entries, and how they identify the subtype: a YAML tag (default), DiscriminatorKey, or RequiredKey.
+    // All entries of a type must use the same way.
+    static bool TryGetUnions(
+        INamedTypeSymbol symbol,
+        TypeDeclarationSyntax syntax,
+        string typeName,
+        ReferenceSymbols references,
+        List<DiagnosticInfo> diagnostics,
+        out UnionAnalysis[] unions,
+        out string? discriminatorKeyName,
+        out bool isUnionByKey)
+    {
+        var location = syntax.Identifier.GetLocation();
+        var valid = true;
+        var result = new List<UnionAnalysis>();
+        var kinds = new HashSet<(string? DiscriminatorKey, bool ByKey)>();
+
+        foreach (var attribute in symbol.GetAttributes())
+        {
+            if (!SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, references.YamlObjectUnionAttribute)) continue;
+
+            var arguments = attribute.ConstructorArguments;
+            var tag = arguments.Length == 2 ? arguments[0].Value as string : null;
+            if (arguments.Length is < 1 or > 2 || arguments[arguments.Length - 1].Value is not INamedTypeSymbol subType)
+            {
+                continue; // invalid attribute usage already carries a compiler error
+            }
+
+            string? discriminatorKey = null;
+            string? requiredKey = null;
+            foreach (var named in attribute.NamedArguments)
+            {
+                switch (named.Key)
+                {
+                    case "DiscriminatorKey":
+                        discriminatorKey = named.Value.Value as string;
+                        break;
+                    case "RequiredKey":
+                        requiredKey = named.Value.Value as string;
+                        break;
+                }
+            }
+
+            if ((requiredKey == null) == (tag == null) || (requiredKey != null && discriminatorKey != null))
+            {
+                diagnostics.Add(DiagnosticInfo.Create(DiagnosticDescriptors.UnionTagOrRequiredKey, location, typeName,
+                    subType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)));
+                valid = false;
+                continue;
+            }
+
+            kinds.Add((discriminatorKey, requiredKey != null));
+            result.Add(new UnionAnalysis(requiredKey ?? tag!, subType));
+        }
+
+        if (kinds.Count > 1)
+        {
+            diagnostics.Add(DiagnosticInfo.Create(DiagnosticDescriptors.UnionKindInconsistent, location, typeName));
+            valid = false;
+        }
+
+        unions = result.ToArray();
+        var kind = kinds.FirstOrDefault();
+        discriminatorKeyName = valid ? kind.DiscriminatorKey : null;
+        isUnionByKey = valid && kind.ByKey;
+        return valid;
+    }
+
+    static bool ValidateUnionDiscriminator(
+        TypeDeclarationSyntax syntax,
+        string typeName,
+        IReadOnlyList<UnionAnalysis> unions,
+        string discriminatorKeyName,
+        ReferenceSymbols references,
+        List<DiagnosticInfo> diagnostics)
+    {
+        var location = syntax.Identifier.GetLocation();
+        var valid = true;
+        foreach (var union in unions)
+        {
+            if (!TryGetSubTypeMembers(union, references, location, typeName, diagnostics, out _, out var subTypeMembers))
+            {
+                valid = false;
+                continue;
+            }
+            foreach (var member in subTypeMembers)
+            {
+                if (member.KeyName == discriminatorKeyName)
+                {
+                    diagnostics.Add(DiagnosticInfo.Create(DiagnosticDescriptors.UnionDiscriminatorConflictsWithMember,
+                        location, discriminatorKeyName, typeName, member.Name, union.SubTypeName));
+                    valid = false;
+                }
+            }
+        }
+        return valid;
+    }
+
+    // RequiredKey: resolves the key to the subtype's member, so that it follows the member's naming rules
+    static bool ResolveUnionKeys(
+        TypeDeclarationSyntax syntax,
+        string typeName,
+        IReadOnlyList<UnionAnalysis> unions,
+        ReferenceSymbols references,
+        List<DiagnosticInfo> diagnostics)
+    {
+        var location = syntax.Identifier.GetLocation();
+        var valid = true;
+        foreach (var union in unions)
+        {
+            if (!TryGetSubTypeMembers(union, references, location, typeName, diagnostics, out var namingConvention, out var subTypeMembers))
+            {
+                valid = false;
+                continue;
+            }
+
+            var member = subTypeMembers.FirstOrDefault(x => x.KeyName == union.SubTypeTag) ??
+                         subTypeMembers.FirstOrDefault(x => x.Name == union.SubTypeTag);
+            if (member == null)
+            {
+                diagnostics.Add(DiagnosticInfo.Create(DiagnosticDescriptors.UnionRequiredKeyNotFoundInSubType,
+                    location, typeName, union.SubTypeTag, union.SubTypeName));
+                valid = false;
+                continue;
+            }
+            union.KeyName = member.KeyName;
+            union.KeyNamingConvention = namingConvention;
+        }
+        return valid;
+    }
+
+    static bool TryGetSubTypeMembers(
+        UnionAnalysis union,
+        ReferenceSymbols references,
+        Location location,
+        string typeName,
+        List<DiagnosticInfo> diagnostics,
+        out NamingConvention namingConvention,
+        out MemberAnalysis[] members)
+    {
+        var subType = union.SubTypeSymbol;
+        var subTypeAttribute = subType.GetAttribute(references.YamlObjectAttribute);
+        if (subTypeAttribute == null || subType.ContainsAttribute(references.YamlObjectUnionAttribute))
+        {
+            diagnostics.Add(DiagnosticInfo.Create(DiagnosticDescriptors.UnionSubTypeMustBeObject, location, typeName, union.SubTypeName));
+            namingConvention = default;
+            members = Array.Empty<MemberAnalysis>();
+            return false;
+        }
+
+        namingConvention = subTypeAttribute.ConstructorArguments.Length > 0 &&
+                           subTypeAttribute.ConstructorArguments[0] is { Kind: TypedConstantKind.Enum, Value: { } value }
+            ? (NamingConvention)value
+            : NamingConvention.LowerCamelCase;
+        members = SelectMembers(subType, references, namingConvention);
+        return true;
     }
 
     static MemberAnalysis[] SelectMembers(INamedTypeSymbol symbol, ReferenceSymbols references, NamingConvention namingConvention)
@@ -391,6 +555,7 @@ static class TypeMetaAnalyzer
         public bool IsSettable { get; }
         public int Order { get; }
         public bool HasKeyNameAlias { get; }
+        public bool IsRequired { get; }
         public string KeyName { get; }
         public NamingConvention NamingConventionByType { get; }
 
@@ -427,6 +592,9 @@ static class TypeMetaAnalyzer
                     Order = (int)explicitOrder;
                 }
             }
+
+            IsRequired = (references.YamlRequiredAttribute is { } requiredAttribute && symbol.ContainsAttribute(requiredAttribute)) ||
+                         HasRequiredModifier(symbol);
 
             if (symbol is IFieldSymbol f)
             {
@@ -470,7 +638,25 @@ static class TypeMetaAnalyzer
                 isNullableValueType: isNullableValueType,
                 isValueType: MemberType.IsValueType,
                 defaultValueComparison: GetDefaultValueComparison(MemberType, Name),
-                defaultValueExpression: EmitDefaultValue());
+                defaultValueExpression: EmitDefaultValue(),
+                isRequired: IsRequired);
+        }
+
+        // IFieldSymbol/IPropertySymbol.IsRequired (C# 11) is only available since Roslyn 4.4, while this generator
+        // is built against Roslyn 4.1. The host compiler that runs it may be newer, so read it via reflection.
+        // (typeof(IPropertySymbol) is the host's Microsoft.CodeAnalysis at runtime, so it has the member if supported)
+        static readonly System.Reflection.PropertyInfo? PropertyIsRequired = typeof(IPropertySymbol).GetProperty("IsRequired", typeof(bool));
+        static readonly System.Reflection.PropertyInfo? FieldIsRequired = typeof(IFieldSymbol).GetProperty("IsRequired", typeof(bool));
+
+        static bool HasRequiredModifier(ISymbol symbol)
+        {
+            var isRequired = symbol switch
+            {
+                IPropertySymbol => PropertyIsRequired,
+                IFieldSymbol => FieldIsRequired,
+                _ => null,
+            };
+            return isRequired != null && (bool)isRequired.GetValue(symbol)!;
         }
 
         string EmitDefaultValue()
@@ -539,6 +725,11 @@ static class TypeMetaAnalyzer
         public string SubTypeTag { get; }
         public INamedTypeSymbol SubTypeSymbol { get; }
         public string FullTypeName { get; }
+        public string SubTypeName => SubTypeSymbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+
+        // RequiredKey: resolved by ResolveUnionKeys
+        public string KeyName { get; set; } = "";
+        public NamingConvention KeyNamingConvention { get; set; }
 
         public UnionAnalysis(string subTypeTag, INamedTypeSymbol subTypeSymbol)
         {
