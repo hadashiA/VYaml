@@ -282,6 +282,28 @@ List of possible values:
 - `YamlIgnoreCondition.WhenWritingNull` — Omit properties whose value is `null` (reference types and `Nullable<T>`)
 - `YamlIgnoreCondition.WhenWritingDefault` — Omit properties whose value is `null` or the default value for value types (`0`, `false`, `'\0'`, etc.)
 
+#### Required members
+
+By default, a missing key is deserialized as the default value of the member.
+Members with the C# `required` modifier or `[YamlRequired]` must be present in the YAML; otherwise `YamlSerializerException` is thrown.
+
+```cs
+[YamlObject]
+public partial class Config
+{
+    public required string Name { get; set; }
+
+    [YamlRequired] // for C# versions without `required` (e.g. Unity)
+    public int Port { get; set; }
+
+    public string? Comment { get; set; }
+}
+```
+
+- A key with a null value (`name: ~`) satisfies the requirement.
+- Required members are always serialized, regardless of `DefaultIgnoreCondition`.
+- Constructor parameters are not required unless they are marked. (Missing parameters are the default value, as before.)
+
 #### Naming convention
 
 :exclamation: By default, VYaml maps C# property names in lower camel case (e.g. `propertyName`) format to yaml keys.
