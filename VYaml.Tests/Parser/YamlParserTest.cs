@@ -1,6 +1,8 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using NUnit.Framework;
 using VYaml.Parser;
@@ -10,6 +12,29 @@ namespace VYaml.Tests.Parser
     [TestFixture]
     public class YamlParserTest
     {
+        [Test]
+        public void AnchorsAreNotSharedBetweenDocuments()
+        {
+            var parser = CreateParser(new[]
+            {
+                "--- &a foo",
+                "--- *a",
+            });
+
+            var thrown = false;
+            try
+            {
+                while (parser.Read() && parser.CurrentEventType != ParseEventType.StreamEnd)
+                {
+                }
+            }
+            catch (YamlParserException)
+            {
+                thrown = true;
+            }
+            Assert.That(thrown, Is.True);
+        }
+
         [Test]
         public void IsNullScalar()
         {
@@ -238,6 +263,70 @@ namespace VYaml.Tests.Parser
             Assert.That(parser.CurrentEventType, Is.EqualTo(ParseEventType.Scalar));
             Assert.That(parser.TryReadScalarAsInt32(out int value), Is.EqualTo(true));
             Assert.That(value, Is.EqualTo(012345));
+        }
+
+        [Test]
+        [TestCase("[", "]")]
+        [TestCase("{a: ", "}")]
+        public void MaxDepth_Default(string open, string close)
+        {
+            var depth = YamlParser.DefaultMaxDepth;
+            ReadToEnd(Nest(open, close, depth));
+
+            var ex = Assert.Throws<YamlParserException>(() => ReadToEnd(Nest(open, close, depth + 1)));
+            Assert.That(ex!.Message, Does.Contain("depth"));
+        }
+
+        [Test]
+        public void MaxDepth_BlockStyle()
+        {
+            var sb = new StringBuilder();
+            for (var i = 0; i < 10; i++)
+            {
+                sb.Append(' ', i * 2).Append("a:\n");
+            }
+            Assert.Throws<YamlParserException>(() => ReadToEnd(sb.ToString(), maxDepth: 9));
+            ReadToEnd(sb.ToString(), maxDepth: 10);
+        }
+
+        [Test]
+        public void MaxDepth_Custom()
+        {
+            ReadToEnd(Nest("[", "]", 1000), maxDepth: 1000);
+            Assert.Throws<ArgumentOutOfRangeException>(() => ReadToEnd("a", maxDepth: 0));
+        }
+
+        [Test]
+        public void MaxDepth_CountsSiblingsIndependently()
+        {
+            // Depth decreases on collection end, and resets per document.
+            var yaml = string.Join(", ", Enumerable.Repeat(Nest("[", "]", 60), 100));
+            ReadToEnd($"[{yaml}]\n---\n" + Nest("[", "]", 64));
+        }
+
+        [Test]
+        public void MaxDepth_DeepFlowInputFailsFast()
+        {
+            // Without a depth limit, tokenizing this used to take O(n^2) time.
+            var stopwatch = Stopwatch.StartNew();
+            Assert.Throws<YamlParserException>(() => ReadToEnd(Nest("[", "]", 200_000)));
+            Assert.That(stopwatch.Elapsed, Is.LessThan(TimeSpan.FromSeconds(5)));
+        }
+
+        static void ReadToEnd(string yaml, int? maxDepth = null)
+        {
+            CreateParser(yaml, out var parser);
+            if (maxDepth is { } d) parser.MaxDepth = d;
+            while (parser.Read()) { }
+        }
+
+        static string Nest(string open, string close, int depth)
+        {
+            var sb = new StringBuilder();
+            for (var i = 0; i < depth; i++) sb.Append(open);
+            sb.Append('1');
+            for (var i = 0; i < depth; i++) sb.Append(close);
+            return sb.ToString();
         }
 
         static YamlParser CreateParser(IEnumerable<string> lines)

@@ -44,15 +44,7 @@ namespace VYaml.Serialization
             var name = Enum.GetName(type, value)!;
             var namingConvention = GetNamingConventionByType(type) ?? context.Options.NamingConvention;
             var mutator = NamingConventionMutator.Of(namingConvention);
-            Span<char> destination = stackalloc char[name.Length * 2];
-            int written;
-            while (!mutator.TryMutate(name.AsSpan(), destination, out written))
-            {
-                // ReSharper disable once StackAllocInsideLoop
-                destination = stackalloc char[destination.Length * 2];
-            }
-
-            emitter.WriteString(destination[..written].ToString());
+            emitter.WriteString(NamingConventionMutator.MutateToString(mutator, name.AsSpan()));
         }
 
         static NamingConvention? AnalyzeNamingConventionByType(Type type)
@@ -116,16 +108,7 @@ namespace VYaml.Serialization
                 {
                     var mutator = NamingConventionMutator.Of(NamingConventionByType ?? YamlSerializerOptions.DefaultNamingConvention);
                     var name = Enum.GetName(type, value)!;
-                    // ReSharper disable once StackAllocInsideLoop
-                    Span<char> destination = stackalloc char[name.Length];
-                    int written;
-                    while (!mutator.TryMutate(name.AsSpan(), destination, out written))
-                    {
-                        // ReSharper disable once StackAllocInsideLoop
-                        destination = stackalloc char[destination.Length * 2];
-                    }
-
-                    var stringValue = destination[..written].ToString();
+                    var stringValue = NamingConventionMutator.MutateToString(mutator, name.AsSpan());
                     StringValues.Add((T)value, (stringValue, false, TryEncodePlainUtf8(stringValue)));
                     Values.Add(stringValue, (T)value);
                 }
@@ -181,22 +164,7 @@ namespace VYaml.Serialization
             }
 
             var mutator = NamingConventionMutator.Of(NamingConventionByType ?? context.Options.NamingConvention);
-            Span<char> buffer = stackalloc char[stringValue.Length];
-
-            int bytesWritten;
-            while (!mutator.TryMutate(stringValue.AsSpan(), buffer, out bytesWritten))
-            {
-                // ReSharper disable once StackAllocInsideLoop
-                buffer = stackalloc char[buffer.Length * 2];
-            }
-
-            unsafe
-            {
-                fixed (char* ptr = buffer)
-                {
-                    emitter.WriteString(ptr, bytesWritten);
-                }
-            }
+            emitter.WriteString(NamingConventionMutator.MutateToString(mutator, stringValue.AsSpan()));
         }
 
         public T Deserialize(ref YamlParser parser, YamlDeserializationContext context)
@@ -215,15 +183,7 @@ namespace VYaml.Serialization
             }
 
             var mutator = NamingConventionMutator.Of(NamingConventionByType ?? YamlSerializerOptions.DefaultNamingConvention);
-            Span<char> buffer = stackalloc char[scalar.Length];
-            int bytesWritten;
-            while (!mutator.TryMutate(scalar.AsSpan(), buffer, out bytesWritten))
-            {
-                // ReSharper disable once StackAllocInsideLoop
-                buffer = stackalloc char[buffer.Length * 2];
-            }
-
-            var mutatedScalar = buffer[..bytesWritten].ToString();
+            var mutatedScalar = NamingConventionMutator.MutateToString(mutator, scalar.AsSpan());
             if (Values.TryGetValue(mutatedScalar, out value) ||
                 IsFlags && TryDeserializeFlags(scalar, out value))
             {
@@ -319,14 +279,7 @@ namespace VYaml.Serialization
             }
 
             var mutator = NamingConventionMutator.Of(NamingConventionByType ?? context.Options.NamingConvention);
-            Span<char> buffer = stackalloc char[stringValue.Length];
-            int written;
-            while (!mutator.TryMutate(stringValue.AsSpan(), buffer, out written))
-            {
-                // ReSharper disable once StackAllocInsideLoop
-                buffer = stackalloc char[buffer.Length * 2];
-            }
-            return buffer[..written].ToString();
+            return NamingConventionMutator.MutateToString(mutator, stringValue.AsSpan());
         }
 
         // Parses a composite flags scalar such as "A, B" or "A | B" by OR-ing each component.
@@ -370,14 +323,7 @@ namespace VYaml.Serialization
             }
 
             var mutator = NamingConventionMutator.Of(NamingConventionByType ?? YamlSerializerOptions.DefaultNamingConvention);
-            Span<char> buffer = stackalloc char[partString.Length];
-            int written;
-            while (!mutator.TryMutate(partString.AsSpan(), buffer, out written))
-            {
-                // ReSharper disable once StackAllocInsideLoop
-                buffer = stackalloc char[buffer.Length * 2];
-            }
-            if (Values.TryGetValue(buffer[..written].ToString(), out value))
+            if (Values.TryGetValue(NamingConventionMutator.MutateToString(mutator, partString.AsSpan()), out value))
             {
                 bits = ToUInt64(value);
                 return true;

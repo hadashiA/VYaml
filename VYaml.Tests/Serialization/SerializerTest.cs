@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using VYaml.Emitter;
@@ -222,6 +223,36 @@ namespace VYaml.Tests.Serialization
                 Assert.That(result.One, Is.EqualTo(1));
                 Assert.That(result.Two, Is.EqualTo(2));
             });
+        }
+
+        [Test]
+        [TestCase("[", "]")]
+        [TestCase("{a: ", "}")]
+        public void Deserialize_DeeplyNested_ThrowsInsteadOfStackOverflow(string open, string close)
+        {
+            var yaml = Encoding.UTF8.GetBytes(Nest(open, close, 100_000));
+            Assert.Throws<YamlParserException>(() => YamlSerializer.Deserialize<object>(yaml));
+            Assert.Throws<YamlParserException>(() => YamlSerializer.DeserializeMultipleDocuments<object>(yaml));
+        }
+
+        [Test]
+        public void Deserialize_MaxDepthOption()
+        {
+            var yaml = Encoding.UTF8.GetBytes(Nest("[", "]", 100));
+            Assert.Throws<YamlParserException>(() => YamlSerializer.Deserialize<object>(yaml));
+
+            var options = new YamlSerializerOptions { MaxDepth = 100 };
+            var result = YamlSerializer.Deserialize<object>(yaml, options);
+            Assert.That(result, Is.InstanceOf<List<object?>>());
+        }
+
+        static string Nest(string open, string close, int depth)
+        {
+            var sb = new StringBuilder();
+            for (var i = 0; i < depth; i++) sb.Append(open);
+            sb.Append('1');
+            for (var i = 0; i < depth; i++) sb.Append(close);
+            return sb.ToString();
         }
 
         sealed class NestedParent

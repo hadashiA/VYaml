@@ -69,6 +69,8 @@ namespace VYaml.Parser
 
     public ref partial struct YamlParser
     {
+        public const int DefaultMaxDepth = 64;
+
         public static YamlParser FromBytes(Memory<byte> bytes)
         {
             var sequence = new ReadOnlySequence<byte>(bytes);
@@ -91,6 +93,20 @@ namespace VYaml.Parser
 
         public bool End => CurrentEventType == ParseEventType.StreamEnd;
 
+        /// <summary>
+        /// The maximum nesting depth of sequences/mappings. Exceeding it throws <see cref="YamlParserException"/>.
+        /// Limits stack usage of recursive consumers on untrusted input.
+        /// </summary>
+        public int MaxDepth
+        {
+            readonly get => maxDepth;
+            set
+            {
+                if (value <= 0) throw new ArgumentOutOfRangeException(nameof(value), value, "MaxDepth must be greater than 0.");
+                maxDepth = value;
+            }
+        }
+
         TokenType CurrentTokenType
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -103,6 +119,8 @@ namespace VYaml.Parser
         Tag? currentTag;
         Anchor? currentAnchor;
         int lastAnchorId;
+        int maxDepth;
+        int currentDepth;
 
         readonly Dictionary<string, int> anchors;
         readonly ExpandBuffer<ParseState> stateStack;
@@ -113,6 +131,8 @@ namespace VYaml.Parser
             currentState = ParseState.StreamStart;
             CurrentEventType = default;
             lastAnchorId = -1;
+            maxDepth = DefaultMaxDepth;
+            currentDepth = 0;
 
             anchors = ThreadLocalObjectPool<Dictionary<string, int>>.Rent(static () => new Dictionary<string, int>());
             stateStack = ThreadLocalObjectPool<ExpandBuffer<ParseState>>.Rent(static () => new ExpandBuffer<ParseState>(16));
@@ -130,6 +150,8 @@ namespace VYaml.Parser
             currentState = ParseState.StreamStart;
             CurrentEventType = default;
             lastAnchorId = -1;
+            maxDepth = DefaultMaxDepth;
+            currentDepth = 0;
             anchors = ThreadLocalObjectPool<Dictionary<string, int>>.Rent(static () => new Dictionary<string, int>());
             stateStack = ThreadLocalObjectPool<ExpandBuffer<ParseState>>.Rent(static () => new ExpandBuffer<ParseState>(16));
 
@@ -282,6 +304,24 @@ namespace VYaml.Parser
                 case ParseState.End:
                 default:
                     throw new ArgumentOutOfRangeException();
+            }
+
+            switch (CurrentEventType)
+            {
+                case ParseEventType.SequenceStart:
+                case ParseEventType.MappingStart:
+                    if (++currentDepth > maxDepth)
+                    {
+                        throw new YamlParserException(CurrentMark, $"The nesting depth exceeds the maximum allowed depth of {maxDepth}");
+                    }
+                    break;
+                case ParseEventType.SequenceEnd:
+                case ParseEventType.MappingEnd:
+                    currentDepth--;
+                    break;
+                case ParseEventType.DocumentStart:
+                    currentDepth = 0;
+                    break;
             }
             return true;
         }
@@ -456,6 +496,9 @@ namespace VYaml.Parser
                 // _implicit = false;
                 tokenizer.Read();
             }
+
+            // Anchors are scoped to a single document (YAML 1.2, 9.1.1)
+            anchors.Clear();
 
             // TODO tag handling
             currentState = ParseState.DocumentStart;
