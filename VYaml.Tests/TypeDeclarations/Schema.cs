@@ -87,4 +87,37 @@ namespace VYaml.Tests.TypeDeclarations
     {
         public List<ISchemaShape> Shapes { get; set; } = new();
     }
+
+    // serialized by a custom formatter, e.g. `3`, `inf` or `{ skip: 1, count: 2 }`
+    public struct SchemaSkillRange
+    {
+        public int Skip;
+        public int? Count;
+    }
+
+    [YamlObject(NamingConvention.KebabCase)]
+    public enum SchemaMood
+    {
+        MostAnxious,
+        Calm,
+    }
+
+    [YamlObject]
+    public partial class SchemaCard
+    {
+        public int Rarity { get; }
+        public SchemaSkillRange Range { get; }
+        public SchemaSkillRange? OptionalRange { get; }
+        public List<string> Skills { get; }
+        public SchemaMood Mood { get; }
+
+        public SchemaCard(int rarity = 1, SchemaSkillRange range = default, SchemaSkillRange? optionalRange = null, List<string> skills = null!, SchemaMood mood = SchemaMood.MostAnxious)
+        {
+            Rarity = rarity;
+            Range = range;
+            OptionalRange = optionalRange;
+            Skills = skills;
+            Mood = mood;
+        }
+    }
 }

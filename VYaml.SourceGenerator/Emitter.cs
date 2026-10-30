@@ -207,6 +207,7 @@ static class Emitter
                         var isKeyNameFixed = member.HasKeyNameAlias || model.NamingConventionByType != NamingConvention.LowerCamelCase;
                         var hasDefaultValue = member.SchemaDefaultValueExpression != null;
                         codeWriter.AppendLine("new global::VYaml.Serialization.YamlMemberSchemaInfo(" +
+                                              $"{Literal(member.Name)}, " +
                                               $"{Literal(member.KeyName)}, " +
                                               $"{(isKeyNameFixed ? "true" : "false")}, " +
                                               $"typeof({member.TypeOfExpression}), " +
@@ -320,21 +321,21 @@ static class Emitter
         }
 
         codeWriter.AppendLine("parser.ReadWithVerify(ParseEventType.MappingStart);");
-        codeWriter.AppendLine("return DeserializeMembers(ref parser, context);");
+        codeWriter.AppendLine("return DeserializeMembers(ref parser, context, default);");
     }
 
     static void EmitDeserializeMembersMethod(TypeMetaModel model, CodeWriter codeWriter)
     {
         var returnType = ReturnType(model);
         codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
-        codeWriter.AppendLine($"public {returnType} DeserializeMembers(ref YamlParser parser, YamlDeserializationContext context) => DeserializeMembers(ref parser, context, false);");
+        codeWriter.AppendLine($"public {returnType} DeserializeMembers(ref YamlParser parser, YamlDeserializationContext context, global::System.ReadOnlySpan<byte> discriminatorKeyUtf8) => DeserializeMembers(ref parser, context, discriminatorKeyUtf8, false);");
         codeWriter.AppendLine();
         codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
-        codeWriter.AppendLine($"public {returnType} DeserializeEmpty(ref YamlParser parser, YamlDeserializationContext context) => DeserializeMembers(ref parser, context, true);");
+        codeWriter.AppendLine($"public {returnType} DeserializeEmpty(ref YamlParser parser, YamlDeserializationContext context) => DeserializeMembers(ref parser, context, default, true);");
         codeWriter.AppendLine();
         // isEmpty: the current node is a null scalar (`key:` of a wrapped union), read as an empty mapping
         using var methodScope = codeWriter.BeginBlockScope(
-            $"{returnType} DeserializeMembers(ref YamlParser parser, YamlDeserializationContext context, bool isEmpty)");
+            $"{returnType} DeserializeMembers(ref YamlParser parser, YamlDeserializationContext context, global::System.ReadOnlySpan<byte> discriminatorKeyUtf8, bool isEmpty)");
 
         if (model.Members.Count <= 0)
         {
@@ -346,7 +347,7 @@ static class Emitter
             {
                 using (codeWriter.BeginBlockScope("while (!parser.End && parser.CurrentEventType != ParseEventType.MappingEnd)"))
                 {
-                    codeWriter.AppendLine("parser.SkipCurrentNode(); // key or value");
+                    codeWriter.AppendLine($"global::VYaml.Serialization.YamlObjectMembersFormatter.SkipUnmappedMember(ref parser, context, discriminatorKeyUtf8, {Literal(model.TypeName)});")
                 }
                 codeWriter.AppendLine("parser.ReadWithVerify(ParseEventType.MappingEnd);");
             }
@@ -420,8 +421,7 @@ static class Emitter
 
                 using (codeWriter.BeginIndentScope("default:"))
                 {
-                    codeWriter.AppendLine("parser.Read(); // skip key");
-                    codeWriter.AppendLine("parser.SkipCurrentNode(); // skip value");
+                    codeWriter.AppendLine($"global::VYaml.Serialization.YamlObjectMembersFormatter.SkipUnmappedMember(ref parser, context, discriminatorKeyUtf8, {Literal(model.TypeName)});");
                     codeWriter.AppendLine("continue;");
                 }
             }
@@ -567,7 +567,7 @@ static class Emitter
             foreach (var union in model.Unions)
             {
                 codeWriter.AppendLine($"case {Literal(union.SubTypeTag)}:");
-                codeWriter.AppendLine($"    return global::VYaml.Serialization.YamlObjectMembersFormatter.GetWithVerify<{union.FullTypeName}>(context.Resolver).DeserializeMembers(ref parser, context);");
+                codeWriter.AppendLine($"    return global::VYaml.Serialization.YamlObjectMembersFormatter.GetWithVerify<{union.FullTypeName}>(context.Resolver).DeserializeMembers(ref parser, context, UnionDiscriminatorKeyUtf8Bytes);");
             }
             codeWriter.AppendLine("default:");
             codeWriter.AppendLine($"    throw new YamlSerializerException(mark, {Literal($"Unknown discriminator '{keyName}': ")} + discriminator + {Literal($" for union {model.TypeName}")});");

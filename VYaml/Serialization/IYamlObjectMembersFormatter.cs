@@ -1,3 +1,4 @@
+using System;
 using VYaml.Annotations;
 using VYaml.Emitter;
 using VYaml.Parser;
@@ -19,7 +20,11 @@ namespace VYaml.Serialization
         /// <summary>
         /// Reads the remaining key/value pairs after the mapping start, and the mapping end.
         /// </summary>
-        T DeserializeMembers(ref YamlParser parser, YamlDeserializationContext context);
+        /// <param name="discriminatorKeyUtf8">
+        /// The discriminator key of the union, which is skipped even with <see cref="YamlUnmappedMemberHandling.Disallow"/>.
+        /// Empty if none.
+        /// </param>
+        T DeserializeMembers(ref YamlParser parser, YamlDeserializationContext context, ReadOnlySpan<byte> discriminatorKeyUtf8);
 
         /// <summary>
         /// Reads the current null scalar (<c>key:</c> with no value, see <see cref="YamlUnionStyle.Wrapped"/>) as an
@@ -53,7 +58,26 @@ namespace VYaml.Serialization
                 return formatter.DeserializeEmpty(ref parser, context);
             }
             parser.ReadWithVerify(ParseEventType.MappingStart);
-            return formatter.DeserializeMembers(ref parser, context);
+            return formatter.DeserializeMembers(ref parser, context, default);
+        }
+
+        /// <summary>
+        /// Skips a key/value pair whose key does not match any member, following <see cref="YamlSerializerOptions.UnmappedMemberHandling"/>.
+        /// </summary>
+        /// <param name="parser">Positioned at the key.</param>
+        public static void SkipUnmappedMember(
+            ref YamlParser parser,
+            YamlDeserializationContext context,
+            ReadOnlySpan<byte> discriminatorKeyUtf8,
+            string typeName)
+        {
+            if (context.Options.UnmappedMemberHandling == YamlUnmappedMemberHandling.Disallow &&
+                !(parser.TryGetScalarAsSpan(out var key) && !discriminatorKeyUtf8.IsEmpty && key.SequenceEqual(discriminatorKeyUtf8)))
+            {
+                throw new YamlSerializerException(parser.CurrentMark, $"Unknown key '{parser.GetScalarAsString()}' for {typeName}");
+            }
+            parser.Read(); // skip key
+            parser.SkipCurrentNode(); // skip value
         }
     }
 }

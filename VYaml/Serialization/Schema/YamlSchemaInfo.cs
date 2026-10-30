@@ -47,6 +47,11 @@ namespace VYaml.Serialization
     public sealed class YamlMemberSchemaInfo
     {
         /// <summary>
+        /// The C# member name.
+        /// </summary>
+        public string Name { get; }
+
+        /// <summary>
         /// The key name. When <see cref="IsKeyNameFixed"/> is false, it is in lowerCamelCase and is mutated by
         /// <see cref="YamlSerializerOptions.NamingConvention"/> (same as the generated formatter).
         /// </summary>
@@ -63,6 +68,7 @@ namespace VYaml.Serialization
         public string? Description { get; }
 
         public YamlMemberSchemaInfo(
+            string name,
             string keyName,
             bool isKeyNameFixed,
             Type type,
@@ -72,6 +78,7 @@ namespace VYaml.Serialization
             object? defaultValue = null,
             string? description = null)
         {
+            Name = name;
             KeyName = keyName;
             IsKeyNameFixed = isKeyNameFixed;
             Type = type;

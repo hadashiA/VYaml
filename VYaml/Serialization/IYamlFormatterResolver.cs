@@ -42,7 +42,7 @@ namespace VYaml.Serialization
 
         static void Throw(Type t, IYamlFormatterResolver resolver)
         {
-            throw new YamlSerializerException(t.FullName + $"{t} is not registered in resolver: {resolver.GetType()}");
+            throw new YamlSerializerException($"{t.FullName} is not registered in resolver: {resolver.GetType()}");
         }
     }
 }

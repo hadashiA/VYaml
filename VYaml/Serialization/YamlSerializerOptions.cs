@@ -19,6 +19,11 @@ namespace VYaml.Serialization
         public YamlIgnoreCondition DefaultIgnoreCondition { get; set; } = YamlIgnoreCondition.Never;
 
         /// <summary>
+        /// How keys that do not match any member of a [YamlObject] type are handled when deserializing.
+        /// </summary>
+        public YamlUnmappedMemberHandling UnmappedMemberHandling { get; set; } = YamlUnmappedMemberHandling.Skip;
+
+        /// <summary>
         /// The maximum nesting depth allowed when deserializing. Applied to the parser created by <see cref="YamlSerializer"/>;
         /// a <see cref="VYaml.Parser.YamlParser"/> passed by ref keeps its own <see cref="VYaml.Parser.YamlParser.MaxDepth"/>.
         /// </summary>
