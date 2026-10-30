@@ -31,9 +31,9 @@ sealed record TypeMetaModel
     public bool HasBaseYamlObject { get; }
     public string TypeDeclarationKeyword { get; }
     public bool IsUnion { get; }
-    // [YamlObjectUnionDiscriminator] key name; null for tag-based unions
+    // DiscriminatorKey of [YamlObjectUnion]; null for tag-based unions
     public string? UnionDiscriminatorKeyName { get; }
-    // [YamlObjectUnionKey]: subtypes are identified by the presence of a key (UnionMetaModel.KeyName)
+    // RequiredKey of [YamlObjectUnion]: subtypes are identified by the presence of a key (UnionMetaModel.KeyName)
     public bool IsUnionByKey { get; }
     public NamingConvention NamingConventionByType { get; }
     public bool HasConstructor { get; }
@@ -144,7 +144,7 @@ sealed record UnionMetaModel
     public string SubTypeTag { get; }
     public string FullTypeName { get; }
 
-    // [YamlObjectUnionKey]: the key name of the subtype's member, and the subtype's naming convention
+    // RequiredKey: the key name of the subtype's member, and the subtype's naming convention
     public string KeyName { get; }
     public NamingConvention KeyNamingConvention { get; }
 

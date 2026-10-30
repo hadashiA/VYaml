@@ -53,79 +53,64 @@ namespace VYaml.Annotations
         Inherited = false)]
     public class YamlObjectUnionAttribute : Attribute
     {
+        /// <summary>
+        /// The YAML tag of the subtype (e.g. <c>!circle</c>), or the value of <see cref="DiscriminatorKey"/>.
+        /// Empty for <see cref="RequiredKey"/>.
+        /// </summary>
         public string Tag { get; }
         public Type SubType { get; }
+
+        /// <summary>
+        /// Identifies the subtype by the value of this key instead of a YAML tag: <see cref="Tag"/> is used as the value.
+        /// When used, every [YamlObjectUnion] of the type must have the same DiscriminatorKey.
+        /// </summary>
+        /// <example>
+        /// <code>
+        /// [YamlObjectUnion("circle", typeof(Circle), DiscriminatorKey = "type")]
+        /// [YamlObjectUnion("rect", typeof(Rect), DiscriminatorKey = "type")]
+        /// public partial interface IShape { }
+        ///
+        /// // type: circle
+        /// // radius: 1.0
+        /// </code>
+        /// </example>
+        /// <remarks>
+        /// The key is always written first. It can be anywhere in the mapping when deserializing, but it is faster as
+        /// the first key.
+        /// </remarks>
+        public string? DiscriminatorKey { get; set; }
+
+        /// <summary>
+        /// Identifies the subtype by the presence of this key, like the steps of GitHub Actions workflows (a step with
+        /// <c>uses:</c> or a step with <c>run:</c>). Use the constructor without a tag.
+        /// When used, every [YamlObjectUnion] of the type must have a RequiredKey.
+        /// </summary>
+        /// <example>
+        /// <code>
+        /// [YamlObjectUnion(typeof(ActionStep), RequiredKey = "uses")]
+        /// [YamlObjectUnion(typeof(RunStep), RequiredKey = "run")]
+        /// public partial interface IStep { }
+        /// </code>
+        /// </example>
+        /// <remarks>
+        /// The key is a member of the subtype, specified by its key name or its C# member name, and follows the same
+        /// naming rules as the member. When a mapping contains the keys of several subtypes, the subtype declared
+        /// first wins.
+        /// </remarks>
+        public string? RequiredKey { get; set; }
 
         public YamlObjectUnionAttribute(string tagString, Type subType)
         {
             Tag = tagString;
             SubType = subType;
         }
-    }
 
-    /// <summary>
-    /// Makes a union ([YamlObjectUnion]) identify the subtype by a mapping key instead of a YAML tag.
-    /// The tag string of each [YamlObjectUnion] is used as the value of the key.
-    /// </summary>
-    /// <example>
-    /// <code>
-    /// [YamlObject]
-    /// [YamlObjectUnionDiscriminator("type")]
-    /// [YamlObjectUnion("circle", typeof(Circle))]
-    /// public partial interface IShape { }
-    ///
-    /// // type: circle
-    /// // radius: 1.0
-    /// </code>
-    /// </example>
-    /// <remarks>
-    /// The discriminator key can be anywhere in the mapping, but deserialization is faster when it is the first key
-    /// (it is always written first).
-    /// </remarks>
-    [AttributeUsage(AttributeTargets.Interface |
-                    AttributeTargets.Class,
-        AllowMultiple = false,
-        Inherited = false)]
-    public sealed class YamlObjectUnionDiscriminatorAttribute : Attribute
-    {
-        public string KeyName { get; }
-
-        public YamlObjectUnionDiscriminatorAttribute(string keyName)
+        /// <summary>
+        /// For <see cref="RequiredKey"/>.
+        /// </summary>
+        public YamlObjectUnionAttribute(Type subType)
         {
-            KeyName = keyName;
-        }
-    }
-
-    /// <summary>
-    /// Declares a subtype of a union identified by the presence of a key in the mapping, like the steps of
-    /// GitHub Actions workflows (a step with <c>uses:</c> or a step with <c>run:</c>).
-    /// </summary>
-    /// <remarks>
-    /// <para>The key is a member of the subtype, specified by its key name or its C# member name, and follows the
-    /// same naming rules as the member. When a mapping contains the keys of several subtypes, the subtype declared
-    /// first wins.</para>
-    /// <para>Cannot be combined with [YamlObjectUnion].</para>
-    /// </remarks>
-    /// <example>
-    /// <code>
-    /// [YamlObject]
-    /// [YamlObjectUnionKey("uses", typeof(ActionStep))]
-    /// [YamlObjectUnionKey("run", typeof(RunStep))]
-    /// public partial interface IStep { }
-    /// </code>
-    /// </example>
-    [AttributeUsage(AttributeTargets.Interface |
-                    AttributeTargets.Class,
-        AllowMultiple = true,
-        Inherited = false)]
-    public sealed class YamlObjectUnionKeyAttribute : Attribute
-    {
-        public string KeyName { get; }
-        public Type SubType { get; }
-
-        public YamlObjectUnionKeyAttribute(string keyName, Type subType)
-        {
-            KeyName = keyName;
+            Tag = "";
             SubType = subType;
         }
     }

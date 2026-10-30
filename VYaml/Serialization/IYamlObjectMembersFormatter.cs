@@ -5,8 +5,8 @@ namespace VYaml.Serialization
 {
     /// <summary>
     /// Implemented by source-generated formatters of [YamlObject] types: reads/writes the members of the
-    /// mapping without its start/end. Used by unions with [YamlObjectUnionDiscriminator] to put the
-    /// discriminator key into the same mapping as the subtype's members.
+    /// mapping without its start/end. Used by unions with DiscriminatorKey / RequiredKey ([YamlObjectUnion]),
+    /// whose keys are in the same mapping as the subtype's members.
     /// </summary>
     public interface IYamlObjectMembersFormatter<T>
     {
@@ -30,7 +30,7 @@ namespace VYaml.Serialization
                 return formatter;
             }
             throw new YamlSerializerException(
-                $"{typeof(T)} is used as a subtype of a union with [YamlObjectUnionDiscriminator], but its formatter does not support it. The subtype must be a [YamlObject] type that is not a union.");
+                $"{typeof(T)} is used as a subtype of a union with DiscriminatorKey or RequiredKey, but its formatter does not support it. The subtype must be a [YamlObject] type that is not a union.");
         }
     }
 }

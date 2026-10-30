@@ -544,14 +544,13 @@ a: 100
 
 ##### Discriminator key
 
-Instead of YAML tags, a union can identify the subtype by the value of a key with `[YamlObjectUnionDiscriminator]`.
+Instead of YAML tags, a union can identify the subtype by the value of a key with `DiscriminatorKey`.
 The tag string of each `[YamlObjectUnion]` is used as the value of the key.
 
 ``` csharp
 [YamlObject]
-[YamlObjectUnionDiscriminator("type")]
-[YamlObjectUnion("circle", typeof(Circle))]
-[YamlObjectUnion("rect", typeof(Rect))]
+[YamlObjectUnion("circle", typeof(Circle), DiscriminatorKey = "type")]
+[YamlObjectUnion("rect", typeof(Rect), DiscriminatorKey = "type")]
 public partial interface IShape
 {
 }
@@ -579,16 +578,17 @@ public partial class Rect : IShape
 ```
 
 - The discriminator key is always written first. It can be anywhere in the mapping when deserializing, but it is faster as the first key.
+- Every `[YamlObjectUnion]` of the type must have the same `DiscriminatorKey`.
 - Subtypes must be `[YamlObject]` types that are not unions, and must not have a member with the same key as the discriminator.
 
-##### Subtype by key
+##### Required key
 
-With `[YamlObjectUnionKey]`, a union identifies the subtype by which key the mapping contains, like the steps of GitHub Actions workflows.
+With `RequiredKey`, a union identifies the subtype by which key the mapping contains, like the steps of GitHub Actions workflows.
 
 ``` csharp
 [YamlObject]
-[YamlObjectUnionKey("uses", typeof(ActionStep))]
-[YamlObjectUnionKey("run", typeof(RunStep))]
+[YamlObjectUnion(typeof(ActionStep), RequiredKey = "uses")]
+[YamlObjectUnion(typeof(RunStep), RequiredKey = "run")]
 public partial interface IStep
 {
 }
@@ -619,7 +619,8 @@ steps:
 - The key is a member of the subtype, specified by its key name or its C# member name (e.g. `nameof(RunStep.Run)`). It follows the same naming rules as the member (`[YamlMember("name")]`, naming conventions).
 - When a mapping contains the keys of several subtypes, the subtype declared first wins.
 - Subtypes are serialized as is.
-- Subtypes must be `[YamlObject]` types that are not unions. `[YamlObjectUnionKey]` cannot be combined with `[YamlObjectUnion]`.
+- Every `[YamlObjectUnion]` of the type must have a `RequiredKey` (it cannot be mixed with tags or `DiscriminatorKey`).
+- Subtypes must be `[YamlObject]` types that are not unions.
 
 ## Customize serialization behaviour
 

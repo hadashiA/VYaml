@@ -4,9 +4,8 @@ using VYaml.Annotations;
 namespace VYaml.Tests.TypeDeclarations
 {
     [YamlObject]
-    [YamlObjectUnionDiscriminator("type")]
-    [YamlObjectUnion("circle", typeof(DiscriminatorCircle))]
-    [YamlObjectUnion("rect", typeof(DiscriminatorRect))]
+    [YamlObjectUnion("circle", typeof(DiscriminatorCircle), DiscriminatorKey = "type")]
+    [YamlObjectUnion("rect", typeof(DiscriminatorRect), DiscriminatorKey = "type")]
     public partial interface IDiscriminatorShape
     {
     }
@@ -25,9 +24,8 @@ namespace VYaml.Tests.TypeDeclarations
     }
 
     [YamlObject]
-    [YamlObjectUnionDiscriminator("kind")]
-    [YamlObjectUnion("empty", typeof(DiscriminatorEmpty))]
-    [YamlObjectUnion("named", typeof(DiscriminatorNamed))]
+    [YamlObjectUnion("empty", typeof(DiscriminatorEmpty), DiscriminatorKey = "kind")]
+    [YamlObjectUnion("named", typeof(DiscriminatorNamed), DiscriminatorKey = "kind")]
     public abstract partial class DiscriminatorBase
     {
     }
@@ -59,8 +57,8 @@ namespace VYaml.Tests.TypeDeclarations
 
     // like the steps of GitHub Actions workflows
     [YamlObject]
-    [YamlObjectUnionKey("uses", typeof(ActionStep))]
-    [YamlObjectUnionKey(nameof(RunStep.Run), typeof(RunStep))]
+    [YamlObjectUnion(typeof(ActionStep), RequiredKey = "uses")]
+    [YamlObjectUnion(typeof(RunStep), RequiredKey = nameof(RunStep.Run))]
     public partial interface IStep
     {
     }
@@ -88,8 +86,8 @@ namespace VYaml.Tests.TypeDeclarations
     }
 
     [YamlObject]
-    [YamlObjectUnionKey("max_count", typeof(UnionKeySnakeCase))]
-    [YamlObjectUnionKey("alias", typeof(UnionKeyAlias))]
+    [YamlObjectUnion(typeof(UnionKeySnakeCase), RequiredKey = "max_count")]
+    [YamlObjectUnion(typeof(UnionKeyAlias), RequiredKey = "alias")]
     public abstract partial class UnionKeyBase
     {
     }
