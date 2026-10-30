@@ -93,7 +93,8 @@ static class TypeMetaAnalyzer
             }
         }
 
-        var members = allMembers.Select(x => x.ToModel()).ToEquatableArray();
+        var paramDocs = DocumentationComment.GetParams(symbol);
+        var members = allMembers.Select(x => x.ToModel(paramDocs)).ToEquatableArray();
         var unionModels = unions
             .Select(x => new UnionMetaModel(x.SubTypeTag, x.FullTypeName, x.KeyName, x.KeyNamingConvention))
             .ToEquatableArray();
@@ -161,6 +162,7 @@ static class TypeMetaAnalyzer
             isUnionByKey: isUnionByKey,
             namingConventionByType: namingConvention,
             hasConstructor: hasConstructor,
+            description: DocumentationComment.GetSummary(symbol),
             members: members,
             constructorParameterNames: constructorParameterNames,
             setterMemberNames: setterMemberNames,
@@ -622,7 +624,7 @@ static class TypeMetaAnalyzer
             return Symbol.Locations.FirstOrDefault() ?? fallback.Identifier.GetLocation();
         }
 
-        public MemberMetaModel ToModel()
+        public MemberMetaModel ToModel(IReadOnlyDictionary<string, string> paramDocs)
         {
             var namedType = MemberType as INamedTypeSymbol;
             var isNullableValueType = namedType is { IsGenericType: true } &&
@@ -639,7 +641,71 @@ static class TypeMetaAnalyzer
                 isValueType: MemberType.IsValueType,
                 defaultValueComparison: GetDefaultValueComparison(MemberType, Name),
                 defaultValueExpression: EmitDefaultValue(),
-                isRequired: IsRequired);
+                isRequired: IsRequired,
+                typeOfExpression: MemberType.TypeKind == TypeKind.Dynamic ? "object" : FullTypeName,
+                isNullable: isNullableValueType ||
+                            MemberType is { IsReferenceType: true, NullableAnnotation: not NullableAnnotation.NotAnnotated },
+                schemaDefaultValueExpression: EmitSchemaDefaultValue(),
+                description: GetDescription(paramDocs));
+        }
+
+        string? GetDescription(IReadOnlyDictionary<string, string> paramDocs)
+        {
+            var description = DocumentationComment.GetSummary(Symbol);
+            if (description == null && paramDocs.TryGetValue(Name, out var paramDoc))
+            {
+                description = paramDoc; // positional record parameter
+            }
+            return description;
+        }
+
+        // A C# expression for the constructor parameter's default value, boxed into YamlMemberSchemaInfo.
+        // null when there is no default or it cannot be represented in a schema.
+        string? EmitSchemaDefaultValue()
+        {
+            if (!HasExplicitDefaultValueFromConstructor) return null;
+
+            var value = ExplicitDefaultValueFromConstructor;
+            if (value is null) return "null";
+
+            var type = MemberType is INamedTypeSymbol { ConstructedFrom.SpecialType: SpecialType.System_Nullable_T } nullable
+                ? nullable.TypeArguments[0]
+                : MemberType;
+            var invariant = System.Globalization.CultureInfo.InvariantCulture;
+
+            if (type.TypeKind == TypeKind.Enum)
+            {
+                var enumTypeName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                return $"({enumTypeName})({Convert.ToString(value, invariant)})";
+            }
+
+            switch (type.SpecialType)
+            {
+                case SpecialType.System_String:
+                    return SymbolDisplay.FormatLiteral((string)value, quote: true);
+                case SpecialType.System_Char:
+                    return SymbolDisplay.FormatLiteral((char)value, quote: true);
+                case SpecialType.System_Boolean:
+                    return (bool)value ? "true" : "false";
+                case SpecialType.System_Single:
+                case SpecialType.System_Double:
+                    var d = Convert.ToDouble(value, invariant);
+                    return double.IsNaN(d) || double.IsInfinity(d) ? null : $"{d.ToString("R", invariant)}d";
+                case SpecialType.System_Decimal:
+                    return $"{Convert.ToDecimal(value, invariant).ToString(invariant)}m";
+                case SpecialType.System_SByte:
+                case SpecialType.System_Int16:
+                case SpecialType.System_Int32:
+                case SpecialType.System_Int64:
+                    return $"{Convert.ToInt64(value, invariant).ToString(invariant)}L";
+                case SpecialType.System_Byte:
+                case SpecialType.System_UInt16:
+                case SpecialType.System_UInt32:
+                case SpecialType.System_UInt64:
+                    return $"{Convert.ToUInt64(value, invariant).ToString(invariant)}UL";
+                default:
+                    return null;
+            }
         }
 
         // IFieldSymbol/IPropertySymbol.IsRequired (C# 11) is only available since Roslyn 4.4, while this generator
@@ -677,7 +743,7 @@ static class TypeMetaAnalyzer
             // because Roslyn may box numeric default values as int regardless of the parameter type.
             return MemberType.SpecialType switch
             {
-                SpecialType.System_String => $"\"{ExplicitDefaultValueFromConstructor}\"",
+                SpecialType.System_String => SymbolDisplay.FormatLiteral((string)ExplicitDefaultValueFromConstructor, quote: true),
                 SpecialType.System_Single => $"{ExplicitDefaultValueFromConstructor}f",
                 SpecialType.System_Double => $"{ExplicitDefaultValueFromConstructor}d",
                 SpecialType.System_Decimal => $"{ExplicitDefaultValueFromConstructor}m",
@@ -690,7 +756,7 @@ static class TypeMetaAnalyzer
                 SpecialType.System_UInt16 => $"(ushort){ExplicitDefaultValueFromConstructor}",
                 SpecialType.System_Byte => $"(byte){ExplicitDefaultValueFromConstructor}",
                 SpecialType.System_SByte => $"(sbyte){ExplicitDefaultValueFromConstructor}",
-                SpecialType.System_Char => $"(char){ExplicitDefaultValueFromConstructor}",
+                SpecialType.System_Char => SymbolDisplay.FormatLiteral((char)ExplicitDefaultValueFromConstructor, quote: true),
                 _ when MemberType.TypeKind == TypeKind.Enum => $"({FullTypeName}){ExplicitDefaultValueFromConstructor}",
                 _ => ExplicitDefaultValueFromConstructor.ToString()
             };

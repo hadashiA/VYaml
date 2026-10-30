@@ -37,6 +37,8 @@ Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular y
   - Customization
     - Rename key
     - Ignore member
+- JSON Schema generation
+  - Generates a JSON Schema (draft-07) from C# types for editor completion / validation of YAML files.
 - Mainly focused on Unity
     - Only 2021.3 and higher (netstandard2.1 compatible)
 
@@ -643,6 +645,53 @@ steps:
 - Subtypes are serialized as is.
 - Every `[YamlObjectUnion]` of the type must have a `RequiredKey` (it cannot be mixed with tags or `DiscriminatorKey`).
 - Subtypes must be `[YamlObject]` types that are not unions.
+
+## JSON Schema generation
+
+`YamlSchemaGenerator` generates a [JSON Schema](https://json-schema.org/) (draft-07) that describes the YAML representation of a C# type.
+It can be used with [yaml-language-server](https://github.com/redhat-developer/yaml-language-server) (VS Code YAML extension), JetBrains IDEs, etc. to get completion and validation when writing YAML by hand.
+
+``` csharp
+/// <summary>
+/// Server settings.
+/// </summary>
+[YamlObject]
+public partial class ServerConfig
+{
+    /// <summary>The host name to listen.</summary>
+    public required string Host { get; set; }
+    public int Port { get; set; }
+    public LogLevel LogLevel { get; set; }
+    public List<Endpoint> Endpoints { get; set; } = new();
+}
+
+var json = YamlSchemaGenerator.Generate<ServerConfig>();
+File.WriteAllText("server-config.schema.json", json);
+```
+
+``` yaml
+# yaml-language-server: $schema=./server-config.schema.json
+host: localhost
+port: 8080
+logLevel: debug
+endpoints:
+  - path: /api
+```
+
+[YamlObject] types are described from metadata emitted by the source generator, so the schema matches the actual serialization behavior:
+
+- Keys follow `[YamlMember("name")]`, `[YamlIgnore]`, the naming convention of `[YamlObject]`, and `YamlSerializerOptions.NamingConvention` passed to `Generate`.
+- [Required members](#required-members) are written as `required`.
+- Enums are written as their string values (`[EnumMember]` / `[DataMember]` aliases are respected).
+- Nullable members (`string?`, `int?`, etc.) allow `null`.
+- Default values of constructor parameters are written as `default`.
+- XML doc comments (`<summary>`, and `<param>` of positional records) are written as `description`. This requires `<GenerateDocumentationFile>true</GenerateDocumentationFile>` in the project of the types.
+- Union types are written as `anyOf` of the subtypes.
+  - With `DiscriminatorKey`, the discriminator key is required and its values are completed.
+  - With `RequiredKey`, each subtype is matched by the key it requires.
+  - With YAML tags, the subtypes are not distinguished, because JSON Schema cannot express YAML tags.
+
+Other [YamlObject] types are written to `definitions` and referenced with `$ref`.
 
 ## Customize serialization behaviour
 
