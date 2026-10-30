@@ -87,7 +87,7 @@ namespace VYaml.Serialization
                 Span<char> buffer = stackalloc char[StackallocCharThreshold];
                 if (mutator.TryMutate(source, buffer, out written))
                 {
-                    return buffer[..written].ToString();
+                    return buffer.Slice(0, written).ToString();
                 }
             }
 

@@ -170,6 +170,8 @@ namespace VYaml.Parser
             CurrentEventType = source.CurrentEventType;
             UnityStrippedMark = source.UnityStrippedMark;
             lastAnchorId = source.lastAnchorId;
+            maxDepth = source.maxDepth;
+            currentDepth = source.currentDepth;
 
             currentScalar = source.currentScalar?.CloneFromPool();
             currentTag = source.currentTag;
