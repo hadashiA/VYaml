@@ -113,5 +113,21 @@ namespace VYaml.Tests.Serialization
             Assert.That(steps[1], Is.SameAs(steps[0]));
             Assert.That(((RunStep)steps[2]).Name, Is.EqualTo("last"));
         }
+    
+        [Test]
+        public void OverrideMemberAttributes()
+        {
+            var hug = (OverrideKeyHug)Deserialize<OverrideKeyBase>("power: 2\nhug: tight\nnote: n\n");
+            Assert.That(hug.Name, Is.EqualTo("tight"));
+            Assert.That(hug.Note, Is.EqualTo("n"));
+            Assert.That(hug.Power, Is.EqualTo(2));
+            // the override stays at the position of the base declaration
+            Assert.That(Serialize<OverrideKeyBase>(hug), Is.EqualTo("hug: tight\nnote: n\npower: 2\n"));
+
+            var wave = (OverrideKeyWave)Deserialize<OverrideKeyBase>("wave: hello\nnote: n\n");
+            Assert.That(wave.Name, Is.EqualTo("hello"));
+            Assert.That(wave.Note, Is.Null); // [YamlIgnore] on the override
+            Assert.That(Serialize<OverrideKeyBase>(wave), Is.EqualTo("wave: hello\npower: 0\n"));
+        }
     }
 }

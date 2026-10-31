@@ -172,11 +172,33 @@ namespace VYaml.Serialization
                                       string.Join(", ", info.Unions.Select((x, i) => $"{keys[i]} ({TypeNameOf(x.SubType)})"));
                     schema.Add("type", "object");
                     schema.Add("description", info.Description is { } d ? $"{d}\n{description}" : description);
-                    schema.Add("anyOf", new JsonArray(info.Unions.Select((x, i) => (object?)new JsonObject
+                    // Lists the keys so that editors can complete them (each value is validated by the subtype schema below)
+                    var keyProperties = new JsonObject();
+                    for (var i = 0; i < keys.Length; i++)
                     {
-                        { "required", new JsonArray { keys[i] } },
-                        { "allOf", new JsonArray { SchemaOf(x.SubType) } },
-                    })));
+                        keyProperties[keys[i]] = new JsonObject { { "description", TypeNameOf(info.Unions[i].SubType) } };
+                    }
+                    schema.Add("properties", keyProperties);
+
+                    // if/then/else chain: when several keys are contained, the one declared first wins (same as the deserializer).
+                    // Unlike anyOf, only the selected subtype reports errors.
+                    JsonObject chain = new()
+                    {
+                        { "anyOf", new JsonArray(keys.Select(x => (object?)new JsonObject { { "required", new JsonArray { x } } })) },
+                    };
+                    for (var i = keys.Length - 1; i >= 0; i--)
+                    {
+                        chain = new JsonObject
+                        {
+                            { "if", new JsonObject { { "required", new JsonArray { keys[i] } } } },
+                            { "then", SchemaOf(info.Unions[i].SubType) },
+                            { "else", chain },
+                        };
+                    }
+                    foreach (var entry in chain)
+                    {
+                        schema.Add(entry.Key, entry.Value);
+                    }
                     return schema;
                 }
 

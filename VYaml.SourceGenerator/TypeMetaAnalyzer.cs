@@ -651,7 +651,11 @@ static class TypeMetaAnalyzer
 
         string? GetDescription(IReadOnlyDictionary<string, string> paramDocs)
         {
-            var description = DocumentationComment.GetSummary(Symbol);
+            string? description = null;
+            for (var s = Symbol; s != null && description == null; s = (s as IPropertySymbol)?.OverriddenProperty)
+            {
+                description = DocumentationComment.GetSummary(s);
+            }
             if (description == null && paramDocs.TryGetValue(Name, out var paramDoc))
             {
                 description = paramDoc; // positional record parameter

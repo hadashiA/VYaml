@@ -6,14 +6,21 @@ namespace VYaml.SourceGenerator;
 
 static class SymbolExtensions
 {
+    // For an override property, the attributes of the properties it overrides are also looked up (the nearest one wins),
+    // like Attribute.GetCustomAttribute(inherit: true).
     public static bool ContainsAttribute(this ISymbol symbol, INamedTypeSymbol attribute)
     {
-        return symbol.GetAttributes().Any(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, attribute));
+        return symbol.GetAttribute(attribute) != null;
     }
 
     public static AttributeData? GetAttribute(this ISymbol symbol, INamedTypeSymbol attribute)
     {
-        return symbol.GetAttributes().FirstOrDefault(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, attribute));
+        for (var s = symbol; s != null; s = (s as IPropertySymbol)?.OverriddenProperty)
+        {
+            var found = s.GetAttributes().FirstOrDefault(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, attribute));
+            if (found != null) return found;
+        }
+        return null;
     }
 
     public static AttributeData? GetImplAttribute(this ISymbol symbol, INamedTypeSymbol implAttribute)
@@ -34,28 +41,32 @@ static class SymbolExtensions
         });
     }
 
-    public static IEnumerable<ISymbol> GetAllMembers(this INamedTypeSymbol symbol, bool withoutOverride = true)
+    public static IEnumerable<ISymbol> GetAllMembers(this INamedTypeSymbol symbol)
     {
-        // Iterate Parent -> Derived
-        if (symbol.BaseType != null)
-        {
-            foreach (var item in GetAllMembers(symbol.BaseType))
-            {
-                // override item already iterated in parent type
-                if (!withoutOverride || !item.IsOverride)
-                {
-                    yield return item;
-                }
-            }
-        }
+        // Iterate Parent -> Derived.
+        // An override property replaces the property it overrides, at the position of the parent's declaration,
+        // so that the attributes declared on the override take effect.
+        var members = symbol.BaseType != null
+            ? GetAllMembers(symbol.BaseType).ToList()
+            : new List<ISymbol>();
 
         foreach (var item in symbol.GetMembers())
         {
-            if (!withoutOverride || !item.IsOverride)
+            if (!item.IsOverride)
             {
-                yield return item;
+                members.Add(item);
+                continue;
+            }
+            if (item is IPropertySymbol { OverriddenProperty: { } overridden })
+            {
+                var index = members.FindIndex(x => SymbolEqualityComparer.Default.Equals(x, overridden));
+                if (index >= 0)
+                {
+                    members[index] = item;
+                }
             }
         }
+        return members;
     }
 
     public static bool InheritsFrom(this INamedTypeSymbol symbol, INamedTypeSymbol baseSymbol)
