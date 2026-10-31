@@ -33,6 +33,15 @@ namespace VYaml.Tests.Serialization
         }
 
         [Test]
+        public void Skip_ComplexKey()
+        {
+            // a type without members skips collection keys too
+            var yaml = "? [a, b]\n: v\nkind: empty\n";
+            Assert.That(Deserialize<DiscriminatorBase>(yaml), Is.InstanceOf<DiscriminatorEmpty>());
+            Assert.Throws<YamlSerializerException>(() => Deserialize<DiscriminatorBase>(yaml, Disallow));
+        }
+
+        [Test]
         public void Disallow_DiscriminatorKeyIsNotUnmapped()
         {
             // the discriminator key is not the first key, so the subtype reads it as a key of its mapping

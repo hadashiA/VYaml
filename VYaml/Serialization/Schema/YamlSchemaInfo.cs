@@ -93,7 +93,8 @@ namespace VYaml.Serialization
     public sealed class YamlUnionSchemaInfo
     {
         /// <summary>
-        /// The YAML tag, or the value of the discriminator key. Empty for unions by required key.
+        /// The YAML tag, or the value of the discriminator key. For unions by required key, the
+        /// <see cref="YamlObjectUnionAttribute.RequiredKey"/> as declared (see <see cref="RequiredKey"/> for the key name).
         /// </summary>
         public string Tag { get; }
         public Type SubType { get; }

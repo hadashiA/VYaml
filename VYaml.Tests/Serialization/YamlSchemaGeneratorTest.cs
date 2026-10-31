@@ -79,6 +79,9 @@ namespace VYaml.Tests.Serialization
             Assert.That(properties.GetProperty("ratio").GetProperty("default").GetDouble(), Is.EqualTo(0.5));
             Assert.That(properties.GetProperty("level").GetProperty("default").GetString(), Is.EqualTo("err"));
             Assert.That(properties.GetProperty("nothing").TryGetProperty("default", out _), Is.False);
+            // char is an integer (code point), float keeps its single-precision text
+            Assert.That(properties.GetProperty("separator").GetProperty("default").GetInt32(), Is.EqualTo(','));
+            Assert.That(properties.GetProperty("weight").GetProperty("default").GetRawText(), Is.EqualTo("0.1"));
         }
 
         [Test]
@@ -119,6 +122,17 @@ namespace VYaml.Tests.Serialization
             Assert.That(Strings(anyOf[0].GetProperty("required")), Is.EqualTo(new[] { "type" }));
             Assert.That(anyOf[0].GetProperty("properties").GetProperty("radius").GetProperty("type").GetString(), Is.EqualTo("number"));
             Assert.That(anyOf[1].GetProperty("properties").TryGetProperty("width", out _), Is.True);
+        }
+
+        [Test]
+        public void UnionByDiscriminatorKey_CustomSubTypeSchema()
+        {
+            var schemaOptions = new YamlSchemaGeneratorOptions().AddTypeSchema<DiscriminatorCircle>("""{ "type": "object" }""");
+            var root = Parse(YamlSchemaGenerator.Generate<IDiscriminatorShape>(null, schemaOptions));
+            var circle = root.GetProperty("anyOf")[0];
+            Assert.That(circle.GetProperty("properties").GetProperty("type").GetProperty("const").GetString(), Is.EqualTo("circle"));
+            Assert.That(Strings(circle.GetProperty("required")), Is.EqualTo(new[] { "type" }));
+            Assert.That(circle.GetProperty("allOf")[0].GetProperty("allOf")[0].GetProperty("type").GetString(), Is.EqualTo("object"));
         }
 
         [Test]
