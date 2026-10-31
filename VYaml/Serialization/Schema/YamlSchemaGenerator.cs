@@ -184,11 +184,16 @@ namespace VYaml.Serialization
                                       string.Join(", ", info.Unions.Select((x, i) => $"{keys[i]} ({TypeNameOf(x.SubType)})"));
                     schema.Add("type", "object");
                     schema.Add("description", info.Description is { } d ? $"{d}\n{description}" : description);
-                    // Lists the keys so that editors can complete them (each value is validated by the subtype schema below)
+                    // Lists the keys so that editors can complete them (each value is validated by the subtype schema below).
+                    // The <summary> of the subtype describes the key, if any.
                     var keyProperties = new JsonObject();
                     for (var i = 0; i < keys.Length; i++)
                     {
-                        keyProperties[keys[i]] = new JsonObject { { "description", TypeNameOf(info.Unions[i].SubType) } };
+                        var subType = info.Unions[i].SubType;
+                        var keyDescription = TryGetSchemaInfo(subType, out var subTypeInfo) && subTypeInfo.Description is { } summary
+                            ? summary
+                            : TypeNameOf(subType);
+                        keyProperties[keys[i]] = new JsonObject { { "description", keyDescription } };
                     }
                     schema.Add("properties", keyProperties);
 

@@ -143,8 +143,11 @@ namespace VYaml.Tests.Serialization
 
             var step = definitions.GetProperty("IStep");
             Assert.That(step.GetProperty("type").GetString(), Is.EqualTo("object"));
-            // the keys are listed for completion
-            Assert.That(step.GetProperty("properties").EnumerateObject().Select(x => x.Name), Is.EqualTo(new[] { "uses", "run" }));
+            // the keys are listed for completion, described by the subtype's <summary> (or its name)
+            var keyProperties = step.GetProperty("properties");
+            Assert.That(keyProperties.EnumerateObject().Select(x => x.Name), Is.EqualTo(new[] { "uses", "run" }));
+            Assert.That(keyProperties.GetProperty("uses").GetProperty("description").GetString(), Is.EqualTo("Runs an action."));
+            Assert.That(keyProperties.GetProperty("run").GetProperty("description").GetString(), Is.EqualTo("RunStep"));
             // if/then/else chain in the order of declaration (the first one wins)
             Assert.That(Chain(step), Is.EqualTo(new[]
             {
