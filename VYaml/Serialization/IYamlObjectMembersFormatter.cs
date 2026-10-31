@@ -1,3 +1,4 @@
+using System;
 using VYaml.Emitter;
 using VYaml.Parser;
 
@@ -18,7 +19,11 @@ namespace VYaml.Serialization
         /// <summary>
         /// Reads the remaining key/value pairs after the mapping start, and the mapping end.
         /// </summary>
-        T DeserializeMembers(ref YamlParser parser, YamlDeserializationContext context);
+        /// <param name="discriminatorKeyUtf8">
+        /// The discriminator key of the union, which is skipped even with <see cref="YamlUnmappedMemberHandling.Disallow"/>.
+        /// Empty if none.
+        /// </param>
+        T DeserializeMembers(ref YamlParser parser, YamlDeserializationContext context, ReadOnlySpan<byte> discriminatorKeyUtf8);
     }
 
     public static class YamlObjectMembersFormatter
@@ -31,6 +36,30 @@ namespace VYaml.Serialization
             }
             throw new YamlSerializerException(
                 $"{typeof(T)} is used as a subtype of a union with DiscriminatorKey or RequiredKey, but its formatter does not support it. The subtype must be a [YamlObject] type that is not a union.");
+        }
+
+        /// <summary>
+        /// Skips a key/value pair whose key does not match any member, following <see cref="YamlSerializerOptions.UnmappedMemberHandling"/>.
+        /// </summary>
+        /// <param name="parser">Positioned at the key.</param>
+        public static void SkipUnmappedMember(
+            ref YamlParser parser,
+            YamlDeserializationContext context,
+            ReadOnlySpan<byte> discriminatorKeyUtf8,
+            string typeName)
+        {
+            if (context.Options.UnmappedMemberHandling == YamlUnmappedMemberHandling.Disallow)
+            {
+                var isScalar = parser.TryGetScalarAsSpan(out var key);
+                if (!(isScalar && !discriminatorKeyUtf8.IsEmpty && key.SequenceEqual(discriminatorKeyUtf8)))
+                {
+                    throw new YamlSerializerException(parser.CurrentMark, isScalar
+                        ? $"Unknown key '{parser.GetScalarAsString()}' for {typeName}"
+                        : $"Unknown key for {typeName}");
+                }
+            }
+            parser.SkipCurrentNode(); // skip key (may be a collection)
+            parser.SkipCurrentNode(); // skip value
         }
     }
 }

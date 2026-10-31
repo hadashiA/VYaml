@@ -37,6 +37,8 @@ Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular y
   - Customization
     - Rename key
     - Ignore member
+- JSON Schema generation
+  - Generates a JSON Schema (draft-07) from C# types for editor completion / validation of YAML files.
 - Mainly focused on Unity
     - Only 2021.3 and higher (netstandard2.1 compatible)
 
@@ -281,6 +283,18 @@ List of possible values:
 - `YamlIgnoreCondition.Never` (default) — Always serialize all properties
 - `YamlIgnoreCondition.WhenWritingNull` — Omit properties whose value is `null` (reference types and `Nullable<T>`)
 - `YamlIgnoreCondition.WhenWritingDefault` — Omit properties whose value is `null` or the default value for value types (`0`, `false`, `'\0'`, etc.)
+
+#### UnmappedMemberHandling
+
+By default, keys that do not match any member of a [YamlObject] type are skipped when deserializing.
+With `YamlUnmappedMemberHandling.Disallow`, they throw `YamlSerializerException`, which helps to find typos in YAML written by hand.
+
+```cs
+var options = YamlSerializerOptions.Standard;
+options.UnmappedMemberHandling = YamlUnmappedMemberHandling.Disallow;
+```
+
+The discriminator key of a union with `DiscriminatorKey` is not regarded as unmapped.
 
 #### Required members
 
@@ -641,8 +655,93 @@ steps:
 - The key is a member of the subtype, specified by its key name or its C# member name (e.g. `nameof(RunStep.Run)`). It follows the same naming rules as the member (`[YamlMember("name")]`, naming conventions).
 - When a mapping contains the keys of several subtypes, the subtype declared first wins.
 - Subtypes are serialized as is.
+- `[YamlMember]` and `[YamlIgnore]` on an override property take effect, so a member of the base type can have a different key in each subtype:
+  ```csharp
+  public abstract partial class SkillSpec
+  {
+      public abstract string Name { get; set; }
+  }
+
+  [YamlObject]
+  public partial class HugSkillSpec : SkillSpec
+  {
+      [YamlMember("hug")]
+      public override string Name { get; set; } = "";
+  }
+  ```
 - Every `[YamlObjectUnion]` of the type must have a `RequiredKey` (it cannot be mixed with tags or `DiscriminatorKey`).
 - Subtypes must be `[YamlObject]` types that are not unions.
+
+## JSON Schema generation
+
+`YamlSchemaGenerator` generates a [JSON Schema](https://json-schema.org/) (draft-07) that describes the YAML representation of a C# type.
+It can be used with [yaml-language-server](https://github.com/redhat-developer/yaml-language-server) (VS Code YAML extension), JetBrains IDEs, etc. to get completion and validation when writing YAML by hand.
+
+``` csharp
+/// <summary>
+/// Server settings.
+/// </summary>
+[YamlObject]
+public partial class ServerConfig
+{
+    /// <summary>The host name to listen.</summary>
+    public required string Host { get; set; }
+    public int Port { get; set; }
+    public LogLevel LogLevel { get; set; }
+    public List<Endpoint> Endpoints { get; set; } = new();
+}
+
+var json = YamlSchemaGenerator.Generate<ServerConfig>();
+File.WriteAllText("server-config.schema.json", json);
+```
+
+``` yaml
+# yaml-language-server: $schema=./server-config.schema.json
+host: localhost
+port: 8080
+logLevel: debug
+endpoints:
+  - path: /api
+```
+
+[YamlObject] types are described from metadata emitted by the source generator, so the schema matches the actual serialization behavior:
+
+- Keys follow `[YamlMember("name")]`, `[YamlIgnore]`, the naming convention of `[YamlObject]`, and `YamlSerializerOptions.NamingConvention` passed to `Generate`.
+- [Required members](#required-members) are written as `required`.
+- Enums are written as their string values (`[EnumMember]` / `[DataMember]` aliases, and `[YamlObject(NamingConvention)]` of the enum are respected).
+- Nullable members (`string?`, `int?`, etc.) allow `null`.
+- Default values of constructor parameters are written as `default`, except `null` (and `default` of structs).
+- XML doc comments (`<summary>`, and `<param>` of positional records) are written as `description`. This requires `<GenerateDocumentationFile>true</GenerateDocumentationFile>` in the project of the types.
+- Union types are written as follows.
+  - With `DiscriminatorKey`, `anyOf` of the subtypes. The discriminator key is required and its values are completed.
+  - With `RequiredKey`, an `if`/`then`/`else` chain of the subtypes, in the order of declaration. Only the subtype the deserializer selects reports errors.
+  - With YAML tags, `anyOf` of the subtypes. The subtypes are not distinguished, because JSON Schema cannot express YAML tags.
+
+Other [YamlObject] types are written to `definitions` and referenced with `$ref`.
+
+#### Options
+
+`YamlSchemaGeneratorOptions` can be passed to `Generate`:
+
+``` csharp
+var schemaOptions = new YamlSchemaGeneratorOptions
+{
+    // reject unknown keys ("additionalProperties": false)
+    AdditionalProperties = false,
+}
+// schemas of types serialized by custom formatters
+.AddTypeSchema<SkillRange>("""
+    { "anyOf": [{ "type": "integer" }, { "const": "inf" }, { "type": "object", "properties": { "skip": { "type": "integer" }, "count": { "type": "integer" } } }] }
+    """)
+// a schema of a particular member
+.AddMemberSchema<Card>(nameof(Card.Rarity), """{ "anyOf": [{ "type": "integer" }, { "const": "inf" }] }""");
+
+var json = YamlSchemaGenerator.Generate<Card>(options, schemaOptions);
+```
+
+- `AdditionalProperties` is applied to [YamlObject] types. When it is not set, it follows `YamlSerializerOptions.UnmappedMemberHandling` (`false` for `Disallow`).
+  - The subtypes of a union with `DiscriminatorKey` are expanded in the union, so that the discriminator key is not rejected.
+- Schemas given by `AddTypeSchema` / `AddMemberSchema` are embedded as is (wrapped in `allOf`). Types without a schema that are not [YamlObject] allow anything.
 
 ## Customize serialization behaviour
 

@@ -37,6 +37,8 @@ sealed record TypeMetaModel
     public bool IsUnionByKey { get; }
     public NamingConvention NamingConventionByType { get; }
     public bool HasConstructor { get; }
+    // <summary> of the XML doc comment, for YamlSchemaGenerator
+    public string? Description { get; }
 
     public EquatableArray<MemberMetaModel> Members { get; }
     public EquatableArray<string> ConstructorParameterNames { get; }
@@ -66,6 +68,7 @@ sealed record TypeMetaModel
         bool isUnionByKey,
         NamingConvention namingConventionByType,
         bool hasConstructor,
+        string? description,
         EquatableArray<MemberMetaModel> members,
         EquatableArray<string> constructorParameterNames,
         EquatableArray<string> setterMemberNames,
@@ -89,6 +92,7 @@ sealed record TypeMetaModel
         IsUnionByKey = isUnionByKey;
         NamingConventionByType = namingConventionByType;
         HasConstructor = hasConstructor;
+        Description = description;
         Members = members;
         ConstructorParameterNames = constructorParameterNames;
         SetterMemberNames = setterMemberNames;
@@ -112,6 +116,12 @@ sealed record MemberMetaModel
     // [YamlRequired] or the C# `required` modifier
     public bool IsRequired { get; }
 
+    // For YamlSchemaGenerator
+    public string TypeOfExpression { get; }
+    public bool IsNullable { get; }
+    public string? SchemaDefaultValueExpression { get; }
+    public string? Description { get; }
+
     // Computed (no backing field), so it is derived on demand and excluded from record equality,
     // which is correct because it is a pure function of KeyName.
     public byte[] KeyNameUtf8Bytes => System.Text.Encoding.UTF8.GetBytes(KeyName);
@@ -127,7 +137,11 @@ sealed record MemberMetaModel
         bool isValueType,
         string defaultValueComparison,
         string defaultValueExpression,
-        bool isRequired)
+        bool isRequired,
+        string typeOfExpression,
+        bool isNullable,
+        string? schemaDefaultValueExpression,
+        string? description)
     {
         Name = name;
         KeyName = keyName;
@@ -140,6 +154,10 @@ sealed record MemberMetaModel
         DefaultValueComparison = defaultValueComparison;
         DefaultValueExpression = defaultValueExpression;
         IsRequired = isRequired;
+        TypeOfExpression = typeOfExpression;
+        IsNullable = isNullable;
+        SchemaDefaultValueExpression = schemaDefaultValueExpression;
+        Description = description;
     }
 }
 

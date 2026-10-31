@@ -75,9 +75,11 @@ static class Emitter
 
         codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
         var interfaces = model.IsUnion
-            ? $"IYamlFormatter<{returnType}>"
-            : $"IYamlFormatter<{returnType}>, global::VYaml.Serialization.IYamlObjectMembersFormatter<{returnType}>";
+            ? $"IYamlFormatter<{returnType}>, global::VYaml.Serialization.IYamlSchemaInfoProvider"
+            : $"IYamlFormatter<{returnType}>, global::VYaml.Serialization.IYamlObjectMembersFormatter<{returnType}>, global::VYaml.Serialization.IYamlSchemaInfoProvider";
         using var _ = codeWriter.BeginBlockScope($"public class {model.SanitizedTypeName}GeneratedFormatter : {interfaces}");
+
+        EmitGetSchemaInfoMethod(model, codeWriter);
 
         if (model.IsUnion)
         {
@@ -178,6 +180,71 @@ static class Emitter
         }
     }
 
+    static void EmitGetSchemaInfoMethod(TypeMetaModel model, CodeWriter codeWriter)
+    {
+        codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
+        using var methodScope = codeWriter.BeginBlockScope(
+            "public global::VYaml.Serialization.YamlObjectSchemaInfo GetSchemaInfo()");
+
+        codeWriter.AppendLine("return new global::VYaml.Serialization.YamlObjectSchemaInfo(");
+        using (codeWriter.BeginIndentScope())
+        {
+            codeWriter.AppendLine($"typeof({model.FullTypeName}),");
+
+            if (model.IsUnion || model.Members.Count <= 0)
+            {
+                codeWriter.AppendLine("global::System.Array.Empty<global::VYaml.Serialization.YamlMemberSchemaInfo>(),");
+            }
+            else
+            {
+                codeWriter.AppendLine("new global::VYaml.Serialization.YamlMemberSchemaInfo[]");
+                codeWriter.AppendLine("{");
+                using (codeWriter.BeginIndentScope())
+                {
+                    foreach (var member in model.Members)
+                    {
+                        // same condition as EmitSerializeMembersMethod: otherwise the key follows YamlSerializerOptions.NamingConvention
+                        var isKeyNameFixed = member.HasKeyNameAlias || model.NamingConventionByType != NamingConvention.LowerCamelCase;
+                        var hasDefaultValue = member.SchemaDefaultValueExpression != null;
+                        codeWriter.AppendLine("new global::VYaml.Serialization.YamlMemberSchemaInfo(" +
+                                              $"{Literal(member.Name)}, " +
+                                              $"{Literal(member.KeyName)}, " +
+                                              $"{(isKeyNameFixed ? "true" : "false")}, " +
+                                              $"typeof({member.TypeOfExpression}), " +
+                                              $"{(member.IsNullable ? "true" : "false")}, " +
+                                              $"{(member.IsRequired ? "true" : "false")}, " +
+                                              $"{(hasDefaultValue ? "true" : "false")}, " +
+                                              $"{(hasDefaultValue ? $"(object?)({member.SchemaDefaultValueExpression})" : "null")}, " +
+                                              $"{Literal(member.Description)}),");
+                    }
+                }
+                codeWriter.AppendLine("},");
+            }
+
+            if (model.IsUnion)
+            {
+                codeWriter.AppendLine("new global::VYaml.Serialization.YamlUnionSchemaInfo[]");
+                codeWriter.AppendLine("{");
+                using (codeWriter.BeginIndentScope())
+                {
+                    foreach (var union in model.Unions)
+                    {
+                        var requiredKey = model.IsUnionByKey ? Literal(union.KeyName) : "null";
+                        codeWriter.AppendLine($"new global::VYaml.Serialization.YamlUnionSchemaInfo({Literal(union.SubTypeTag)}, typeof({union.FullTypeName}), {requiredKey}),");
+                    }
+                }
+                codeWriter.AppendLine("},");
+            }
+            else
+            {
+                codeWriter.AppendLine("global::System.Array.Empty<global::VYaml.Serialization.YamlUnionSchemaInfo>(),");
+            }
+
+            codeWriter.AppendLine($"{Literal(model.Description)},");
+            codeWriter.AppendLine($"{Literal(model.UnionDiscriminatorKeyName)});");
+        }
+    }
+
     static string Literal(string? value) =>
         value is null ? "null" : Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(value, quote: true);
 
@@ -254,7 +321,7 @@ static class Emitter
         }
 
         codeWriter.AppendLine("parser.ReadWithVerify(ParseEventType.MappingStart);");
-        codeWriter.AppendLine("return DeserializeMembers(ref parser, context);");
+        codeWriter.AppendLine("return DeserializeMembers(ref parser, context, default);");
     }
 
     static void EmitDeserializeMembersMethod(TypeMetaModel model, CodeWriter codeWriter)
@@ -262,13 +329,13 @@ static class Emitter
         var returnType = ReturnType(model);
         codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
         using var methodScope = codeWriter.BeginBlockScope(
-            $"public {returnType} DeserializeMembers(ref YamlParser parser, YamlDeserializationContext context)");
+            $"public {returnType} DeserializeMembers(ref YamlParser parser, YamlDeserializationContext context, global::System.ReadOnlySpan<byte> discriminatorKeyUtf8)");
 
         if (model.Members.Count <= 0)
         {
             using (codeWriter.BeginBlockScope("while (!parser.End && parser.CurrentEventType != ParseEventType.MappingEnd)"))
             {
-                codeWriter.AppendLine("parser.SkipCurrentNode(); // key or value");
+                codeWriter.AppendLine($"global::VYaml.Serialization.YamlObjectMembersFormatter.SkipUnmappedMember(ref parser, context, discriminatorKeyUtf8, {Literal(model.TypeName)});");
             }
             codeWriter.AppendLine("parser.ReadWithVerify(ParseEventType.MappingEnd);");
             codeWriter.AppendLine($"return new {model.TypeName}();");
@@ -336,8 +403,7 @@ static class Emitter
 
                 using (codeWriter.BeginIndentScope("default:"))
                 {
-                    codeWriter.AppendLine("parser.Read(); // skip key");
-                    codeWriter.AppendLine("parser.SkipCurrentNode(); // skip value");
+                    codeWriter.AppendLine($"global::VYaml.Serialization.YamlObjectMembersFormatter.SkipUnmappedMember(ref parser, context, discriminatorKeyUtf8, {Literal(model.TypeName)});");
                     codeWriter.AppendLine("continue;");
                 }
             }
@@ -482,7 +548,7 @@ static class Emitter
             foreach (var union in model.Unions)
             {
                 codeWriter.AppendLine($"case {Literal(union.SubTypeTag)}:");
-                codeWriter.AppendLine($"    return global::VYaml.Serialization.YamlObjectMembersFormatter.GetWithVerify<{union.FullTypeName}>(context.Resolver).DeserializeMembers(ref parser, context);");
+                codeWriter.AppendLine($"    return global::VYaml.Serialization.YamlObjectMembersFormatter.GetWithVerify<{union.FullTypeName}>(context.Resolver).DeserializeMembers(ref parser, context, UnionDiscriminatorKeyUtf8Bytes);");
             }
             codeWriter.AppendLine("default:");
             codeWriter.AppendLine($"    throw new YamlSerializerException(mark, {Literal($"Unknown discriminator '{keyName}': ")} + discriminator + {Literal($" for union {model.TypeName}")});");
@@ -567,7 +633,7 @@ static class Emitter
             {
                 var union = model.Unions[i];
                 codeWriter.AppendLine($"case {i}:");
-                codeWriter.AppendLine($"    return global::VYaml.Serialization.YamlObjectMembersFormatter.GetWithVerify<{union.FullTypeName}>(context.Resolver).DeserializeMembers(ref parser, context);");
+                codeWriter.AppendLine($"    return global::VYaml.Serialization.YamlObjectMembersFormatter.GetWithVerify<{union.FullTypeName}>(context.Resolver).DeserializeMembers(ref parser, context, default);");
             }
             var keys = string.Join(", ", model.Unions.Select(x => $"'{x.KeyName}'"));
             codeWriter.AppendLine("default:");
