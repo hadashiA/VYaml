@@ -689,10 +689,13 @@ static class TypeMetaAnalyzer
                 case SpecialType.System_String:
                     return SymbolDisplay.FormatLiteral((string)value, quote: true);
                 case SpecialType.System_Char:
-                    return SymbolDisplay.FormatLiteral((char)value, quote: true);
+                    // char is written as its code point (see CharFormatter)
+                    return $"{(long)Convert.ToChar(value, invariant)}L";
                 case SpecialType.System_Boolean:
                     return (bool)value ? "true" : "false";
                 case SpecialType.System_Single:
+                    var f = Convert.ToSingle(value, invariant);
+                    return float.IsNaN(f) || float.IsInfinity(f) ? null : $"{f.ToString("R", invariant)}f";
                 case SpecialType.System_Double:
                     var d = Convert.ToDouble(value, invariant);
                     return double.IsNaN(d) || double.IsInfinity(d) ? null : $"{d.ToString("R", invariant)}d";
@@ -761,7 +764,7 @@ static class TypeMetaAnalyzer
                 SpecialType.System_UInt16 => $"(ushort){ExplicitDefaultValueFromConstructor}",
                 SpecialType.System_Byte => $"(byte){ExplicitDefaultValueFromConstructor}",
                 SpecialType.System_SByte => $"(sbyte){ExplicitDefaultValueFromConstructor}",
-                SpecialType.System_Char => SymbolDisplay.FormatLiteral((char)ExplicitDefaultValueFromConstructor, quote: true),
+                SpecialType.System_Char => SymbolDisplay.FormatLiteral(Convert.ToChar(ExplicitDefaultValueFromConstructor), quote: true),
                 _ when MemberType.TypeKind == TypeKind.Enum => $"({FullTypeName}){ExplicitDefaultValueFromConstructor}",
                 _ => ExplicitDefaultValueFromConstructor.ToString()
             };

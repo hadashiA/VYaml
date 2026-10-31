@@ -60,7 +60,9 @@ namespace VYaml.Tests.TypeDeclarations
         string Label = "a\"b",
         double Ratio = 0.5,
         SchemaLogLevel Level = SchemaLogLevel.Error,
-        string? Nothing = null);
+        string? Nothing = null,
+        char Separator = ',',
+        float Weight = 0.1f);
 
     [YamlObject]
     [YamlObjectUnion("!circle", typeof(SchemaCircle))]

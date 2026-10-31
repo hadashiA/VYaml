@@ -48,12 +48,17 @@ namespace VYaml.Serialization
             ReadOnlySpan<byte> discriminatorKeyUtf8,
             string typeName)
         {
-            if (context.Options.UnmappedMemberHandling == YamlUnmappedMemberHandling.Disallow &&
-                !(parser.TryGetScalarAsSpan(out var key) && !discriminatorKeyUtf8.IsEmpty && key.SequenceEqual(discriminatorKeyUtf8)))
+            if (context.Options.UnmappedMemberHandling == YamlUnmappedMemberHandling.Disallow)
             {
-                throw new YamlSerializerException(parser.CurrentMark, $"Unknown key '{parser.GetScalarAsString()}' for {typeName}");
+                var isScalar = parser.TryGetScalarAsSpan(out var key);
+                if (!(isScalar && !discriminatorKeyUtf8.IsEmpty && key.SequenceEqual(discriminatorKeyUtf8)))
+                {
+                    throw new YamlSerializerException(parser.CurrentMark, isScalar
+                        ? $"Unknown key '{parser.GetScalarAsString()}' for {typeName}"
+                        : $"Unknown key for {typeName}");
+                }
             }
-            parser.Read(); // skip key
+            parser.SkipCurrentNode(); // skip key (may be a collection)
             parser.SkipCurrentNode(); // skip value
         }
     }

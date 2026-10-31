@@ -46,6 +46,8 @@ namespace VYaml.Serialization
             readonly Dictionary<Type, string> definitionNames = new();
             readonly HashSet<string> usedDefinitionNames = new();
             readonly List<KeyValuePair<string, object?>> definitions = new();
+            // GetSchemaInfo() allocates, and the same type is looked up several times
+            readonly Dictionary<Type, YamlObjectSchemaInfo?> schemaInfos = new();
 
             public SchemaBuilder(Type rootType, YamlSerializerOptions options, YamlSchemaGeneratorOptions schemaOptions)
             {
@@ -56,11 +58,21 @@ namespace VYaml.Serialization
                                        options.UnmappedMemberHandling != YamlUnmappedMemberHandling.Disallow;
             }
 
+            bool TryGetSchemaInfo(Type type, [NotNullWhen(true)] out YamlObjectSchemaInfo? info)
+            {
+                if (!schemaInfos.TryGetValue(type, out info))
+                {
+                    YamlSchemaInfoRegistry.TryGetSchemaInfo(type, out info);
+                    schemaInfos.Add(type, info);
+                }
+                return info != null;
+            }
+
             public JsonObject Build()
             {
                 var root = new JsonObject { { "$schema", SchemaUri } };
 
-                var schema = !schemaOptions.TryGetTypeSchema(rootType, out _) && YamlSchemaInfoRegistry.TryGetSchemaInfo(rootType, out var info)
+                var schema = !schemaOptions.TryGetTypeSchema(rootType, out _) && TryGetSchemaInfo(rootType, out var info)
                     ? ObjectSchema(info)
                     : SchemaOf(rootType);
                 foreach (var entry in schema)
@@ -125,12 +137,12 @@ namespace VYaml.Serialization
                     return Ref(definitionName);
                 }
 
-                if (type == rootType && YamlSchemaInfoRegistry.TryGetSchemaInfo(type, out _))
+                if (type == rootType && TryGetSchemaInfo(type, out _))
                 {
                     return new JsonObject { { "$ref", "#" } };
                 }
 
-                if (YamlSchemaInfoRegistry.TryGetSchemaInfo(type, out var info))
+                if (TryGetSchemaInfo(type, out var info))
                 {
                     var name = DefinitionNameOf(type);
                     definitionNames.Add(type, name);
@@ -267,11 +279,12 @@ namespace VYaml.Serialization
             JsonObject DiscriminatedSubTypeSchema(YamlUnionSchemaInfo union, string discriminatorKeyName)
             {
                 var discriminator = new JsonObject { { "const", union.Tag } };
-                if (!YamlSchemaInfoRegistry.TryGetSchemaInfo(union.SubType, out var subTypeInfo))
+                if (schemaOptions.TryGetTypeSchema(union.SubType, out _) || !TryGetSchemaInfo(union.SubType, out var subTypeInfo))
                 {
                     return new JsonObject
                     {
                         { "properties", new JsonObject { { discriminatorKeyName, discriminator } } },
+                        { "required", new JsonArray { discriminatorKeyName } },
                         { "allOf", new JsonArray { SchemaOf(union.SubType) } },
                     };
                 }
@@ -284,6 +297,7 @@ namespace VYaml.Serialization
                     {
                         case "properties" when entry.Value is JsonObject subTypeProperties:
                             var properties = new JsonObject { { discriminatorKeyName, discriminator } };
+                            // (the source generator rejects a subtype member with the discriminator key: VYAML018)
                             foreach (var property in subTypeProperties)
                             {
                                 properties[property.Key] = property.Value;
@@ -318,7 +332,7 @@ namespace VYaml.Serialization
 
             string RequiredKeyOf(YamlUnionSchemaInfo union)
             {
-                if (YamlSchemaInfoRegistry.TryGetSchemaInfo(union.SubType, out var subTypeInfo) &&
+                if (TryGetSchemaInfo(union.SubType, out var subTypeInfo) &&
                     subTypeInfo.Members.FirstOrDefault(x => x.KeyName == union.RequiredKey) is { } member)
                 {
                     return KeyNameOf(member);
