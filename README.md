@@ -727,10 +727,10 @@ endpoints:
 - Nullable members (`string?`, `int?`, etc.) allow `null`.
 - Default values of constructor parameters are written as `default`, except `null` (and `default` of structs).
 - XML doc comments (`<summary>`, and `<param>` of positional records) are written as `description`. This requires `<GenerateDocumentationFile>true</GenerateDocumentationFile>` in the project of the types.
-- Union types are written as `anyOf` of the subtypes.
-  - With `DiscriminatorKey`, the discriminator key is required and its values are completed.
-  - With `RequiredKey`, each subtype is matched by the key it requires.
-  - With YAML tags, the subtypes are not distinguished, because JSON Schema cannot express YAML tags.
+- Union types are written as follows.
+  - With `DiscriminatorKey`, `anyOf` of the subtypes. The discriminator key is required and its values are completed.
+  - With `RequiredKey`, an `if`/`then`/`else` chain of the subtypes, in the order of declaration. Only the subtype the deserializer selects reports errors.
+  - With YAML tags, `anyOf` of the subtypes. The subtypes are not distinguished, because JSON Schema cannot express YAML tags.
 
 Other [YamlObject] types are written to `definitions` and referenced with `$ref`.
 

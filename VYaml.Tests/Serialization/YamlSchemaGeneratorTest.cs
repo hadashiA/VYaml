@@ -129,13 +129,18 @@ namespace VYaml.Tests.Serialization
 
             var step = definitions.GetProperty("IStep");
             Assert.That(step.GetProperty("type").GetString(), Is.EqualTo("object"));
-            var anyOf = step.GetProperty("anyOf").EnumerateArray().ToArray();
-            Assert.That(anyOf.Select(x => Strings(x.GetProperty("required")).Single()), Is.EqualTo(new[] { "uses", "run" }));
-            Assert.That(anyOf.Select(x => x.GetProperty("allOf")[0].GetProperty("$ref").GetString()), Is.EqualTo(new[]
+            // the keys are listed for completion
+            Assert.That(step.GetProperty("properties").EnumerateObject().Select(x => x.Name), Is.EqualTo(new[] { "uses", "run" }));
+            // if/then/else chain in the order of declaration (the first one wins)
+            Assert.That(Chain(step), Is.EqualTo(new[]
             {
-                "#/definitions/ActionStep",
-                "#/definitions/RunStep",
+                ("uses", "#/definitions/ActionStep"),
+                ("run", "#/definitions/RunStep"),
             }));
+            // none of the keys
+            var last = step.GetProperty("else").GetProperty("else");
+            Assert.That(last.GetProperty("anyOf").EnumerateArray().Select(x => Strings(x.GetProperty("required")).Single()),
+                Is.EqualTo(new[] { "uses", "run" }));
         }
 
         [Test]
@@ -144,13 +149,24 @@ namespace VYaml.Tests.Serialization
             // the key follows YamlSerializerOptions.NamingConvention unless it is fixed by the subtype
             var options = new YamlSerializerOptions { NamingConvention = NamingConvention.KebabCase };
             var root = Parse(YamlSchemaGenerator.Generate<UnionKeyBase>(options));
-            Assert.That(root.GetProperty("anyOf").EnumerateArray().Select(x => Strings(x.GetProperty("required")).Single()),
-                Is.EqualTo(new[] { "max_count", "alias" }));
+            Assert.That(Chain(root).Select(x => x.Key), Is.EqualTo(new[] { "max_count", "alias" }));
 
             var job = Parse(YamlSchemaGenerator.Generate<Job>(new YamlSerializerOptions { NamingConvention = NamingConvention.UpperCamelCase }));
-            Assert.That(job.GetProperty("definitions").GetProperty("IStep").GetProperty("anyOf").EnumerateArray()
-                    .Select(x => Strings(x.GetProperty("required")).Single()),
+            Assert.That(Chain(job.GetProperty("definitions").GetProperty("IStep")).Select(x => x.Key),
                 Is.EqualTo(new[] { "Uses", "Run" }));
+        }
+
+        [Test]
+        public void UnionByRequiredKey_OverrideMember()
+        {
+            var root = Parse(YamlSchemaGenerator.Generate<OverrideKeyBase>());
+            Assert.That(Chain(root).Select(x => x.Key), Is.EqualTo(new[] { "hug", "wave" }));
+
+            var definitions = root.GetProperty("definitions");
+            Assert.That(definitions.GetProperty("OverrideKeyHug").GetProperty("properties").EnumerateObject().Select(x => x.Name),
+                Is.EqualTo(new[] { "hug", "note", "power" }));
+            Assert.That(definitions.GetProperty("OverrideKeyWave").GetProperty("properties").EnumerateObject().Select(x => x.Name),
+                Is.EqualTo(new[] { "wave", "power" }));
         }
 
         [Test]
@@ -265,5 +281,17 @@ namespace VYaml.Tests.Serialization
         static JsonElement Parse(string json) => JsonDocument.Parse(json).RootElement;
 
         static string?[] Strings(JsonElement array) => array.EnumerateArray().Select(x => x.GetString()).ToArray();
+
+        // (required key, $ref of then) of an if/then/else chain
+        static (string? Key, string? Ref)[] Chain(JsonElement schema)
+        {
+            var result = new List<(string?, string?)>();
+            while (schema.TryGetProperty("if", out var condition))
+            {
+                result.Add((Strings(condition.GetProperty("required")).Single(), schema.GetProperty("then").GetProperty("$ref").GetString()));
+                schema = schema.GetProperty("else");
+            }
+            return result.ToArray();
+        }
     }
 }

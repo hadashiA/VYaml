@@ -126,4 +126,32 @@ namespace VYaml.Tests.TypeDeclarations
     {
         public List<INotification> Notifications { get; set; } = new();
     }
+
+    // the key of each subtype is given by [YamlMember] on an override property
+    [YamlObject]
+    [YamlObjectUnion(typeof(OverrideKeyHug), RequiredKey = "hug")]
+    [YamlObjectUnion(typeof(OverrideKeyWave), RequiredKey = "wave")]
+    public abstract partial class OverrideKeyBase
+    {
+        public abstract string Name { get; set; }
+        public virtual string? Note { get; set; }
+        public int Power { get; set; }
+    }
+
+    [YamlObject]
+    public partial class OverrideKeyHug : OverrideKeyBase
+    {
+        [YamlMember("hug")]
+        public override string Name { get; set; } = "";
+    }
+
+    [YamlObject]
+    public partial class OverrideKeyWave : OverrideKeyBase
+    {
+        [YamlMember("wave")]
+        public override string Name { get; set; } = "";
+
+        [YamlIgnore]
+        public override string? Note { get; set; }
+    }
 }
