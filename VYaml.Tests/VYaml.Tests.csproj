@@ -7,6 +7,8 @@
         <ImplicitUsings>disable</ImplicitUsings>
         <IsPackable>false</IsPackable>
         <RootNamespace>VYaml.Tests</RootNamespace>
+        <!-- parse XML doc comments so that YamlSchemaGenerator can emit descriptions -->
+        <NoWarn>$(NoWarn);CS1591</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
@@ -26,6 +28,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\VYaml\VYaml.csproj" />
+        <ProjectReference Include="..\VYaml.JsonSchema\VYaml.JsonSchema.csproj" />
         <!--<ProjectReference Include="..\VYaml.SourceGenerator\VYaml.SourceGenerator.csproj" />-->
 
 		<!-- disable SourceGenerator for net framework because it does not allow default implementations for interfaces -->

@@ -93,6 +93,9 @@ namespace VYaml.Tests.TypeDeclarations
     {
     }
 
+    /// <summary>
+    /// Runs an action.
+    /// </summary>
     [YamlObject]
     public partial class SlackNotification : INotification
     {

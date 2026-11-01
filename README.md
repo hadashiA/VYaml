@@ -31,12 +31,19 @@ Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular y
 - Deserialize / Serialize
   - Converts between YAML and C# user-defined types.
   - Converts between YAML and primitive collections via `dynamic`.
-  - Supports interface-typed and abstract class-typed objects.
+  - Supports interface-typed and abstract class-typed objects ([union](#polymorphism-union)), identified in the YAML by a tag (`!circle`), by the value of a key (`type: circle`), or by wrapping with the key (`circle: { ... }`).
   - Supports anchor (`&`) and alias (`*`) in the YAML spec.
   - Supports deserializing multiple YAML documents into a C# collection.
   - Customization
     - Rename key
     - Ignore member
+    - Required members, naming conventions, default values from constructors
+- [JSON Schema generation](#json-schema-generation) from C# types (`VYaml.JsonSchema` package)
+  - The schema describes exactly what the serializer accepts: keys, required members, enums, defaults, unions, and XML doc comments as descriptions.
+  - Point yaml-language-server (VS Code) or a JetBrains IDE at it to get completion and validation while writing the YAML by hand.
+
+  ![Completion and validation of YAML with the generated JSON Schema](./screenshots/demo_schema.gif)
+
 - Mainly focused on Unity
     - Only 2021.3 and higher (netstandard2.1 compatible)
 
@@ -281,6 +288,18 @@ List of possible values:
 - `YamlIgnoreCondition.Never` (default) — Always serialize all properties
 - `YamlIgnoreCondition.WhenWritingNull` — Omit properties whose value is `null` (reference types and `Nullable<T>`)
 - `YamlIgnoreCondition.WhenWritingDefault` — Omit properties whose value is `null` or the default value for value types (`0`, `false`, `'\0'`, etc.)
+
+#### UnmappedMemberHandling
+
+By default, keys that do not match any member of a [YamlObject] type are skipped when deserializing.
+With `YamlUnmappedMemberHandling.Disallow`, they throw `YamlSerializerException`, which helps to find typos in YAML written by hand.
+
+```cs
+var options = YamlSerializerOptions.Standard;
+options.UnmappedMemberHandling = YamlUnmappedMemberHandling.Disallow;
+```
+
+The discriminator key of a union with `DiscriminatorKey` is not regarded as unmapped.
 
 #### Required members
 
@@ -672,6 +691,88 @@ notifications:
       public override string Target { get; set; } = "";
   }
   ```
+
+## JSON Schema generation
+
+`YamlSchemaGenerator` generates a [JSON Schema](https://json-schema.org/) (draft-07) that describes the YAML representation of a C# type.
+It can be used with [yaml-language-server](https://github.com/redhat-developer/yaml-language-server) (VS Code YAML extension), JetBrains IDEs, etc. to get completion and validation when writing YAML by hand.
+
+It is provided by the separate [VYaml.JsonSchema](https://www.nuget.org/packages/VYaml.JsonSchema) package (namespace `VYaml.JsonSchema`), so that the serializer itself stays free of the reflection it needs.
+[sandbox/SchemaSample](sandbox/SchemaSample) writes a schema and a YAML file that uses it, covering the union styles; open the YAML in VS Code with the YAML extension to try completion and validation.
+
+![Completion and validation of YAML with the generated JSON Schema](./screenshots/demo_schema.gif)
+
+``` bash
+dotnet add package VYaml.JsonSchema
+```
+
+``` csharp
+using VYaml.JsonSchema;
+
+/// <summary>
+/// Server settings.
+/// </summary>
+[YamlObject]
+public partial class ServerConfig
+{
+    /// <summary>The host name to listen.</summary>
+    public required string Host { get; set; }
+    public int Port { get; set; }
+    public LogLevel LogLevel { get; set; }
+    public List<Endpoint> Endpoints { get; set; } = new();
+}
+
+var json = YamlSchemaGenerator.Generate<ServerConfig>();
+File.WriteAllText("server-config.schema.json", json);
+```
+
+``` yaml
+# yaml-language-server: $schema=./server-config.schema.json
+host: localhost
+port: 8080
+logLevel: debug
+endpoints:
+  - path: /api
+```
+
+[YamlObject] types are described from metadata emitted by the source generator, so the schema matches the actual serialization behavior:
+
+- Keys follow `[YamlMember("name")]`, `[YamlIgnore]`, the naming convention of `[YamlObject]`, and `YamlSerializerOptions.NamingConvention` passed to `Generate`.
+- [Required members](#required-members) are written as `required`.
+- Enums are written as their string values (`[EnumMember]` / `[DataMember]` aliases, and `[YamlObject(NamingConvention)]` of the enum are respected).
+- Nullable members (`string?`, `int?`, etc.) allow `null`.
+- Default values of constructor parameters are written as `default`, except `null` (and `default` of structs).
+- XML doc comments (`<summary>`, and `<param>` of positional records) are written as `description`. They are read from the source, so `<GenerateDocumentationFile>` is not required.
+- Union types are written as follows.
+  - With `DiscriminatorKey`, `anyOf` of the subtypes. The discriminator key is required and its values are completed.
+  - With `Style = YamlUnionStyle.Wrapped`, an object with exactly one of the keys, whose values are the subtypes. An empty value is allowed unless the subtype has a required member.
+  - With YAML tags, `anyOf` of the subtypes. The subtypes are not distinguished, because JSON Schema cannot express YAML tags.
+
+Other [YamlObject] types are written to `definitions` and referenced with `$ref`.
+
+#### Options
+
+`YamlSchemaGeneratorOptions` can be passed to `Generate`:
+
+``` csharp
+var schemaOptions = new YamlSchemaGeneratorOptions
+{
+    // reject unknown keys ("additionalProperties": false)
+    AdditionalProperties = false,
+}
+// schemas of types serialized by custom formatters (e.g. a Duration read from "30s" or seconds)
+.AddTypeSchema<Duration>("""
+    { "anyOf": [{ "type": "integer" }, { "type": "string", "pattern": "^[0-9]+(ms|s|m|h)$" }] }
+    """)
+// a schema of a particular member
+.AddMemberSchema<ServerConfig>(nameof(ServerConfig.Port), """{ "type": "integer", "minimum": 1, "maximum": 65535 }""");
+
+var json = YamlSchemaGenerator.Generate<ServerConfig>(options, schemaOptions);
+```
+
+- `AdditionalProperties` is applied to [YamlObject] types. When it is not set, it follows `YamlSerializerOptions.UnmappedMemberHandling` (`false` for `Disallow`).
+  - The subtypes of a union with `DiscriminatorKey` are expanded in the union, so that the discriminator key is not rejected.
+- Schemas given by `AddTypeSchema` / `AddMemberSchema` are embedded as is (wrapped in `allOf`). Types without a schema that are not [YamlObject] allow anything.
 
 ## Customize serialization behaviour
 

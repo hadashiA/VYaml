@@ -1,0 +1,215 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "description": "Settings of a server. The root of the sample YAML.",
+  "properties": {
+    "host": {
+      "type": "string",
+      "description": "The host name to listen."
+    },
+    "port": {
+      "type": "integer",
+      "description": "The port to listen."
+    },
+    "logLevel": {
+      "type": "string",
+      "enum": ["debug", "info", "warning", "error"]
+    },
+    "endpoints": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Endpoint"
+      },
+      "description": "Endpoints served by this server."
+    },
+    "shapes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/IShape"
+      },
+      "description": "Shapes drawn on the status page, identified by a YAML tag."
+    },
+    "healthChecks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/IHealthCheck"
+      },
+      "description": "Health checks, identified by the type key."
+    },
+    "notifications": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/INotification"
+      },
+      "description": "Where to send alerts, identified by the key that wraps each entry."
+    }
+  },
+  "required": ["host", "port"],
+  "additionalProperties": false,
+  "definitions": {
+    "Circle": {
+      "type": "object",
+      "properties": {
+        "radius": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ConsoleNotification": {
+      "type": "object",
+      "description": "Writes to the console. Has no settings: console: or console: {}.",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "EmailNotification": {
+      "type": "object",
+      "description": "Sends an email.",
+      "properties": {
+        "to": {
+          "type": "string"
+        },
+        "subject": {
+          "type": ["string", "null"]
+        }
+      },
+      "required": ["to"],
+      "additionalProperties": false
+    },
+    "Endpoint": {
+      "type": "object",
+      "description": "An HTTP endpoint.",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "The request path, e.g. /api/users."
+        },
+        "timeout": {
+          "type": "integer",
+          "description": "Timeout in seconds.",
+          "default": 30
+        }
+      },
+      "additionalProperties": false
+    },
+    "IHealthCheck": {
+      "type": "object",
+      "description": "A health check, identified by the value of the type key.\nSpecify the concrete type with the 'type' key: http (HttpHealthCheck), tcp (TcpHealthCheck)",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "enum": ["http", "tcp"]
+        }
+      },
+      "anyOf": [
+        {
+          "type": "object",
+          "description": "Requests a URL and expects a 2xx response.",
+          "properties": {
+            "type": {
+              "const": "http"
+            },
+            "url": {
+              "type": "string",
+              "description": "The URL to request."
+            },
+            "intervalSeconds": {
+              "type": "integer",
+              "description": "Seconds between requests (a constructor default becomes \"default\" in the schema).",
+              "default": 10
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Opens a TCP connection to the port.",
+          "properties": {
+            "type": {
+              "const": "tcp"
+            },
+            "port": {
+              "type": "integer"
+            }
+          },
+          "required": ["type", "port"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "INotification": {
+      "type": "object",
+      "description": "A notification target, written as a mapping with one key: slack: { channel: \"#alerts\" }.\nA mapping with exactly one key, which identifies the concrete type: slack (SlackNotification), email (EmailNotification), webhook (WebhookNotification), console (ConsoleNotification)",
+      "properties": {
+        "slack": {
+          "$ref": "#/definitions/SlackNotification"
+        },
+        "email": {
+          "$ref": "#/definitions/EmailNotification"
+        },
+        "webhook": {
+          "$ref": "#/definitions/WebhookNotification"
+        },
+        "console": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConsoleNotification"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "minProperties": 1,
+      "maxProperties": 1,
+      "additionalProperties": false
+    },
+    "IShape": {
+      "description": "A shape, written with a YAML tag: !circle { radius: 1 }.\nSpecify the concrete type with a YAML tag: !circle (Circle), !rect (Rect)",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Circle"
+        },
+        {
+          "$ref": "#/definitions/Rect"
+        }
+      ]
+    },
+    "Rect": {
+      "type": "object",
+      "properties": {
+        "width": {
+          "type": "number"
+        },
+        "height": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false
+    },
+    "SlackNotification": {
+      "type": "object",
+      "description": "Posts to a Slack channel.",
+      "properties": {
+        "channel": {
+          "type": "string"
+        }
+      },
+      "required": ["channel"],
+      "additionalProperties": false
+    },
+    "WebhookNotification": {
+      "type": "object",
+      "description": "Calls a webhook.",
+      "properties": {
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": ["url"],
+      "additionalProperties": false
+    }
+  }
+}
