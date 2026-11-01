@@ -178,45 +178,21 @@ namespace VYaml.JsonSchema
                     return schema;
                 }
 
-                if (info.IsUnion && info.Unions[0].RequiredKey != null)
+                if (info.IsUnion && info.UnionStyle == YamlUnionStyle.Wrapped)
                 {
-                    var keys = info.Unions.Select(x => RequiredKeyOf(x)).ToArray();
-                    var description = "The concrete type is identified by the key it contains: " +
-                                      string.Join(", ", info.Unions.Select((x, i) => $"{keys[i]} ({TypeNameOf(x.SubType)})"));
+                    var description = "A mapping with exactly one key, which identifies the concrete type: " +
+                                      string.Join(", ", info.Unions.Select(x => $"{x.Tag} ({TypeNameOf(x.SubType)})"));
                     schema.Add("type", "object");
                     schema.Add("description", info.Description is { } d ? $"{d}\n{description}" : description);
-                    // Lists the keys so that editors can complete them (each value is validated by the subtype schema below).
-                    // The <summary> of the subtype describes the key, if any.
                     var keyProperties = new JsonObject();
-                    for (var i = 0; i < keys.Length; i++)
+                    foreach (var union in info.Unions)
                     {
-                        var subType = info.Unions[i].SubType;
-                        var keyDescription = TryGetSchemaInfo(subType, out var subTypeInfo) && subTypeInfo.Description is { } summary
-                            ? summary
-                            : TypeNameOf(subType);
-                        keyProperties[keys[i]] = new JsonObject { { "description", keyDescription } };
+                        keyProperties[union.Tag] = WrappedValueSchema(union.SubType);
                     }
                     schema.Add("properties", keyProperties);
-
-                    // if/then/else chain: when several keys are contained, the one declared first wins (same as the deserializer).
-                    // Unlike anyOf, only the selected subtype reports errors.
-                    JsonObject chain = new()
-                    {
-                        { "anyOf", new JsonArray(keys.Select(x => (object?)new JsonObject { { "required", new JsonArray { x } } })) },
-                    };
-                    for (var i = keys.Length - 1; i >= 0; i--)
-                    {
-                        chain = new JsonObject
-                        {
-                            { "if", new JsonObject { { "required", new JsonArray { keys[i] } } } },
-                            { "then", SchemaOf(info.Unions[i].SubType) },
-                            { "else", chain },
-                        };
-                    }
-                    foreach (var entry in chain)
-                    {
-                        schema.Add(entry.Key, entry.Value);
-                    }
+                    schema.Add("minProperties", 1);
+                    schema.Add("maxProperties", 1);
+                    schema.Add("additionalProperties", false);
                     return schema;
                 }
 
@@ -325,6 +301,20 @@ namespace VYaml.JsonSchema
                 return result;
             }
 
+            // Wrapped: the deserializer reads an empty value (`key:`) as an empty mapping, which is valid when the
+            // subtype has no required member.
+            JsonObject WrappedValueSchema(Type subType)
+            {
+                var valueSchema = SchemaOf(subType);
+                if (schemaOptions.TryGetTypeSchema(subType, out _) ||
+                    !TryGetSchemaInfo(subType, out var subTypeInfo) ||
+                    subTypeInfo.Members.Any(x => x.IsRequired))
+                {
+                    return valueSchema;
+                }
+                return new JsonObject { { "anyOf", new JsonArray { valueSchema, new JsonObject { { "type", "null" } } } } };
+            }
+
             // A user-provided schema is embedded as is; allOf lets WithNull / WithAnnotations add keywords next to it.
             static JsonObject CustomSchema(string jsonSchema) => new()
             {
@@ -335,16 +325,6 @@ namespace VYaml.JsonSchema
             string KeyNameOf(YamlMemberSchemaInfo member) => member.IsKeyNameFixed
                 ? member.KeyName
                 : NamingConventionMutator.Mutate(member.KeyName, options.NamingConvention);
-
-            string RequiredKeyOf(YamlUnionSchemaInfo union)
-            {
-                if (TryGetSchemaInfo(union.SubType, out var subTypeInfo) &&
-                    subTypeInfo.Members.FirstOrDefault(x => x.KeyName == union.RequiredKey) is { } member)
-                {
-                    return KeyNameOf(member);
-                }
-                return union.RequiredKey!;
-            }
 
             JsonObject? GenericSchemaOf(Type type)
             {

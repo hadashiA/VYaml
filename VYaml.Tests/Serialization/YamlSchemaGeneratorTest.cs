@@ -137,54 +137,40 @@ namespace VYaml.Tests.Serialization
         }
 
         [Test]
-        public void UnionByRequiredKey()
+        public void UnionWrapped()
         {
-            var root = Parse(YamlSchemaGenerator.Generate<Job>());
-            var definitions = root.GetProperty("definitions");
+            var root = Parse(YamlSchemaGenerator.Generate<NotificationConfig>());
+            var notification = root.GetProperty("definitions").GetProperty("INotification");
 
-            var step = definitions.GetProperty("IStep");
-            Assert.That(step.GetProperty("type").GetString(), Is.EqualTo("object"));
-            // the keys are listed for completion, described by the subtype's <summary> (or its name)
-            var keyProperties = step.GetProperty("properties");
-            Assert.That(keyProperties.EnumerateObject().Select(x => x.Name), Is.EqualTo(new[] { "uses", "run" }));
-            Assert.That(keyProperties.GetProperty("uses").GetProperty("description").GetString(), Is.EqualTo("Runs an action."));
-            Assert.That(keyProperties.GetProperty("run").GetProperty("description").GetString(), Is.EqualTo("RunStep"));
-            // if/then/else chain in the order of declaration (the first one wins)
-            Assert.That(Chain(step), Is.EqualTo(new[]
-            {
-                ("uses", "#/definitions/ActionStep"),
-                ("run", "#/definitions/RunStep"),
-            }));
-            // none of the keys
-            var last = step.GetProperty("else").GetProperty("else");
-            Assert.That(last.GetProperty("anyOf").EnumerateArray().Select(x => Strings(x.GetProperty("required")).Single()),
-                Is.EqualTo(new[] { "uses", "run" }));
+            Assert.That(notification.GetProperty("type").GetString(), Is.EqualTo("object"));
+            Assert.That(notification.GetProperty("minProperties").GetInt32(), Is.EqualTo(1));
+            Assert.That(notification.GetProperty("maxProperties").GetInt32(), Is.EqualTo(1));
+            Assert.That(notification.GetProperty("additionalProperties").GetBoolean(), Is.False);
+
+            var properties = notification.GetProperty("properties");
+            Assert.That(properties.EnumerateObject().Select(x => x.Name), Is.EqualTo(new[] { "slack", "email", "webhook", "console" }));
+
+            // an empty value is allowed unless the subtype has a required member
+            var email = properties.GetProperty("email").GetProperty("anyOf").EnumerateArray().ToArray();
+            Assert.That(email[0].GetProperty("$ref").GetString(), Is.EqualTo("#/definitions/EmailNotification"));
+            Assert.That(email[1].GetProperty("type").GetString(), Is.EqualTo("null"));
+            Assert.That(properties.GetProperty("webhook").GetProperty("$ref").GetString(), Is.EqualTo("#/definitions/WebhookNotification"));
+
+            // the subtype's <summary> describes the value
+            var emailNotification = root.GetProperty("definitions").GetProperty("EmailNotification");
+            Assert.That(emailNotification.GetProperty("description").GetString(), Is.EqualTo("Sends an email."));
         }
 
         [Test]
-        public void UnionByRequiredKey_NamingConvention()
+        public void UnionWrapped_OverrideMember()
         {
-            // the key follows YamlSerializerOptions.NamingConvention unless it is fixed by the subtype
-            var options = new YamlSerializerOptions { NamingConvention = NamingConvention.KebabCase };
-            var root = Parse(YamlSchemaGenerator.Generate<UnionKeyBase>(options));
-            Assert.That(Chain(root).Select(x => x.Key), Is.EqualTo(new[] { "max_count", "alias" }));
-
-            var job = Parse(YamlSchemaGenerator.Generate<Job>(new YamlSerializerOptions { NamingConvention = NamingConvention.UpperCamelCase }));
-            Assert.That(Chain(job.GetProperty("definitions").GetProperty("IStep")).Select(x => x.Key),
-                Is.EqualTo(new[] { "Uses", "Run" }));
-        }
-
-        [Test]
-        public void UnionByRequiredKey_OverrideMember()
-        {
-            var root = Parse(YamlSchemaGenerator.Generate<OverrideKeyBase>());
-            Assert.That(Chain(root).Select(x => x.Key), Is.EqualTo(new[] { "hug", "wave" }));
-
+            // [YamlMember] / [YamlIgnore] on override properties
+            var root = Parse(YamlSchemaGenerator.Generate<OverrideNotificationBase>());
             var definitions = root.GetProperty("definitions");
-            Assert.That(definitions.GetProperty("OverrideKeyHug").GetProperty("properties").EnumerateObject().Select(x => x.Name),
-                Is.EqualTo(new[] { "hug", "note", "power" }));
-            Assert.That(definitions.GetProperty("OverrideKeyWave").GetProperty("properties").EnumerateObject().Select(x => x.Name),
-                Is.EqualTo(new[] { "wave", "power" }));
+            Assert.That(definitions.GetProperty("OverrideSlackNotification").GetProperty("properties").EnumerateObject().Select(x => x.Name),
+                Is.EqualTo(new[] { "channel", "note", "priority" }));
+            Assert.That(definitions.GetProperty("OverrideEmailNotification").GetProperty("properties").EnumerateObject().Select(x => x.Name),
+                Is.EqualTo(new[] { "to", "priority" }));
         }
 
         [Test]
@@ -299,17 +285,5 @@ namespace VYaml.Tests.Serialization
         static JsonElement Parse(string json) => JsonDocument.Parse(json).RootElement;
 
         static string?[] Strings(JsonElement array) => array.EnumerateArray().Select(x => x.GetString()).ToArray();
-
-        // (required key, $ref of then) of an if/then/else chain
-        static (string? Key, string? Ref)[] Chain(JsonElement schema)
-        {
-            var result = new List<(string?, string?)>();
-            while (schema.TryGetProperty("if", out var condition))
-            {
-                result.Add((Strings(condition.GetProperty("required")).Single(), schema.GetProperty("then").GetProperty("$ref").GetString()));
-                schema = schema.GetProperty("else");
-            }
-            return result.ToArray();
-        }
     }
 }

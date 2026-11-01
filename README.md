@@ -737,7 +737,7 @@ endpoints:
 - XML doc comments (`<summary>`, and `<param>` of positional records) are written as `description`. This requires `<GenerateDocumentationFile>true</GenerateDocumentationFile>` in the project of the types.
 - Union types are written as follows.
   - With `DiscriminatorKey`, `anyOf` of the subtypes. The discriminator key is required and its values are completed.
-  - With `RequiredKey`, an `if`/`then`/`else` chain of the subtypes, in the order of declaration. Only the subtype the deserializer selects reports errors.
+  - With `Style = YamlUnionStyle.Wrapped`, an object with exactly one of the keys, whose values are the subtypes. An empty value is allowed unless the subtype has a required member.
   - With YAML tags, `anyOf` of the subtypes. The subtypes are not distinguished, because JSON Schema cannot express YAML tags.
 
 Other [YamlObject] types are written to `definitions` and referenced with `$ref`.

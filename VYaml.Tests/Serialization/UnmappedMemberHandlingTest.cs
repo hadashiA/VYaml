@@ -52,11 +52,13 @@ namespace VYaml.Tests.Serialization
         }
 
         [Test]
-        public void Disallow_RequiredKey()
+        public void Disallow_Wrapped()
         {
-            var job = Deserialize<Job>("steps:\n  - name: a\n    uses: actions/checkout@v4\n", Disallow);
-            Assert.That(job.Steps[0], Is.InstanceOf<ActionStep>());
-            Assert.Throws<YamlSerializerException>(() => Deserialize<Job>("steps:\n  - run: ls\n    uses: x\n", Disallow));
+            var slack = Deserialize<INotification>("slack: { channel: a }", Disallow);
+            Assert.That(slack, Is.InstanceOf<SlackNotification>());
+
+            var ex = Assert.Throws<YamlSerializerException>(() => Deserialize<INotification>("slack: { channel: a, to: b }", Disallow));
+            Assert.That(ex!.Message, Does.Contain("'to'"));
         }
     }
 }

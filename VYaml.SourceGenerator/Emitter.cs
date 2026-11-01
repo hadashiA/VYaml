@@ -229,8 +229,7 @@ static class Emitter
                 {
                     foreach (var union in model.Unions)
                     {
-                        var requiredKey = model.IsUnionByKey ? Literal(union.KeyName) : "null";
-                        codeWriter.AppendLine($"new global::VYaml.Serialization.YamlUnionSchemaInfo({Literal(union.SubTypeTag)}, typeof({union.FullTypeName}), {requiredKey}),");
+                        codeWriter.AppendLine($"new global::VYaml.Serialization.YamlUnionSchemaInfo({Literal(union.SubTypeTag)}, typeof({union.FullTypeName})),");
                     }
                 }
                 codeWriter.AppendLine("},");
@@ -241,7 +240,8 @@ static class Emitter
             }
 
             codeWriter.AppendLine($"{Literal(model.Description)},");
-            codeWriter.AppendLine($"{Literal(model.UnionDiscriminatorKeyName)});");
+            codeWriter.AppendLine($"{Literal(model.UnionDiscriminatorKeyName)},");
+            codeWriter.AppendLine($"global::VYaml.Annotations.YamlUnionStyle.{model.UnionStyle});");
         }
     }
 
@@ -347,7 +347,7 @@ static class Emitter
             {
                 using (codeWriter.BeginBlockScope("while (!parser.End && parser.CurrentEventType != ParseEventType.MappingEnd)"))
                 {
-                    codeWriter.AppendLine($"global::VYaml.Serialization.YamlObjectMembersFormatter.SkipUnmappedMember(ref parser, context, discriminatorKeyUtf8, {Literal(model.TypeName)});")
+                    codeWriter.AppendLine($"global::VYaml.Serialization.YamlObjectMembersFormatter.SkipUnmappedMember(ref parser, context, discriminatorKeyUtf8, {Literal(model.TypeName)});");
                 }
                 codeWriter.AppendLine("parser.ReadWithVerify(ParseEventType.MappingEnd);");
             }
