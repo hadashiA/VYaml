@@ -10,6 +10,28 @@ namespace VYaml.Annotations
         KebabCase,
     }
 
+    /// <summary>
+    /// How a union ([YamlObjectUnion]) identifies the subtype in YAML.
+    /// </summary>
+    public enum YamlUnionStyle
+    {
+        /// <summary>
+        /// A YAML tag (<c>!circle { radius: 1 }</c>). The default.
+        /// </summary>
+        Tag,
+
+        /// <summary>
+        /// The value of <see cref="YamlObjectUnionAttribute.DiscriminatorKey"/> (<c>{ type: circle, radius: 1 }</c>).
+        /// Implied by setting DiscriminatorKey.
+        /// </summary>
+        DiscriminatorKey,
+
+        /// <summary>
+        /// A mapping with exactly one key, the tag string, whose value is the subtype (<c>{ circle: { radius: 1 } }</c>).
+        /// </summary>
+        Wrapped,
+    }
+
     [AttributeUsage(AttributeTargets.Class |
                     AttributeTargets.Struct |
                     AttributeTargets.Interface |
@@ -67,8 +89,8 @@ namespace VYaml.Annotations
     public class YamlObjectUnionAttribute : Attribute
     {
         /// <summary>
-        /// The YAML tag of the subtype (e.g. <c>!circle</c>), or the value of <see cref="DiscriminatorKey"/>.
-        /// Empty for <see cref="RequiredKey"/>.
+        /// The YAML tag of the subtype (e.g. <c>!circle</c>), the value of <see cref="DiscriminatorKey"/>, or the key
+        /// of <see cref="YamlUnionStyle.Wrapped"/>.
         /// </summary>
         public string Tag { get; }
         public Type SubType { get; }
@@ -94,36 +116,27 @@ namespace VYaml.Annotations
         public string? DiscriminatorKey { get; set; }
 
         /// <summary>
-        /// Identifies the subtype by the presence of this key, like the steps of GitHub Actions workflows (a step with
-        /// <c>uses:</c> or a step with <c>run:</c>). Use the constructor without a tag.
-        /// When used, every [YamlObjectUnion] of the type must have a RequiredKey.
+        /// How the subtype is identified. <see cref="YamlUnionStyle.DiscriminatorKey"/> is implied by setting
+        /// <see cref="DiscriminatorKey"/>, so this is mainly for <see cref="YamlUnionStyle.Wrapped"/>: the mapping has
+        /// exactly one key, the tag string, and its value is the subtype. An empty value (<c>console:</c>) is an
+        /// empty mapping.
+        /// When used, every [YamlObjectUnion] of the type must have the same Style.
         /// </summary>
         /// <example>
         /// <code>
-        /// [YamlObjectUnion(typeof(ActionStep), RequiredKey = "uses")]
-        /// [YamlObjectUnion(typeof(RunStep), RequiredKey = "run")]
-        /// public partial interface IStep { }
+        /// [YamlObjectUnion("slack", typeof(SlackNotification), Style = YamlUnionStyle.Wrapped)]
+        /// [YamlObjectUnion("console", typeof(ConsoleNotification), Style = YamlUnionStyle.Wrapped)]
+        /// public partial interface INotification { }
+        ///
+        /// // - slack: { channel: "#alerts" }
+        /// // - console: {}
         /// </code>
         /// </example>
-        /// <remarks>
-        /// The key is a member of the subtype, specified by its key name or its C# member name, and follows the same
-        /// naming rules as the member. When a mapping contains the keys of several subtypes, the subtype declared
-        /// first wins.
-        /// </remarks>
-        public string? RequiredKey { get; set; }
+        public YamlUnionStyle Style { get; set; }
 
         public YamlObjectUnionAttribute(string tagString, Type subType)
         {
             Tag = tagString;
-            SubType = subType;
-        }
-
-        /// <summary>
-        /// For <see cref="RequiredKey"/>.
-        /// </summary>
-        public YamlObjectUnionAttribute(Type subType)
-        {
-            Tag = "";
             SubType = subType;
         }
     }

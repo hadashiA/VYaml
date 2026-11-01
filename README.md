@@ -603,46 +603,75 @@ public partial class Rect : IShape
 - Every `[YamlObjectUnion]` of the type must have the same `DiscriminatorKey`.
 - Subtypes must be `[YamlObject]` types that are not unions, and must not have a member with the same key as the discriminator.
 
-##### Required key
+##### Wrapped
 
-With `RequiredKey`, a union identifies the subtype by which key the mapping contains, like the steps of GitHub Actions workflows.
+With `Style = YamlUnionStyle.Wrapped`, each value is a mapping with exactly one key: the tag string identifies the subtype, and the value is the subtype itself.
 
 ``` csharp
 [YamlObject]
-[YamlObjectUnion(typeof(ActionStep), RequiredKey = "uses")]
-[YamlObjectUnion(typeof(RunStep), RequiredKey = "run")]
-public partial interface IStep
+[YamlObjectUnion("slack", typeof(SlackNotification), Style = YamlUnionStyle.Wrapped)]
+[YamlObjectUnion("email", typeof(EmailNotification), Style = YamlUnionStyle.Wrapped)]
+[YamlObjectUnion("webhook", typeof(WebhookNotification), Style = YamlUnionStyle.Wrapped)]
+[YamlObjectUnion("console", typeof(ConsoleNotification), Style = YamlUnionStyle.Wrapped)]
+public partial interface INotification
 {
 }
 
 [YamlObject]
-public partial class ActionStep : IStep
+public partial class SlackNotification : INotification
 {
-    public string? Name { get; set; }
-    public string Uses { get; set; } = "";
-    public Dictionary<string, string>? With { get; set; }
+    public string Channel { get; set; } = "";
 }
 
 [YamlObject]
-public partial class RunStep : IStep
+public partial class EmailNotification : INotification
 {
-    public string? Name { get; set; }
-    public string Run { get; set; } = "";
+    public string To { get; set; } = "";
+    public string? Subject { get; set; }
+}
+
+[YamlObject]
+public partial class WebhookNotification : INotification
+{
+    public string Url { get; set; } = "";
+}
+
+[YamlObject]
+public partial class ConsoleNotification : INotification
+{
 }
 ```
 
 ``` yaml
-steps:
-  - name: Checkout
-    uses: actions/checkout@v4
-  - run: dotnet test
+notifications:
+  - slack: { channel: "#alerts" }
+  - email:
+      to: ops@example.com
+      subject: "[alert] {{ .name }}"
+  - webhook: { url: https://example.com/hook }
+  - console: {}
+  - console:       # an empty value is an empty mapping
 ```
 
-- The key is a member of the subtype, specified by its key name or its C# member name (e.g. `nameof(RunStep.Run)`). It follows the same naming rules as the member (`[YamlMember("name")]`, naming conventions).
-- When a mapping contains the keys of several subtypes, the subtype declared first wins.
-- Subtypes are serialized as is.
-- Every `[YamlObjectUnion]` of the type must have a `RequiredKey` (it cannot be mixed with tags or `DiscriminatorKey`).
+- The key is the tag string as is (it does not follow naming conventions).
+- An empty value (`console:`) is deserialized as an empty mapping. Required members are still required.
+- A mapping with no key, an unknown key, or more than one key is an error.
+- Every `[YamlObjectUnion]` of the type must have `Style = YamlUnionStyle.Wrapped`. (`YamlUnionStyle.DiscriminatorKey` is implied by setting `DiscriminatorKey`.)
 - Subtypes must be `[YamlObject]` types that are not unions.
+- `[YamlMember]` and `[YamlIgnore]` on an override property take effect, so a member of the base type can have a different key in each subtype:
+  ```csharp
+  public abstract partial class NotificationBase
+  {
+      public abstract string Target { get; set; }
+  }
+
+  [YamlObject]
+  public partial class SlackNotification : NotificationBase
+  {
+      [YamlMember("channel")]
+      public override string Target { get; set; } = "";
+  }
+  ```
 
 ## Customize serialization behaviour
 

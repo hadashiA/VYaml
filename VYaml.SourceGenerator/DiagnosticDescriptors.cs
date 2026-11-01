@@ -139,7 +139,7 @@ static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor UnionKindInconsistent = new(
         id: "VYAML017",
         title: "All [YamlObjectUnion] of a type must identify the subtype in the same way",
-        messageFormat: "All [YamlObjectUnion] of '{0}' must identify the subtype in the same way: the same DiscriminatorKey, RequiredKey, or neither (YAML tag)",
+        messageFormat: "All [YamlObjectUnion] of '{0}' must identify the subtype in the same way: the same DiscriminatorKey, Style = YamlUnionStyle.Wrapped, or neither (YAML tag)",
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -155,23 +155,15 @@ static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor UnionSubTypeMustBeObject = new(
         id: "VYAML019",
         title: "Subtype of a union identified by keys must be a [YamlObject] that is not a union",
-        messageFormat: "The subtype '{1}' of the union '{0}' with DiscriminatorKey or RequiredKey must be a [YamlObject] type that is not a union",
+        messageFormat: "The subtype '{1}' of the union '{0}' with DiscriminatorKey or Style = YamlUnionStyle.Wrapped must be a [YamlObject] type that is not a union",
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);
 
-    public static readonly DiagnosticDescriptor UnionTagOrRequiredKey = new(
+    public static readonly DiagnosticDescriptor UnionStyleMismatch = new(
         id: "VYAML020",
-        title: "[YamlObjectUnion] must have either a tag or RequiredKey",
-        messageFormat: "[YamlObjectUnion] for '{1}' of '{0}' must have either a tag string or RequiredKey, and RequiredKey cannot be combined with DiscriminatorKey",
-        category: Category,
-        defaultSeverity: DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
-
-    public static readonly DiagnosticDescriptor UnionRequiredKeyNotFoundInSubType = new(
-        id: "VYAML021",
-        title: "RequiredKey of [YamlObjectUnion] must be a member of the subtype",
-        messageFormat: "The RequiredKey '{1}' of the union '{0}' must be a serialized member (key name or member name) of the subtype '{2}'",
+        title: "Style of [YamlObjectUnion] does not match its DiscriminatorKey",
+        messageFormat: "The Style of [YamlObjectUnion] for '{1}' of '{0}' is {2}, but DiscriminatorKey implies {3}: Style = YamlUnionStyle.{2} cannot be combined with DiscriminatorKey",
         category: Category,
         defaultSeverity: DiagnosticSeverity.Error,
         isEnabledByDefault: true);

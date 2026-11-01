@@ -55,53 +55,75 @@ namespace VYaml.Tests.TypeDeclarations
         public DiscriminatorBase? Base { get; set; }
     }
 
-    // like the steps of GitHub Actions workflows
+    // the key of the target is given by [YamlMember] on an override property
     [YamlObject]
-    [YamlObjectUnion(typeof(ActionStep), RequiredKey = "uses")]
-    [YamlObjectUnion(typeof(RunStep), RequiredKey = nameof(RunStep.Run))]
-    public partial interface IStep
+    [YamlObjectUnion("slack", typeof(OverrideSlackNotification), Style = YamlUnionStyle.Wrapped)]
+    [YamlObjectUnion("email", typeof(OverrideEmailNotification), Style = YamlUnionStyle.Wrapped)]
+    public abstract partial class OverrideNotificationBase
+    {
+        public abstract string Target { get; set; }
+        public virtual string? Note { get; set; }
+        public int Priority { get; set; }
+    }
+
+    [YamlObject]
+    public partial class OverrideSlackNotification : OverrideNotificationBase
+    {
+        [YamlMember("channel")]
+        public override string Target { get; set; } = "";
+    }
+
+    [YamlObject]
+    public partial class OverrideEmailNotification : OverrideNotificationBase
+    {
+        [YamlMember("to")]
+        public override string Target { get; set; } = "";
+
+        [YamlIgnore]
+        public override string? Note { get; set; }
+    }
+
+    // wrapped by a mapping with one key: `- slack: { channel: "#alerts" }`
+    [YamlObject]
+    [YamlObjectUnion("slack", typeof(SlackNotification), Style = YamlUnionStyle.Wrapped)]
+    [YamlObjectUnion("email", typeof(EmailNotification), Style = YamlUnionStyle.Wrapped)]
+    [YamlObjectUnion("webhook", typeof(WebhookNotification), Style = YamlUnionStyle.Wrapped)]
+    [YamlObjectUnion("console", typeof(ConsoleNotification), Style = YamlUnionStyle.Wrapped)]
+    public partial interface INotification
     {
     }
 
     [YamlObject]
-    public partial class ActionStep : IStep
+    public partial class SlackNotification : INotification
     {
-        public string? Name { get; set; }
-        public string Uses { get; set; } = "";
-        public Dictionary<string, string>? With { get; set; }
+        public string Channel { get; set; } = "";
+    }
+
+    /// <summary>
+    /// Sends an email.
+    /// </summary>
+    [YamlObject]
+    public partial class EmailNotification : INotification
+    {
+        public string To { get; set; } = "";
+        public string? Subject { get; set; }
     }
 
     [YamlObject]
-    public partial class RunStep : IStep
+    public partial class WebhookNotification : INotification
     {
-        public string? Name { get; set; }
-        public string Run { get; set; } = "";
-        public string? Shell { get; set; }
+        [YamlRequired]
+        public string Url { get; set; } = "";
     }
 
     [YamlObject]
-    public partial class Job
+    public partial class ConsoleNotification : INotification
     {
-        public List<IStep> Steps { get; set; } = new();
     }
 
     [YamlObject]
-    [YamlObjectUnion(typeof(UnionKeySnakeCase), RequiredKey = "max_count")]
-    [YamlObjectUnion(typeof(UnionKeyAlias), RequiredKey = "alias")]
-    public abstract partial class UnionKeyBase
+    public partial class NotificationConfig
     {
-    }
-
-    [YamlObject(NamingConvention.SnakeCase)]
-    public partial class UnionKeySnakeCase : UnionKeyBase
-    {
-        public int MaxCount { get; set; }
-    }
-
-    [YamlObject]
-    public partial class UnionKeyAlias : UnionKeyBase
-    {
-        [YamlMember("alias")]
-        public string Value { get; set; } = "";
+        public List<INotification> Notifications { get; set; } = new();
     }
 }
