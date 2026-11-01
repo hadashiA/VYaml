@@ -50,13 +50,5 @@ namespace VYaml.Tests.Serialization
 
             Assert.Throws<YamlSerializerException>(() => Deserialize<IDiscriminatorShape>("radius: 2\ntype: circle\nwidth: 1\n", Disallow));
         }
-
-        [Test]
-        public void Disallow_RequiredKey()
-        {
-            var job = Deserialize<Job>("steps:\n  - name: a\n    uses: actions/checkout@v4\n", Disallow);
-            Assert.That(job.Steps[0], Is.InstanceOf<ActionStep>());
-            Assert.Throws<YamlSerializerException>(() => Deserialize<Job>("steps:\n  - run: ls\n    uses: x\n", Disallow));
-        }
     }
 }

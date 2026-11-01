@@ -617,44 +617,52 @@ public partial class Rect : IShape
 - Every `[YamlObjectUnion]` of the type must have the same `DiscriminatorKey`.
 - Subtypes must be `[YamlObject]` types that are not unions, and must not have a member with the same key as the discriminator.
 
-##### Required key
+##### Wrapped
 
-With `RequiredKey`, a union identifies the subtype by which key the mapping contains, like the steps of GitHub Actions workflows.
+With `Style = YamlUnionStyle.Wrapped`, each value is a mapping with exactly one key: the tag string identifies the subtype, and the value is the subtype itself.
 
 ``` csharp
 [YamlObject]
-[YamlObjectUnion(typeof(ActionStep), RequiredKey = "uses")]
-[YamlObjectUnion(typeof(RunStep), RequiredKey = "run")]
-public partial interface IStep
+[YamlObjectUnion("violence", typeof(ViolenceSkill), Style = YamlUnionStyle.Wrapped)]
+[YamlObjectUnion("hug", typeof(HugSkill), Style = YamlUnionStyle.Wrapped)]
+[YamlObjectUnion("meditate", typeof(MeditateSkill), Style = YamlUnionStyle.Wrapped)]
+public partial interface ISkill
 {
 }
 
 [YamlObject]
-public partial class ActionStep : IStep
+public partial class ViolenceSkill : ISkill
 {
-    public string? Name { get; set; }
-    public string Uses { get; set; } = "";
-    public Dictionary<string, string>? With { get; set; }
+    public string Name { get; set; } = "";
+    public int Power { get; set; }
 }
 
 [YamlObject]
-public partial class RunStep : IStep
+public partial class HugSkill : ISkill
 {
-    public string? Name { get; set; }
-    public string Run { get; set; } = "";
+    public string Name { get; set; } = "";
+}
+
+[YamlObject]
+public partial class MeditateSkill : ISkill
+{
 }
 ```
 
 ``` yaml
-steps:
-  - name: Checkout
-    uses: actions/checkout@v4
-  - run: dotnet test
+skills:
+  - violence: { name: Punch, power: 1 }
+  - hug:
+      name: Hug
+  - meditate: {}
+  - meditate:      # an empty value is an empty mapping
 ```
 
-- The key is a member of the subtype, specified by its key name or its C# member name (e.g. `nameof(RunStep.Run)`). It follows the same naming rules as the member (`[YamlMember("name")]`, naming conventions).
-- When a mapping contains the keys of several subtypes, the subtype declared first wins.
-- Subtypes are serialized as is.
+- The key is the tag string as is (it does not follow naming conventions).
+- An empty value (`meditate:`) is deserialized as an empty mapping. Required members are still required.
+- A mapping with no key, an unknown key, or more than one key is an error.
+- Every `[YamlObjectUnion]` of the type must have `Style = YamlUnionStyle.Wrapped`. (`YamlUnionStyle.DiscriminatorKey` is implied by setting `DiscriminatorKey`.)
+- Subtypes must be `[YamlObject]` types that are not unions.
 - `[YamlMember]` and `[YamlIgnore]` on an override property take effect, so a member of the base type can have a different key in each subtype:
   ```csharp
   public abstract partial class SkillSpec
@@ -665,12 +673,10 @@ steps:
   [YamlObject]
   public partial class HugSkillSpec : SkillSpec
   {
-      [YamlMember("hug")]
+      [YamlMember("target")]
       public override string Name { get; set; } = "";
   }
   ```
-- Every `[YamlObjectUnion]` of the type must have a `RequiredKey` (it cannot be mixed with tags or `DiscriminatorKey`).
-- Subtypes must be `[YamlObject]` types that are not unions.
 
 ## JSON Schema generation
 
@@ -714,7 +720,7 @@ endpoints:
 - XML doc comments (`<summary>`, and `<param>` of positional records) are written as `description`. This requires `<GenerateDocumentationFile>true</GenerateDocumentationFile>` in the project of the types.
 - Union types are written as follows.
   - With `DiscriminatorKey`, `anyOf` of the subtypes. The discriminator key is required and its values are completed.
-  - With `RequiredKey`, an `if`/`then`/`else` chain of the subtypes, in the order of declaration. Only the subtype the deserializer selects reports errors.
+  - With `Style = YamlUnionStyle.Wrapped`, an object with exactly one of the keys, whose values are the subtypes. An empty value is allowed unless the subtype has a required member.
   - With YAML tags, `anyOf` of the subtypes. The subtypes are not distinguished, because JSON Schema cannot express YAML tags.
 
 Other [YamlObject] types are written to `definitions` and referenced with `$ref`.

@@ -23,9 +23,14 @@ namespace VYaml.Serialization
         public string? Description { get; }
 
         /// <summary>
-        /// <see cref="YamlObjectUnionAttribute.DiscriminatorKey"/>. null for unions by tag or by required key.
+        /// <see cref="YamlObjectUnionAttribute.DiscriminatorKey"/>. null for the other union styles.
         /// </summary>
         public string? UnionDiscriminatorKeyName { get; }
+
+        /// <summary>
+        /// How the union identifies the subtype. <see cref="YamlUnionStyle.Tag"/> for non-union types.
+        /// </summary>
+        public YamlUnionStyle UnionStyle { get; }
 
         public bool IsUnion => Unions.Length > 0;
 
@@ -34,13 +39,15 @@ namespace VYaml.Serialization
             YamlMemberSchemaInfo[] members,
             YamlUnionSchemaInfo[] unions,
             string? description = null,
-            string? unionDiscriminatorKeyName = null)
+            string? unionDiscriminatorKeyName = null,
+            YamlUnionStyle unionStyle = YamlUnionStyle.Tag)
         {
             Type = type;
             Members = members;
             Unions = unions;
             Description = description;
             UnionDiscriminatorKeyName = unionDiscriminatorKeyName;
+            UnionStyle = unionStyle;
         }
     }
 
@@ -93,23 +100,15 @@ namespace VYaml.Serialization
     public sealed class YamlUnionSchemaInfo
     {
         /// <summary>
-        /// The YAML tag, or the value of the discriminator key. For unions by required key, the
-        /// <see cref="YamlObjectUnionAttribute.RequiredKey"/> as declared (see <see cref="RequiredKey"/> for the key name).
+        /// The YAML tag, the value of the discriminator key, or the key of a <see cref="YamlUnionStyle.Wrapped"/> union.
         /// </summary>
         public string Tag { get; }
         public Type SubType { get; }
 
-        /// <summary>
-        /// <see cref="YamlObjectUnionAttribute.RequiredKey"/>, resolved to <see cref="YamlMemberSchemaInfo.KeyName"/>
-        /// of the subtype's member. null for unions by tag or by discriminator key.
-        /// </summary>
-        public string? RequiredKey { get; }
-
-        public YamlUnionSchemaInfo(string tag, Type subType, string? requiredKey = null)
+        public YamlUnionSchemaInfo(string tag, Type subType)
         {
             Tag = tag;
             SubType = subType;
-            RequiredKey = requiredKey;
         }
     }
 
