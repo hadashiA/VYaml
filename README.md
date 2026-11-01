@@ -31,14 +31,17 @@ Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular y
 - Deserialize / Serialize
   - Converts between YAML and C# user-defined types.
   - Converts between YAML and primitive collections via `dynamic`.
-  - Supports interface-typed and abstract class-typed objects.
+  - Supports interface-typed and abstract class-typed objects ([union](#polymorphism-union)), identified in the YAML by a tag (`!circle`), by the value of a key (`type: circle`), or by wrapping with the key (`circle: { ... }`).
   - Supports anchor (`&`) and alias (`*`) in the YAML spec.
   - Supports deserializing multiple YAML documents into a C# collection.
   - Customization
     - Rename key
     - Ignore member
-- JSON Schema generation
-  - Generates a JSON Schema (draft-07) from C# types for editor completion / validation of YAML files.
+    - Required members, naming conventions, default values from constructors
+- [JSON Schema generation](#json-schema-generation) from C# types (`VYaml.JsonSchema` package)
+  - The schema describes exactly what the serializer accepts: keys, required members, enums, defaults, unions, and XML doc comments as descriptions.
+  - Point yaml-language-server (VS Code) or a JetBrains IDE at it to get completion and validation while writing the YAML by hand.
+  <!-- TODO: screen recording of completion / validation in an editor -->
 - Mainly focused on Unity
     - Only 2021.3 and higher (netstandard2.1 compatible)
 
