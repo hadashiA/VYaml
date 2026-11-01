@@ -21,6 +21,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VYaml.Tests.NativeAot", "VY
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VYaml.JsonSchema", "VYaml.JsonSchema\VYaml.JsonSchema.csproj", "{3A94A1A6-6629-483E-AC6B-CB20775D35D6}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sandbox", "sandbox", "{3D40F055-384E-DE04-BB81-B7972E166B19}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SchemaSample", "sandbox\SchemaSample\SchemaSample.csproj", "{DFA7E5A7-AF00-42DF-9514-21116D0AF115}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -127,9 +131,24 @@ Global
 		{3A94A1A6-6629-483E-AC6B-CB20775D35D6}.Release|x64.Build.0 = Release|Any CPU
 		{3A94A1A6-6629-483E-AC6B-CB20775D35D6}.Release|x86.ActiveCfg = Release|Any CPU
 		{3A94A1A6-6629-483E-AC6B-CB20775D35D6}.Release|x86.Build.0 = Release|Any CPU
+		{DFA7E5A7-AF00-42DF-9514-21116D0AF115}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DFA7E5A7-AF00-42DF-9514-21116D0AF115}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DFA7E5A7-AF00-42DF-9514-21116D0AF115}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{DFA7E5A7-AF00-42DF-9514-21116D0AF115}.Debug|x64.Build.0 = Debug|Any CPU
+		{DFA7E5A7-AF00-42DF-9514-21116D0AF115}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{DFA7E5A7-AF00-42DF-9514-21116D0AF115}.Debug|x86.Build.0 = Debug|Any CPU
+		{DFA7E5A7-AF00-42DF-9514-21116D0AF115}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DFA7E5A7-AF00-42DF-9514-21116D0AF115}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DFA7E5A7-AF00-42DF-9514-21116D0AF115}.Release|x64.ActiveCfg = Release|Any CPU
+		{DFA7E5A7-AF00-42DF-9514-21116D0AF115}.Release|x64.Build.0 = Release|Any CPU
+		{DFA7E5A7-AF00-42DF-9514-21116D0AF115}.Release|x86.ActiveCfg = Release|Any CPU
+		{DFA7E5A7-AF00-42DF-9514-21116D0AF115}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{DFA7E5A7-AF00-42DF-9514-21116D0AF115} = {3D40F055-384E-DE04-BB81-B7972E166B19}
 	EndGlobalSection
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		NetStandard2_0_Compat\NetStandard2_0_Compat.projitems*{03e661fa-f25d-407e-ae90-daf988bcf536}*SharedItemsImports = 13

@@ -696,6 +696,7 @@ notifications:
 It can be used with [yaml-language-server](https://github.com/redhat-developer/yaml-language-server) (VS Code YAML extension), JetBrains IDEs, etc. to get completion and validation when writing YAML by hand.
 
 It is provided by the separate [VYaml.JsonSchema](https://www.nuget.org/packages/VYaml.JsonSchema) package (namespace `VYaml.JsonSchema`), so that the serializer itself stays free of the reflection it needs.
+[sandbox/SchemaSample](sandbox/SchemaSample) writes a schema and a YAML file that uses it, covering the union styles; open the YAML in VS Code with the YAML extension to try completion and validation.
 
 ``` bash
 dotnet add package VYaml.JsonSchema
