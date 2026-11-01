@@ -11,111 +11,112 @@ namespace VYaml.Tests.Serialization
         [Test]
         public void Serialize()
         {
-            Assert.That(Serialize<ISkill>(new ViolenceSkill { Name = "Punch", Power = 1 }),
-                Is.EqualTo("violence:\n  name: Punch\n  power: 1\n"));
-            Assert.That(Serialize<ISkill>(new MeditateSkill()), Is.EqualTo("meditate: {}\n"));
-            Assert.That(Serialize<ISkill?>(null), Is.EqualTo("null"));
+            Assert.That(Serialize<INotification>(new EmailNotification { To = "ops@example.com", Subject = "alert" }),
+                Is.EqualTo("email:\n  to: ops@example.com\n  subject: alert\n"));
+            Assert.That(Serialize<INotification>(new ConsoleNotification()), Is.EqualTo("console: {}\n"));
+            Assert.That(Serialize<INotification?>(null), Is.EqualTo("null"));
 
-            var character = new Character
+            var config = new NotificationConfig
             {
-                Skills = new List<ISkill> { new HugSkill { Name = "Hug" }, new MeditateSkill() },
+                Notifications = new List<INotification> { new SlackNotification { Channel = "#alerts" }, new ConsoleNotification() },
             };
-            Assert.That(Serialize(character), Is.EqualTo(
-                "skills:\n" +
-                "- hug:\n" +
-                "    name: Hug\n" +
-                "- meditate: {}\n"));
+            Assert.That(Serialize(config), Is.EqualTo(
+                "notifications:\n" +
+                "- slack:\n" +
+                "    channel: \"#alerts\"\n" +
+                "- console: {}\n"));
         }
 
         [Test]
         public void Deserialize()
         {
-            var character = Deserialize<Character>(
-                "skills:\n" +
-                "  - violence: { name: 暴力, power: 1 }\n" +
-                "  - hug:\n" +
-                "      name: 抱きしめ\n" +
-                "  - meditate: {}\n" +
-                "  - meditate:\n" +
-                "  - meditate: ~\n");
+            var config = Deserialize<NotificationConfig>(
+                "notifications:\n" +
+                "  - email: { to: ops@example.com, subject: 障害 }\n" +
+                "  - slack:\n" +
+                "      channel: \"#alerts\"\n" +
+                "  - console: {}\n" +
+                "  - console:\n" +
+                "  - console: ~\n");
 
-            Assert.That(character.Skills, Has.Count.EqualTo(5));
-            var violence = (ViolenceSkill)character.Skills[0];
-            Assert.That(violence.Name, Is.EqualTo("暴力"));
-            Assert.That(violence.Power, Is.EqualTo(1));
-            Assert.That(((HugSkill)character.Skills[1]).Name, Is.EqualTo("抱きしめ"));
+            Assert.That(config.Notifications, Has.Count.EqualTo(5));
+            var email = (EmailNotification)config.Notifications[0];
+            Assert.That(email.To, Is.EqualTo("ops@example.com"));
+            Assert.That(email.Subject, Is.EqualTo("障害"));
+            Assert.That(((SlackNotification)config.Notifications[1]).Channel, Is.EqualTo("#alerts"));
             // an empty value is an empty mapping
-            Assert.That(character.Skills[2], Is.InstanceOf<MeditateSkill>());
-            Assert.That(character.Skills[3], Is.InstanceOf<MeditateSkill>());
-            Assert.That(character.Skills[4], Is.InstanceOf<MeditateSkill>());
+            Assert.That(config.Notifications[2], Is.InstanceOf<ConsoleNotification>());
+            Assert.That(config.Notifications[3], Is.InstanceOf<ConsoleNotification>());
+            Assert.That(config.Notifications[4], Is.InstanceOf<ConsoleNotification>());
 
-            Assert.That(YamlSerializer.Deserialize<ISkill?>(System.Text.Encoding.UTF8.GetBytes("~")), Is.Null);
+            Assert.That(YamlSerializer.Deserialize<INotification?>(System.Text.Encoding.UTF8.GetBytes("~")), Is.Null);
         }
 
         [Test]
         public void Deserialize_EmptyValue_WithMembers()
         {
-            // same as `hug: {}`: members not in the YAML take default(T); required members are still required
-            var hug = (HugSkill)Deserialize<ISkill>("hug:\n");
-            Assert.That(hug.Name, Is.EqualTo(((HugSkill)Deserialize<ISkill>("hug: {}")).Name));
+            // same as `slack: {}`: members not in the YAML take default(T); required members are still required
+            var slack = (SlackNotification)Deserialize<INotification>("slack:\n");
+            Assert.That(slack.Channel, Is.EqualTo(((SlackNotification)Deserialize<INotification>("slack: {}")).Channel));
 
-            var ex = Assert.Throws<YamlSerializerException>(() => Deserialize<ISkill>("shout:\n"));
-            Assert.That(ex!.Message, Does.Contain("'words'"));
+            var ex = Assert.Throws<YamlSerializerException>(() => Deserialize<INotification>("webhook:\n"));
+            Assert.That(ex!.Message, Does.Contain("'url'"));
 
-            Assert.That(((ShoutSkill)Deserialize<ISkill>("shout: { words: Hey }")).Words, Is.EqualTo("Hey"));
+            Assert.That(((WebhookNotification)Deserialize<INotification>("webhook: { url: https://example.com/hook }")).Url,
+                Is.EqualTo("https://example.com/hook"));
         }
 
         [Test]
         public void Deserialize_Errors()
         {
-            var unknown = Assert.Throws<YamlSerializerException>(() => Deserialize<ISkill>("kick: {}\n"));
-            Assert.That(unknown!.Message, Does.Contain("'kick'").And.Contain("'violence'").And.Contain("'meditate'"));
+            var unknown = Assert.Throws<YamlSerializerException>(() => Deserialize<INotification>("sms: {}\n"));
+            Assert.That(unknown!.Message, Does.Contain("'sms'").And.Contain("'slack'").And.Contain("'console'"));
 
-            var several = Assert.Throws<YamlSerializerException>(() => Deserialize<ISkill>("hug: {}\nmeditate: {}\n"));
+            var several = Assert.Throws<YamlSerializerException>(() => Deserialize<INotification>("slack: {}\nconsole: {}\n"));
             Assert.That(several!.Message, Does.Contain("exactly one key"));
 
-            Assert.Throws<VYaml.Parser.YamlParserException>(() => Deserialize<ISkill>("[hug]\n")); // not a mapping
-            Assert.Throws<YamlSerializerException>(() => Deserialize<ISkill>("? [hug]\n: {}\n")); // not a scalar key
-            Assert.Throws<YamlSerializerException>(() => Deserialize<ISkill>("{}\n"));
+            Assert.Throws<VYaml.Parser.YamlParserException>(() => Deserialize<INotification>("[slack]\n")); // not a mapping
+            Assert.Throws<YamlSerializerException>(() => Deserialize<INotification>("? [slack]\n: {}\n")); // not a scalar key
+            Assert.Throws<YamlSerializerException>(() => Deserialize<INotification>("{}\n"));
         }
 
         [Test]
         public void OverrideMemberAttributes()
         {
-            var hug = (OverrideKeyHug)Deserialize<OverrideKeyBase>("hug:\n  power: 2\n  hug: tight\n  note: n\n");
-            Assert.That(hug.Name, Is.EqualTo("tight"));
-            Assert.That(hug.Note, Is.EqualTo("n"));
-            Assert.That(hug.Power, Is.EqualTo(2));
+            var slack = (OverrideSlackNotification)Deserialize<OverrideNotificationBase>("slack:\n  priority: 2\n  channel: \"#alerts\"\n  note: n\n");
+            Assert.That(slack.Target, Is.EqualTo("#alerts"));
+            Assert.That(slack.Note, Is.EqualTo("n"));
+            Assert.That(slack.Priority, Is.EqualTo(2));
             // the override stays at the position of the base declaration
-            Assert.That(Serialize<OverrideKeyBase>(hug), Is.EqualTo("hug:\n  hug: tight\n  note: n\n  power: 2\n"));
+            Assert.That(Serialize<OverrideNotificationBase>(slack), Is.EqualTo("slack:\n  channel: \"#alerts\"\n  note: n\n  priority: 2\n"));
 
-            var wave = (OverrideKeyWave)Deserialize<OverrideKeyBase>("wave: { wave: hello, note: n }");
-            Assert.That(wave.Name, Is.EqualTo("hello"));
-            Assert.That(wave.Note, Is.Null); // [YamlIgnore] on the override
-            Assert.That(Serialize<OverrideKeyBase>(wave), Is.EqualTo("wave:\n  wave: hello\n  power: 0\n"));
+            var email = (OverrideEmailNotification)Deserialize<OverrideNotificationBase>("email: { to: ops@example.com, note: n }");
+            Assert.That(email.Target, Is.EqualTo("ops@example.com"));
+            Assert.That(email.Note, Is.Null); // [YamlIgnore] on the override
+            Assert.That(Serialize<OverrideNotificationBase>(email), Is.EqualTo("email:\n  to: ops@example.com\n  priority: 0\n"));
         }
 
         [Test]
         public void RoundTrip()
         {
-            var value = new Character
+            var value = new NotificationConfig
             {
-                Skills = new List<ISkill>
+                Notifications = new List<INotification>
                 {
-                    new ViolenceSkill { Name = "Punch", Power = 3 },
-                    new HugSkill { Name = "Hug" },
-                    new MeditateSkill(),
-                    new ShoutSkill { Words = "Hey" },
+                    new EmailNotification { To = "ops@example.com", Subject = "alert" },
+                    new SlackNotification { Channel = "#alerts" },
+                    new ConsoleNotification(),
+                    new WebhookNotification { Url = "https://example.com/hook" },
                 },
             };
             var yaml = Serialize(value);
-            var restored = Deserialize<Character>(yaml);
+            var restored = Deserialize<NotificationConfig>(yaml);
 
-            Assert.That(restored.Skills, Has.Count.EqualTo(4));
-            Assert.That(((ViolenceSkill)restored.Skills[0]).Power, Is.EqualTo(3));
-            Assert.That(((HugSkill)restored.Skills[1]).Name, Is.EqualTo("Hug"));
-            Assert.That(restored.Skills[2], Is.InstanceOf<MeditateSkill>());
-            Assert.That(((ShoutSkill)restored.Skills[3]).Words, Is.EqualTo("Hey"));
+            Assert.That(restored.Notifications, Has.Count.EqualTo(4));
+            Assert.That(((EmailNotification)restored.Notifications[0]).Subject, Is.EqualTo("alert"));
+            Assert.That(((SlackNotification)restored.Notifications[1]).Channel, Is.EqualTo("#alerts"));
+            Assert.That(restored.Notifications[2], Is.InstanceOf<ConsoleNotification>());
+            Assert.That(((WebhookNotification)restored.Notifications[3]).Url, Is.EqualTo("https://example.com/hook"));
         }
     }
 }

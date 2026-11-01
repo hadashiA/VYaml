@@ -55,75 +55,75 @@ namespace VYaml.Tests.TypeDeclarations
         public DiscriminatorBase? Base { get; set; }
     }
 
-    // the key of each subtype is given by [YamlMember] on an override property
+    // the key of the target is given by [YamlMember] on an override property
     [YamlObject]
-    [YamlObjectUnion("hug", typeof(OverrideKeyHug), Style = YamlUnionStyle.Wrapped)]
-    [YamlObjectUnion("wave", typeof(OverrideKeyWave), Style = YamlUnionStyle.Wrapped)]
-    public abstract partial class OverrideKeyBase
+    [YamlObjectUnion("slack", typeof(OverrideSlackNotification), Style = YamlUnionStyle.Wrapped)]
+    [YamlObjectUnion("email", typeof(OverrideEmailNotification), Style = YamlUnionStyle.Wrapped)]
+    public abstract partial class OverrideNotificationBase
     {
-        public abstract string Name { get; set; }
+        public abstract string Target { get; set; }
         public virtual string? Note { get; set; }
-        public int Power { get; set; }
+        public int Priority { get; set; }
     }
 
     [YamlObject]
-    public partial class OverrideKeyHug : OverrideKeyBase
+    public partial class OverrideSlackNotification : OverrideNotificationBase
     {
-        [YamlMember("hug")]
-        public override string Name { get; set; } = "";
+        [YamlMember("channel")]
+        public override string Target { get; set; } = "";
     }
 
     [YamlObject]
-    public partial class OverrideKeyWave : OverrideKeyBase
+    public partial class OverrideEmailNotification : OverrideNotificationBase
     {
-        [YamlMember("wave")]
-        public override string Name { get; set; } = "";
+        [YamlMember("to")]
+        public override string Target { get; set; } = "";
 
         [YamlIgnore]
         public override string? Note { get; set; }
     }
 
-    // wrapped by a mapping with one key: `- violence: { name: Punch, power: 1 }`
+    // wrapped by a mapping with one key: `- slack: { channel: "#alerts" }`
     [YamlObject]
-    [YamlObjectUnion("violence", typeof(ViolenceSkill), Style = YamlUnionStyle.Wrapped)]
-    [YamlObjectUnion("hug", typeof(HugSkill), Style = YamlUnionStyle.Wrapped)]
-    [YamlObjectUnion("meditate", typeof(MeditateSkill), Style = YamlUnionStyle.Wrapped)]
-    [YamlObjectUnion("shout", typeof(ShoutSkill), Style = YamlUnionStyle.Wrapped)]
-    public partial interface ISkill
+    [YamlObjectUnion("slack", typeof(SlackNotification), Style = YamlUnionStyle.Wrapped)]
+    [YamlObjectUnion("email", typeof(EmailNotification), Style = YamlUnionStyle.Wrapped)]
+    [YamlObjectUnion("webhook", typeof(WebhookNotification), Style = YamlUnionStyle.Wrapped)]
+    [YamlObjectUnion("console", typeof(ConsoleNotification), Style = YamlUnionStyle.Wrapped)]
+    public partial interface INotification
     {
+    }
+
+    [YamlObject]
+    public partial class SlackNotification : INotification
+    {
+        public string Channel { get; set; } = "";
     }
 
     /// <summary>
-    /// Hits the target.
+    /// Sends an email.
     /// </summary>
     [YamlObject]
-    public partial class ViolenceSkill : ISkill
+    public partial class EmailNotification : INotification
     {
-        public string Name { get; set; } = "";
-        public int Power { get; set; }
+        public string To { get; set; } = "";
+        public string? Subject { get; set; }
     }
 
     [YamlObject]
-    public partial class HugSkill : ISkill
-    {
-        public string Name { get; set; } = "";
-    }
-
-    [YamlObject]
-    public partial class MeditateSkill : ISkill
-    {
-    }
-
-    [YamlObject]
-    public partial class ShoutSkill : ISkill
+    public partial class WebhookNotification : INotification
     {
         [YamlRequired]
-        public string Words { get; set; } = "";
+        public string Url { get; set; } = "";
     }
 
     [YamlObject]
-    public partial class Character
+    public partial class ConsoleNotification : INotification
     {
-        public List<ISkill> Skills { get; set; } = new();
+    }
+
+    [YamlObject]
+    public partial class NotificationConfig
+    {
+        public List<INotification> Notifications { get; set; } = new();
     }
 }

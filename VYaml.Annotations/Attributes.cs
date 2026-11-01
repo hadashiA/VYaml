@@ -118,18 +118,18 @@ namespace VYaml.Annotations
         /// <summary>
         /// How the subtype is identified. <see cref="YamlUnionStyle.DiscriminatorKey"/> is implied by setting
         /// <see cref="DiscriminatorKey"/>, so this is mainly for <see cref="YamlUnionStyle.Wrapped"/>: the mapping has
-        /// exactly one key, the tag string, and its value is the subtype. An empty value (<c>meditate:</c>) is an
+        /// exactly one key, the tag string, and its value is the subtype. An empty value (<c>console:</c>) is an
         /// empty mapping.
         /// When used, every [YamlObjectUnion] of the type must have the same Style.
         /// </summary>
         /// <example>
         /// <code>
-        /// [YamlObjectUnion("violence", typeof(ViolenceSkill), Style = YamlUnionStyle.Wrapped)]
-        /// [YamlObjectUnion("meditate", typeof(MeditateSkill), Style = YamlUnionStyle.Wrapped)]
-        /// public partial interface ISkill { }
+        /// [YamlObjectUnion("slack", typeof(SlackNotification), Style = YamlUnionStyle.Wrapped)]
+        /// [YamlObjectUnion("console", typeof(ConsoleNotification), Style = YamlUnionStyle.Wrapped)]
+        /// public partial interface INotification { }
         ///
-        /// // - violence: { name: Punch, power: 1 }
-        /// // - meditate: {}
+        /// // - slack: { channel: "#alerts" }
+        /// // - console: {}
         /// </code>
         /// </example>
         public YamlUnionStyle Style { get; set; }

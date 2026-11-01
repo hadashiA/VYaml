@@ -609,58 +609,67 @@ With `Style = YamlUnionStyle.Wrapped`, each value is a mapping with exactly one 
 
 ``` csharp
 [YamlObject]
-[YamlObjectUnion("violence", typeof(ViolenceSkill), Style = YamlUnionStyle.Wrapped)]
-[YamlObjectUnion("hug", typeof(HugSkill), Style = YamlUnionStyle.Wrapped)]
-[YamlObjectUnion("meditate", typeof(MeditateSkill), Style = YamlUnionStyle.Wrapped)]
-public partial interface ISkill
+[YamlObjectUnion("slack", typeof(SlackNotification), Style = YamlUnionStyle.Wrapped)]
+[YamlObjectUnion("email", typeof(EmailNotification), Style = YamlUnionStyle.Wrapped)]
+[YamlObjectUnion("webhook", typeof(WebhookNotification), Style = YamlUnionStyle.Wrapped)]
+[YamlObjectUnion("console", typeof(ConsoleNotification), Style = YamlUnionStyle.Wrapped)]
+public partial interface INotification
 {
 }
 
 [YamlObject]
-public partial class ViolenceSkill : ISkill
+public partial class SlackNotification : INotification
 {
-    public string Name { get; set; } = "";
-    public int Power { get; set; }
+    public string Channel { get; set; } = "";
 }
 
 [YamlObject]
-public partial class HugSkill : ISkill
+public partial class EmailNotification : INotification
 {
-    public string Name { get; set; } = "";
+    public string To { get; set; } = "";
+    public string? Subject { get; set; }
 }
 
 [YamlObject]
-public partial class MeditateSkill : ISkill
+public partial class WebhookNotification : INotification
+{
+    public string Url { get; set; } = "";
+}
+
+[YamlObject]
+public partial class ConsoleNotification : INotification
 {
 }
 ```
 
 ``` yaml
-skills:
-  - violence: { name: Punch, power: 1 }
-  - hug:
-      name: Hug
-  - meditate: {}
-  - meditate:      # an empty value is an empty mapping
+notifications:
+  - slack: { channel: "#alerts" }
+  - email:
+      to: ops@example.com
+      subject: "[alert] {{ .name }}"
+  - webhook: { url: https://example.com/hook }
+  - console: {}
+  - console:       # an empty value is an empty mapping
 ```
 
 - The key is the tag string as is (it does not follow naming conventions).
-- An empty value (`meditate:`) is deserialized as an empty mapping. Required members are still required.
+- An empty value (`console:`) is deserialized as an empty mapping. Required members are still required.
 - A mapping with no key, an unknown key, or more than one key is an error.
 - Every `[YamlObjectUnion]` of the type must have `Style = YamlUnionStyle.Wrapped`. (`YamlUnionStyle.DiscriminatorKey` is implied by setting `DiscriminatorKey`.)
 - Subtypes must be `[YamlObject]` types that are not unions.
 - `[YamlMember]` and `[YamlIgnore]` on an override property take effect, so a member of the base type can have a different key in each subtype:
   ```csharp
-  public abstract partial class SkillSpec
+  public abstract partial class NotificationBase
   {
-      public abstract string Name { get; set; }
+      public abstract string Target { get; set; }
   }
 
   [YamlObject]
-  public partial class HugSkillSpec : SkillSpec
+  public partial class SlackNotification : NotificationBase
   {
-      [YamlMember("target")]
-      public override string Name { get; set; } = "";
+      [YamlMember("channel")]
+      public override string Target { get; set; } = "";
   }
   ```
 
