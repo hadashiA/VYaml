@@ -41,7 +41,9 @@ Compared with [YamlDotNet](https://github.com/aaubry/YamlDotNet) (most popular y
 - [JSON Schema generation](#json-schema-generation) from C# types (`VYaml.JsonSchema` package)
   - The schema describes exactly what the serializer accepts: keys, required members, enums, defaults, unions, and XML doc comments as descriptions.
   - Point yaml-language-server (VS Code) or a JetBrains IDE at it to get completion and validation while writing the YAML by hand.
-  <!-- TODO: screen recording of completion / validation in an editor -->
+
+  ![Completion and validation of YAML with the generated JSON Schema](./screenshots/demo_schema.gif)
+
 - Mainly focused on Unity
     - Only 2021.3 and higher (netstandard2.1 compatible)
 
@@ -697,6 +699,8 @@ It can be used with [yaml-language-server](https://github.com/redhat-developer/y
 
 It is provided by the separate [VYaml.JsonSchema](https://www.nuget.org/packages/VYaml.JsonSchema) package (namespace `VYaml.JsonSchema`), so that the serializer itself stays free of the reflection it needs.
 [sandbox/SchemaSample](sandbox/SchemaSample) writes a schema and a YAML file that uses it, covering the union styles; open the YAML in VS Code with the YAML extension to try completion and validation.
+
+![Completion and validation of YAML with the generated JSON Schema](./screenshots/demo_schema.gif)
 
 ``` bash
 dotnet add package VYaml.JsonSchema
