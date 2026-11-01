@@ -26,6 +26,9 @@ jobs:
     needs: [update-version-number]
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      id-token: write
+      contents: read    
     steps:
     - uses: actions/checkout@v3
       with:
