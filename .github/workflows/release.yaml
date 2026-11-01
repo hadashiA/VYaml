@@ -41,9 +41,19 @@ jobs:
       with:
         name: nuget
         path: ./publish
-    - name: Publish
-      if: github.event.inputs.dry-run == 'false'
-      run: dotnet nuget push ./publish/*.nupkg -s 'https://api.nuget.org/v3/index.json' -k ${{secrets.NUGET_API_KEY}}
+
+    - name: Login to NuGet
+      uses: NuGet/login@v1
+      id: login
+      with:
+        user: ${{secrets.NUGET_USERNAME}}
+
+    - name: Push to NuGet
+      run: |
+        dotnet nuget push ./publish/*.nupkg \
+          --api-key ${{ steps.login.outputs.NUGET_API_KEY }} \
+          --source https://api.nuget.org/v3/index.json \
+          --skip-duplicate        
       
   create-release:
     if: github.event.inputs.dry-run == 'false'    
