@@ -9,8 +9,9 @@ using System.Reflection;
 using System.Runtime.Serialization;
 using System.Text;
 using VYaml.Annotations;
+using VYaml.Serialization;
 
-namespace VYaml.Serialization
+namespace VYaml.JsonSchema
 {
     /// <summary>
     /// Generates a JSON Schema (draft-07) that describes the YAML representation of a type,

@@ -3,6 +3,7 @@ using System.Linq;
 using System.Text.Json;
 using NUnit.Framework;
 using VYaml.Annotations;
+using VYaml.JsonSchema;
 using VYaml.Serialization;
 using VYaml.Tests.TypeDeclarations;
 

@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
+using VYaml.Serialization;
 
-namespace VYaml.Serialization
+namespace VYaml.JsonSchema
 {
     /// <summary>
     /// Options of <see cref="YamlSchemaGenerator"/>.

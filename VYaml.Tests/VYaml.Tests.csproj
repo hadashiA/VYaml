@@ -29,6 +29,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\VYaml\VYaml.csproj" />
+        <ProjectReference Include="..\VYaml.JsonSchema\VYaml.JsonSchema.csproj" />
         <!--<ProjectReference Include="..\VYaml.SourceGenerator\VYaml.SourceGenerator.csproj" />-->
 
 		<!-- disable SourceGenerator for net framework because it does not allow default implementations for interfaces -->

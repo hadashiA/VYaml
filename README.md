@@ -692,7 +692,15 @@ notifications:
 `YamlSchemaGenerator` generates a [JSON Schema](https://json-schema.org/) (draft-07) that describes the YAML representation of a C# type.
 It can be used with [yaml-language-server](https://github.com/redhat-developer/yaml-language-server) (VS Code YAML extension), JetBrains IDEs, etc. to get completion and validation when writing YAML by hand.
 
+It is provided by the separate [VYaml.JsonSchema](https://www.nuget.org/packages/VYaml.JsonSchema) package (namespace `VYaml.JsonSchema`), so that the serializer itself stays free of the reflection it needs.
+
+``` bash
+dotnet add package VYaml.JsonSchema
+```
+
 ``` csharp
+using VYaml.JsonSchema;
+
 /// <summary>
 /// Server settings.
 /// </summary>
