@@ -752,14 +752,14 @@ var schemaOptions = new YamlSchemaGeneratorOptions
     // reject unknown keys ("additionalProperties": false)
     AdditionalProperties = false,
 }
-// schemas of types serialized by custom formatters
-.AddTypeSchema<SkillRange>("""
-    { "anyOf": [{ "type": "integer" }, { "const": "inf" }, { "type": "object", "properties": { "skip": { "type": "integer" }, "count": { "type": "integer" } } }] }
+// schemas of types serialized by custom formatters (e.g. a Duration read from "30s" or seconds)
+.AddTypeSchema<Duration>("""
+    { "anyOf": [{ "type": "integer" }, { "type": "string", "pattern": "^[0-9]+(ms|s|m|h)$" }] }
     """)
 // a schema of a particular member
-.AddMemberSchema<Card>(nameof(Card.Rarity), """{ "anyOf": [{ "type": "integer" }, { "const": "inf" }] }""");
+.AddMemberSchema<ServerConfig>(nameof(ServerConfig.Port), """{ "type": "integer", "minimum": 1, "maximum": 65535 }""");
 
-var json = YamlSchemaGenerator.Generate<Card>(options, schemaOptions);
+var json = YamlSchemaGenerator.Generate<ServerConfig>(options, schemaOptions);
 ```
 
 - `AdditionalProperties` is applied to [YamlObject] types. When it is not set, it follows `YamlSerializerOptions.UnmappedMemberHandling` (`false` for `Disallow`).
