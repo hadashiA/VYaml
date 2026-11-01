@@ -90,10 +90,10 @@ static class Emitter
                 EmitSerializeMethodUnionWithDiscriminator(model, codeWriter);
                 EmitDeserializeMethodUnionWithDiscriminator(model, codeWriter);
             }
-            else if (model.IsUnionByKey)
+            else if (model.UnionStyle == UnionStyle.Wrapped)
             {
-                EmitSerializeMethodUnionByKey(model, codeWriter);
-                EmitDeserializeMethodUnionByKey(model, codeWriter);
+                EmitSerializeMethodUnionWrapped(model, codeWriter);
+                EmitDeserializeMethodUnionWrapped(model, codeWriter);
             }
             else
             {
@@ -261,16 +261,29 @@ static class Emitter
     {
         var returnType = ReturnType(model);
         codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
+        codeWriter.AppendLine($"public {returnType} DeserializeMembers(ref YamlParser parser, YamlDeserializationContext context) => DeserializeMembers(ref parser, context, false);");
+        codeWriter.AppendLine();
+        codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
+        codeWriter.AppendLine($"public {returnType} DeserializeEmpty(ref YamlParser parser, YamlDeserializationContext context) => DeserializeMembers(ref parser, context, true);");
+        codeWriter.AppendLine();
+        // isEmpty: the current node is a null scalar (`key:` of a wrapped union), read as an empty mapping
         using var methodScope = codeWriter.BeginBlockScope(
-            $"public {returnType} DeserializeMembers(ref YamlParser parser, YamlDeserializationContext context)");
+            $"{returnType} DeserializeMembers(ref YamlParser parser, YamlDeserializationContext context, bool isEmpty)");
 
         if (model.Members.Count <= 0)
         {
-            using (codeWriter.BeginBlockScope("while (!parser.End && parser.CurrentEventType != ParseEventType.MappingEnd)"))
+            using (codeWriter.BeginBlockScope("if (isEmpty)"))
             {
-                codeWriter.AppendLine("parser.SkipCurrentNode(); // key or value");
+                codeWriter.AppendLine("parser.Read(); // null scalar");
             }
-            codeWriter.AppendLine("parser.ReadWithVerify(ParseEventType.MappingEnd);");
+            using (codeWriter.BeginBlockScope("else"))
+            {
+                using (codeWriter.BeginBlockScope("while (!parser.End && parser.CurrentEventType != ParseEventType.MappingEnd)"))
+                {
+                    codeWriter.AppendLine("parser.SkipCurrentNode(); // key or value");
+                }
+                codeWriter.AppendLine("parser.ReadWithVerify(ParseEventType.MappingEnd);");
+            }
             codeWriter.AppendLine($"return new {model.TypeName}();");
             return;
         }
@@ -289,6 +302,11 @@ static class Emitter
             codeWriter.AppendLine($"var __{member.Name}__found = false;");
         }
 
+        using (codeWriter.BeginBlockScope("if (isEmpty)"))
+        {
+            codeWriter.AppendLine("parser.Read(); // null scalar");
+        }
+        var membersScope = codeWriter.BeginBlockScope("else"); // disposed after the mapping end
         using (codeWriter.BeginBlockScope("while (!parser.End && parser.CurrentEventType != ParseEventType.MappingEnd)"))
         {
             using (codeWriter.BeginBlockScope("if (parser.CurrentEventType != ParseEventType.Scalar)"))
@@ -343,6 +361,7 @@ static class Emitter
             }
         }
         codeWriter.AppendLine("parser.ReadWithVerify(ParseEventType.MappingEnd);");
+        membersScope.Dispose();
 
         if (requiredMembers.Length > 0)
         {
@@ -489,7 +508,7 @@ static class Emitter
         }
     }
 
-    static void EmitSerializeMethodUnionByKey(TypeMetaModel model, CodeWriter codeWriter)
+    static void EmitSerializeMethodUnionWrapped(TypeMetaModel model, CodeWriter codeWriter)
     {
         var returnType = ReturnType(model);
 
@@ -506,13 +525,16 @@ static class Emitter
             }
         }
 
-        // the key identifying the subtype is a member of the subtype itself
+        // { <tag>: <subtype> }
         using (codeWriter.BeginBlockScope("switch (value)"))
         {
             foreach (var union in model.Unions)
             {
                 codeWriter.AppendLine($"case {union.FullTypeName} x:");
+                codeWriter.AppendLine("    emitter.BeginMapping();");
+                codeWriter.AppendLine($"    emitter.WriteString({Literal(union.SubTypeTag)});");
                 codeWriter.AppendLine("    context.Serialize(ref emitter, x);");
+                codeWriter.AppendLine("    emitter.EndMapping();");
                 codeWriter.AppendLine("    break;");
             }
             codeWriter.AppendLine("default:");
@@ -520,34 +542,10 @@ static class Emitter
         }
     }
 
-    static void EmitDeserializeMethodUnionByKey(TypeMetaModel model, CodeWriter codeWriter)
+    static void EmitDeserializeMethodUnionWrapped(TypeMetaModel model, CodeWriter codeWriter)
     {
         var returnType = ReturnType(model);
-
-        codeWriter.AppendLine("static readonly byte[][] UnionKeysUtf8Bytes =");
-        codeWriter.AppendLine("{");
-        using (codeWriter.BeginIndentScope())
-        {
-            foreach (var union in model.Unions)
-            {
-                codeWriter.Append("new byte[] ");
-                codeWriter.AppendByteArrayString(System.Text.Encoding.UTF8.GetBytes(union.KeyName));
-                codeWriter.AppendLine($", // {union.KeyName}", false);
-            }
-        }
-        codeWriter.AppendLine("};");
-        codeWriter.AppendLine();
-        codeWriter.AppendLine("static readonly global::VYaml.Annotations.NamingConvention[] UnionKeyNamingConventions =");
-        codeWriter.AppendLine("{");
-        using (codeWriter.BeginIndentScope())
-        {
-            foreach (var union in model.Unions)
-            {
-                codeWriter.AppendLine($"global::VYaml.Annotations.NamingConvention.{union.KeyNamingConvention},");
-            }
-        }
-        codeWriter.AppendLine("};");
-        codeWriter.AppendLine();
+        var keys = string.Join(", ", model.Unions.Select(x => $"'{x.SubTypeTag}'"));
 
         codeWriter.AppendLine("[VYaml.Annotations.Preserve]");
         using var methodScope = codeWriter.BeginBlockScope(
@@ -561,18 +559,29 @@ static class Emitter
 
         codeWriter.AppendLine("var mark = parser.CurrentMark;");
         codeWriter.AppendLine("parser.ReadWithVerify(ParseEventType.MappingStart);");
-        using (codeWriter.BeginBlockScope("switch (global::VYaml.Serialization.YamlLookaheadHelper.IndexOfAnyKeyInMapping(ref parser, context, UnionKeysUtf8Bytes, UnionKeyNamingConventions))"))
+        using (codeWriter.BeginBlockScope("if (parser.CurrentEventType != ParseEventType.Scalar)"))
         {
-            for (var i = 0; i < model.Unions.Count; i++)
-            {
-                var union = model.Unions[i];
-                codeWriter.AppendLine($"case {i}:");
-                codeWriter.AppendLine($"    return global::VYaml.Serialization.YamlObjectMembersFormatter.GetWithVerify<{union.FullTypeName}>(context.Resolver).DeserializeMembers(ref parser, context);");
-            }
-            var keys = string.Join(", ", model.Unions.Select(x => $"'{x.KeyName}'"));
-            codeWriter.AppendLine("default:");
-            codeWriter.AppendLine($"    throw new YamlSerializerException(mark, {Literal($"Cannot find any of the keys {keys} to identify the subtype of the union {model.TypeName}")});");
+            codeWriter.AppendLine($"throw new YamlSerializerException(parser.CurrentMark, {Literal($"The union {model.TypeName} must be a mapping with one of the keys {keys}")});");
         }
+        codeWriter.AppendLine("var key = parser.ReadScalarAsString();");
+        codeWriter.AppendLine($"{returnType} result;");
+        using (codeWriter.BeginBlockScope("switch (key)"))
+        {
+            foreach (var union in model.Unions)
+            {
+                codeWriter.AppendLine($"case {Literal(union.SubTypeTag)}:");
+                codeWriter.AppendLine($"    result = global::VYaml.Serialization.YamlObjectMembersFormatter.DeserializeWrapped<{union.FullTypeName}>(ref parser, context);");
+                codeWriter.AppendLine("    break;");
+            }
+            codeWriter.AppendLine("default:");
+            codeWriter.AppendLine($"    throw new YamlSerializerException(mark, {Literal("Unknown key '")} + key + {Literal($"' for union {model.TypeName}; expected one of {keys}")});");
+        }
+        using (codeWriter.BeginBlockScope("if (parser.CurrentEventType != ParseEventType.MappingEnd)"))
+        {
+            codeWriter.AppendLine($"throw new YamlSerializerException(parser.CurrentMark, {Literal($"The union {model.TypeName} must be a mapping with exactly one key, but it has more than one")});");
+        }
+        codeWriter.AppendLine("parser.Read(); // MappingEnd");
+        codeWriter.AppendLine("return result;");
     }
 
     static string ReturnType(TypeMetaModel model) =>

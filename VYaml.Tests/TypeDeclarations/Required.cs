@@ -32,7 +32,7 @@ namespace VYaml.Tests.TypeDeclarations
     }
 
     [YamlObject]
-    [YamlObjectUnion(typeof(RequiredActionStep), RequiredKey = "uses")]
+    [YamlObjectUnion("action", typeof(RequiredActionStep), DiscriminatorKey = "kind")]
     public partial interface IRequiredStep
     {
     }

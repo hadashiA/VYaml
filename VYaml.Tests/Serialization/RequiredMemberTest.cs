@@ -55,10 +55,10 @@ namespace VYaml.Tests.Serialization
         [Test]
         public void Deserialize_UnionSubType()
         {
-            var step = (RequiredActionStep)Deserialize<IRequiredStep>("name: n\nuses: u\n");
+            var step = (RequiredActionStep)Deserialize<IRequiredStep>("kind: action\nname: n\nuses: u\n");
             Assert.That(step.Uses, Is.EqualTo("u"));
 
-            var ex = Assert.Throws<YamlSerializerException>(() => Deserialize<IRequiredStep>("uses: u\n"));
+            var ex = Assert.Throws<YamlSerializerException>(() => Deserialize<IRequiredStep>("kind: action\nuses: u\n"));
             Assert.That(ex!.Message, Does.Contain("'name'"));
         }
 

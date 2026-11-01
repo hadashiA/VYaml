@@ -11,6 +11,14 @@ public enum NamingConvention
     KebabCase,
 }
 
+// mirrors VYaml.Annotations.YamlUnionStyle
+public enum UnionStyle
+{
+    Tag,
+    DiscriminatorKey,
+    Wrapped,
+}
+
 // Value-equatable projection of one [YamlObject] type, produced by TypeMetaAnalyzer and consumed by
 // Emitter. This is the incremental cache key: it carries only primitives / strings / EquatableArrays,
 // so an edit that does not change a type's relevant shape produces an equal model, letting Roslyn skip
@@ -33,8 +41,7 @@ sealed record TypeMetaModel
     public bool IsUnion { get; }
     // DiscriminatorKey of [YamlObjectUnion]; null for tag-based unions
     public string? UnionDiscriminatorKeyName { get; }
-    // RequiredKey of [YamlObjectUnion]: subtypes are identified by the presence of a key (UnionMetaModel.KeyName)
-    public bool IsUnionByKey { get; }
+    public UnionStyle UnionStyle { get; }
     public NamingConvention NamingConventionByType { get; }
     public bool HasConstructor { get; }
 
@@ -63,7 +70,7 @@ sealed record TypeMetaModel
         string typeDeclarationKeyword,
         bool isUnion,
         string? unionDiscriminatorKeyName,
-        bool isUnionByKey,
+        UnionStyle unionStyle,
         NamingConvention namingConventionByType,
         bool hasConstructor,
         EquatableArray<MemberMetaModel> members,
@@ -86,7 +93,7 @@ sealed record TypeMetaModel
         TypeDeclarationKeyword = typeDeclarationKeyword;
         IsUnion = isUnion;
         UnionDiscriminatorKeyName = unionDiscriminatorKeyName;
-        IsUnionByKey = isUnionByKey;
+        UnionStyle = unionStyle;
         NamingConventionByType = namingConventionByType;
         HasConstructor = hasConstructor;
         Members = members;
@@ -148,15 +155,9 @@ sealed record UnionMetaModel
     public string SubTypeTag { get; }
     public string FullTypeName { get; }
 
-    // RequiredKey: the key name of the subtype's member, and the subtype's naming convention
-    public string KeyName { get; }
-    public NamingConvention KeyNamingConvention { get; }
-
-    public UnionMetaModel(string subTypeTag, string fullTypeName, string keyName = "", NamingConvention keyNamingConvention = NamingConvention.LowerCamelCase)
+    public UnionMetaModel(string subTypeTag, string fullTypeName)
     {
         SubTypeTag = subTypeTag;
         FullTypeName = fullTypeName;
-        KeyName = keyName;
-        KeyNamingConvention = keyNamingConvention;
     }
 }

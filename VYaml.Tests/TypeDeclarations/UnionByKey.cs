@@ -55,53 +55,75 @@ namespace VYaml.Tests.TypeDeclarations
         public DiscriminatorBase? Base { get; set; }
     }
 
-    // like the steps of GitHub Actions workflows
+    // the key of each subtype is given by [YamlMember] on an override property
     [YamlObject]
-    [YamlObjectUnion(typeof(ActionStep), RequiredKey = "uses")]
-    [YamlObjectUnion(typeof(RunStep), RequiredKey = nameof(RunStep.Run))]
-    public partial interface IStep
+    [YamlObjectUnion("hug", typeof(OverrideKeyHug), Style = YamlUnionStyle.Wrapped)]
+    [YamlObjectUnion("wave", typeof(OverrideKeyWave), Style = YamlUnionStyle.Wrapped)]
+    public abstract partial class OverrideKeyBase
+    {
+        public abstract string Name { get; set; }
+        public virtual string? Note { get; set; }
+        public int Power { get; set; }
+    }
+
+    [YamlObject]
+    public partial class OverrideKeyHug : OverrideKeyBase
+    {
+        [YamlMember("hug")]
+        public override string Name { get; set; } = "";
+    }
+
+    [YamlObject]
+    public partial class OverrideKeyWave : OverrideKeyBase
+    {
+        [YamlMember("wave")]
+        public override string Name { get; set; } = "";
+
+        [YamlIgnore]
+        public override string? Note { get; set; }
+    }
+
+    // wrapped by a mapping with one key: `- violence: { name: Punch, power: 1 }`
+    [YamlObject]
+    [YamlObjectUnion("violence", typeof(ViolenceSkill), Style = YamlUnionStyle.Wrapped)]
+    [YamlObjectUnion("hug", typeof(HugSkill), Style = YamlUnionStyle.Wrapped)]
+    [YamlObjectUnion("meditate", typeof(MeditateSkill), Style = YamlUnionStyle.Wrapped)]
+    [YamlObjectUnion("shout", typeof(ShoutSkill), Style = YamlUnionStyle.Wrapped)]
+    public partial interface ISkill
+    {
+    }
+
+    /// <summary>
+    /// Hits the target.
+    /// </summary>
+    [YamlObject]
+    public partial class ViolenceSkill : ISkill
+    {
+        public string Name { get; set; } = "";
+        public int Power { get; set; }
+    }
+
+    [YamlObject]
+    public partial class HugSkill : ISkill
+    {
+        public string Name { get; set; } = "";
+    }
+
+    [YamlObject]
+    public partial class MeditateSkill : ISkill
     {
     }
 
     [YamlObject]
-    public partial class ActionStep : IStep
+    public partial class ShoutSkill : ISkill
     {
-        public string? Name { get; set; }
-        public string Uses { get; set; } = "";
-        public Dictionary<string, string>? With { get; set; }
+        [YamlRequired]
+        public string Words { get; set; } = "";
     }
 
     [YamlObject]
-    public partial class RunStep : IStep
+    public partial class Character
     {
-        public string? Name { get; set; }
-        public string Run { get; set; } = "";
-        public string? Shell { get; set; }
-    }
-
-    [YamlObject]
-    public partial class Job
-    {
-        public List<IStep> Steps { get; set; } = new();
-    }
-
-    [YamlObject]
-    [YamlObjectUnion(typeof(UnionKeySnakeCase), RequiredKey = "max_count")]
-    [YamlObjectUnion(typeof(UnionKeyAlias), RequiredKey = "alias")]
-    public abstract partial class UnionKeyBase
-    {
-    }
-
-    [YamlObject(NamingConvention.SnakeCase)]
-    public partial class UnionKeySnakeCase : UnionKeyBase
-    {
-        public int MaxCount { get; set; }
-    }
-
-    [YamlObject]
-    public partial class UnionKeyAlias : UnionKeyBase
-    {
-        [YamlMember("alias")]
-        public string Value { get; set; } = "";
+        public List<ISkill> Skills { get; set; } = new();
     }
 }
