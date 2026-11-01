@@ -5,6 +5,17 @@ using VYaml.Annotations;
 namespace VYaml.Tests.TypeDeclarations
 {
     /// <summary>
+    /// Inline tags: <see cref="SchemaEndpoint"/>, <c>null</c>, <see langword="true"/>,
+    /// <see href="https://example.com">a link</see> and <paramref name="x"/>.
+    /// <para>Second paragraph.</para>
+    /// </summary>
+    [YamlObject]
+    public partial class SchemaDocTags
+    {
+        public int X { get; set; }
+    }
+
+    /// <summary>
     /// Server settings.
     /// </summary>
     [YamlObject]

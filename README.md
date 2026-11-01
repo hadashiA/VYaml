@@ -734,7 +734,7 @@ endpoints:
 - Enums are written as their string values (`[EnumMember]` / `[DataMember]` aliases, and `[YamlObject(NamingConvention)]` of the enum are respected).
 - Nullable members (`string?`, `int?`, etc.) allow `null`.
 - Default values of constructor parameters are written as `default`, except `null` (and `default` of structs).
-- XML doc comments (`<summary>`, and `<param>` of positional records) are written as `description`. This requires `<GenerateDocumentationFile>true</GenerateDocumentationFile>` in the project of the types.
+- XML doc comments (`<summary>`, and `<param>` of positional records) are written as `description`. They are read from the source, so `<GenerateDocumentationFile>` is not required.
 - Union types are written as follows.
   - With `DiscriminatorKey`, `anyOf` of the subtypes. The discriminator key is required and its values are completed.
   - With `Style = YamlUnionStyle.Wrapped`, an object with exactly one of the keys, whose values are the subtypes. An empty value is allowed unless the subtype has a required member.

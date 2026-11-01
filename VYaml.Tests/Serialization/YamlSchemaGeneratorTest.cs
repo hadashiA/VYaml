@@ -13,6 +13,15 @@ namespace VYaml.Tests.Serialization
     public class YamlSchemaGeneratorTest
     {
         [Test]
+        public void DocCommentTags()
+        {
+            // read from the syntax (the test project does not set GenerateDocumentationFile)
+            var root = Parse(YamlSchemaGenerator.Generate<SchemaDocTags>());
+            Assert.That(root.GetProperty("description").GetString(),
+                Is.EqualTo("Inline tags: SchemaEndpoint, null, true, a link and x.\nSecond paragraph."));
+        }
+
+        [Test]
         public void ObjectMembers()
         {
             var root = Parse(YamlSchemaGenerator.Generate<SchemaServerConfig>());

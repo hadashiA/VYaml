@@ -1,31 +1,37 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Xml;
-using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace VYaml.SourceGenerator;
 
 // Extracts plain text from XML documentation comments, used as "description" in the YAML schema.
-// Only available when the compilation parses documentation comments (e.g. <GenerateDocumentationFile>).
+//
+// The comment is read from the syntax trivia of the declaration instead of ISymbol.GetDocumentationCommentXml(),
+// which is empty unless the project sets <GenerateDocumentationFile>. The trivia is also dropped by the parser in
+// that case (DocumentationMode.None), so the declaration is re-parsed with documentation comments enabled.
+// (same approach as Cysharp/ConsoleAppFramework; see https://github.com/dotnet/roslyn/issues/58210)
 static class DocumentationComment
 {
     public static string? GetSummary(ISymbol symbol)
     {
-        return Parse(symbol)?.Element("summary") is { } summary ? ToText(summary) : null;
+        return Find(symbol)?.Content.OfType<XmlElementSyntax>().FirstOrDefault(x => NameOf(x) == "summary") is { } summary
+            ? ToText(summary.Content)
+            : null;
     }
 
     // <param> of the type itself: documentation of positional record parameters
     public static IReadOnlyDictionary<string, string> GetParams(ISymbol symbol)
     {
         var result = new Dictionary<string, string>();
-        if (Parse(symbol) is { } root)
+        if (Find(symbol) is { } doc)
         {
-            foreach (var param in root.Elements("param"))
+            foreach (var param in doc.Content.OfType<XmlElementSyntax>().Where(x => NameOf(x) == "param"))
             {
-                if (param.Attribute("name")?.Value is { } name && ToText(param) is { } text)
+                var name = param.StartTag.Attributes.OfType<XmlNameAttributeSyntax>().FirstOrDefault()?.Identifier.Identifier.ValueText;
+                if (name != null && ToText(param.Content) is { } text)
                 {
                     result[name] = text;
                 }
@@ -34,25 +40,44 @@ static class DocumentationComment
         return result;
     }
 
-    static XElement? Parse(ISymbol symbol)
+    static DocumentationCommentTriviaSyntax? Find(ISymbol symbol)
     {
-        var xml = symbol.GetDocumentationCommentXml(expandIncludes: false);
-        if (string.IsNullOrWhiteSpace(xml)) return null;
-        try
+        foreach (var reference in symbol.DeclaringSyntaxReferences)
         {
-            // fragments of the member element can be returned for some symbols
-            return XElement.Parse($"<root>{xml}</root>").Element("member") ?? XElement.Parse($"<root>{xml}</root>");
+            if (FindOnDeclaration(reference.GetSyntax()) is { } doc)
+            {
+                return doc;
+            }
         }
-        catch (XmlException)
-        {
-            return null;
-        }
+        return null;
     }
 
-    static string? ToText(XElement element)
+    static DocumentationCommentTriviaSyntax? FindOnDeclaration(SyntaxNode node)
+    {
+        if (node.SyntaxTree.Options.DocumentationMode == DocumentationMode.None)
+        {
+            // The parser dropped the structured trivia; parse this declaration alone with it enabled.
+            // The fragment loses its usings and namespace, which does not matter for the trivia.
+            var options = ((CSharpParseOptions)node.SyntaxTree.Options).WithDocumentationMode(DocumentationMode.Parse);
+            node = CSharpSyntaxTree.ParseText(node.ToFullString(), options).GetRoot();
+        }
+
+        foreach (var trivia in node.GetLeadingTrivia())
+        {
+            if (trivia.GetStructure() is DocumentationCommentTriviaSyntax doc)
+            {
+                return doc;
+            }
+        }
+        return null;
+    }
+
+    static string NameOf(XmlElementSyntax element) => element.StartTag.Name.LocalName.ValueText;
+
+    static string? ToText(SyntaxList<XmlNodeSyntax> content)
     {
         var sb = new StringBuilder();
-        Append(sb, element);
+        Append(sb, content);
         var lines = sb.ToString()
             .Split('\n')
             .Select(x => x.Trim())
@@ -78,52 +103,94 @@ static class DocumentationComment
         return result.Length > 0 ? result.ToString() : null;
     }
 
-    static void Append(StringBuilder sb, XElement element)
+    static void Append(StringBuilder sb, SyntaxList<XmlNodeSyntax> content)
     {
-        foreach (var node in element.Nodes())
+        foreach (var node in content)
         {
             switch (node)
             {
-                case XText text:
-                    sb.Append(text.Value);
+                case XmlTextSyntax text:
+                    AppendTokens(sb, text.TextTokens);
                     break;
-                case XElement { Name.LocalName: "para" } para:
-                    sb.Append("\n\n");
-                    Append(sb, para);
-                    sb.Append("\n\n");
+                case XmlCDataSectionSyntax cdata:
+                    AppendTokens(sb, cdata.TextTokens);
                     break;
-                case XElement { Name.LocalName: "br" }:
-                    sb.Append("\n\n");
+                case XmlElementSyntax element:
+                    switch (NameOf(element))
+                    {
+                        case "para":
+                            sb.Append("\n\n");
+                            Append(sb, element.Content);
+                            sb.Append("\n\n");
+                            break;
+                        default:
+                            if (element.Content.Count > 0)
+                            {
+                                Append(sb, element.Content); // <see cref="X">text</see>, <c>, <b>, ...
+                            }
+                            else
+                            {
+                                AppendReference(sb, element.StartTag.Attributes);
+                            }
+                            break;
+                    }
                     break;
-                case XElement e when e.Attribute("cref")?.Value is { } cref:
-                    sb.Append(e.IsEmpty ? ShortName(cref) : e.Value);
+                case XmlEmptyElementSyntax empty:
+                    if (empty.Name.LocalName.ValueText == "br")
+                    {
+                        sb.Append("\n\n");
+                    }
+                    else
+                    {
+                        AppendReference(sb, empty.Attributes); // <see cref/>, <see langword/>, <paramref name/>, <see href/>
+                    }
                     break;
-                case XElement e when e.Attribute("langword")?.Value is { } langword:
-                    sb.Append(langword);
-                    break;
-                case XElement e when e.IsEmpty && e.Attribute("name")?.Value is { } name:
-                    sb.Append(name);
-                    break;
-                case XElement e when e.IsEmpty && e.Attribute("href")?.Value is { } href:
-                    sb.Append(href);
-                    break;
-                case XElement e:
-                    Append(sb, e);
-                    break;
+                // XmlCommentSyntax, XmlProcessingInstructionSyntax: nothing
             }
         }
     }
 
-    // "T:Namespace.Type`1" -> "Type", "M:Namespace.Type.Method(System.Int32)" -> "Method"
+    static void AppendTokens(StringBuilder sb, SyntaxTokenList tokens)
+    {
+        foreach (var token in tokens)
+        {
+            // the exterior "///" is not part of the token; newlines separate the lines for ToText
+            sb.Append(token.IsKind(SyntaxKind.XmlTextLiteralNewLineToken) ? "\n" : token.ValueText);
+        }
+    }
+
+    static void AppendReference(StringBuilder sb, SyntaxList<XmlAttributeSyntax> attributes)
+    {
+        foreach (var attribute in attributes)
+        {
+            switch (attribute)
+            {
+                case XmlCrefAttributeSyntax cref:
+                    sb.Append(ShortName(cref.Cref.ToString()));
+                    return;
+                case XmlNameAttributeSyntax name: // paramref / typeparamref
+                    sb.Append(name.Identifier.Identifier.ValueText);
+                    return;
+                case XmlTextAttributeSyntax text when text.Name.LocalName.ValueText is "langword" or "href":
+                    foreach (var token in text.TextTokens)
+                    {
+                        sb.Append(token.ValueText);
+                    }
+                    return;
+            }
+        }
+    }
+
+    // "Namespace.Type{T}" -> "Type", "Type.Method(int)" -> "Method"
     static string ShortName(string cref)
     {
-        var name = cref.Length > 2 && cref[1] == ':' ? cref.Substring(2) : cref;
+        var name = cref;
         var paren = name.IndexOf('(');
         if (paren >= 0) name = name.Substring(0, paren);
+        var generic = name.IndexOfAny(new[] { '{', '<' });
+        if (generic >= 0) name = name.Substring(0, generic);
         var dot = name.LastIndexOf('.');
         if (dot >= 0) name = name.Substring(dot + 1);
-        var backtick = name.IndexOf('`');
-        if (backtick >= 0) name = name.Substring(0, backtick);
-        return name;
+        return name.Trim();
     }
 }
