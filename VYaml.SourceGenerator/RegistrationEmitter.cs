@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using Microsoft.CodeAnalysis;
 
 namespace VYaml.SourceGenerator;
 
@@ -26,6 +28,24 @@ static class RegistrationEmitter
             }
         }
         """;
+
+    // Compilation.GetTypeByMetadataName is not used: it ignores accessibility, so an internal
+    // polyfill in a referenced assembly (e.g. PolySharp's in VYaml.dll for netstandard2.1)
+    // suppresses this polyfill and the [ModuleInitializer] usage fails with CS0122.
+    // Compilation.GetTypesByMetadataName is not used: it requires Roslyn 4.2+.
+    public static bool NeedsModuleInitializerPolyfill(Compilation compilation)
+    {
+        const string metadataName = "System.Runtime.CompilerServices.ModuleInitializerAttribute";
+        foreach (var assembly in compilation.SourceModule.ReferencedAssemblySymbols.Prepend(compilation.Assembly))
+        {
+            if (assembly.GetTypeByMetadataName(metadataName) is { } type &&
+                compilation.IsSymbolAccessibleWithin(type, compilation.Assembly))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
 
     public static string Emit(string assemblyName, IEnumerable<string> statements)
     {
