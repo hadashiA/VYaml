@@ -83,7 +83,7 @@ public class VYamlSourceGenerator : ISourceGenerator
                     "VYamlGeneratedRegistration.g.cs",
                     RegistrationEmitter.Emit(context.Compilation.AssemblyName ?? "Assembly", registrationStatements));
 
-                if (context.Compilation.GetTypeByMetadataName("System.Runtime.CompilerServices.ModuleInitializerAttribute") is null)
+                if (RegistrationEmitter.NeedsModuleInitializerPolyfill(context.Compilation))
                 {
                     context.AddSource(
                         "ModuleInitializerAttribute.g.cs",
