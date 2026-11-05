@@ -91,7 +91,7 @@ public class VYamlIncrementalSourceGenerator : IIncrementalGenerator
                 AssemblyName: compilation.AssemblyName ?? "Assembly",
                 // module initializers need C# 9; older compilations keep the reflection-only path
                 LangOk: compilation is CSharpCompilation csharp && csharp.LanguageVersion >= LanguageVersion.CSharp9,
-                NeedsModuleInitializerPolyfill: compilation.GetTypeByMetadataName("System.Runtime.CompilerServices.ModuleInitializerAttribute") is null))
+                NeedsModuleInitializerPolyfill: RegistrationEmitter.NeedsModuleInitializerPolyfill(compilation)))
             .WithTrackingName(TrackingNames.RegistrationFacts);
 
         var registration = models.Collect()
