@@ -13,6 +13,8 @@ namespace VYaml.Parser
         public bool Required;
         public int TokenNumber;
         public Marker Start;
+        // Implicit keys of a flow mapping may span lines; those of a flow sequence pair or the block context may not.
+        public bool InFlowMapping;
     }
 
     public ref struct Utf8YamlTokenizer
@@ -294,7 +296,14 @@ namespace VYaml.Parser
                 return;
             }
 
+            // In a flow mapping, the value adjacent to ':' after a JSON-like key may follow separation
+            // spaces, comments and line breaks (e.g. `{ "foo"\n  :bar }`).
+            var adjacentValueAllowed = mark.Position == adjacentValueAllowedAt;
             SkipToNextToken();
+            if (adjacentValueAllowed && flowLevel > 0 && simpleKeyCandidates[^1].InFlowMapping)
+            {
+                adjacentValueAllowedAt = mark.Position;
+            }
             StaleSimpleKeyCandidates();
             UnrollIndent(mark.Col);
 
@@ -630,7 +639,7 @@ namespace VYaml.Parser
         {
             // The indicators '[' and '{' may start a simple key.
             SaveSimpleKeyCandidate();
-            IncreaseFlowLevel();
+            IncreaseFlowLevel(tokenType == TokenType.FlowMappingStart);
 
             simpleKeyAllowed = true;
 
@@ -1798,8 +1807,11 @@ namespace VYaml.Parser
             for (var i = 0; i < simpleKeyCandidates.Length; i++)
             {
                 ref var simpleKey = ref simpleKeyCandidates[i];
+                // A flow mapping key may continue on the next line, unless it is a required key
+                // (flow content not indented past the parent block), which still has to raise an error.
                 if (simpleKey.Possible &&
-                    (simpleKey.Start.Line < mark.Line || simpleKey.Start.Position + 1024 < mark.Position))
+                    ((simpleKey.Start.Line < mark.Line && (!simpleKey.InFlowMapping || simpleKey.Required)) ||
+                     simpleKey.Start.Position + 1024 < mark.Position))
                 {
                     if (simpleKey.Required)
                     {
@@ -1828,7 +1840,8 @@ namespace VYaml.Parser
                 Start = mark,
                 Possible = true,
                 Required = flowLevel > 0 && indent == mark.Col,
-                TokenNumber = tokensParsed + tokens.Count
+                TokenNumber = tokensParsed + tokens.Count,
+                InFlowMapping = last.InFlowMapping
             };
         }
 
@@ -1875,9 +1888,9 @@ namespace VYaml.Parser
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        void IncreaseFlowLevel()
+        void IncreaseFlowLevel(bool mapping)
         {
-            simpleKeyCandidates.Add(new SimpleKeyState());
+            simpleKeyCandidates.Add(new SimpleKeyState { InFlowMapping = mapping });
             flowLevel++;
         }
 

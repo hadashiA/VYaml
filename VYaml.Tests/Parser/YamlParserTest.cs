@@ -313,6 +313,38 @@ namespace VYaml.Tests.Parser
             Assert.That(stopwatch.Elapsed, Is.LessThan(TimeSpan.FromSeconds(5)));
         }
 
+        [Test]
+        [TestCase("{\"foo\"\n: \"bar\"}", new[] { "foo", "bar" })]
+        [TestCase("{ \"multi\n  line\": value }", new[] { "multi line", "value" })]
+        [TestCase("{ multi\n  line: value }", new[] { "multi line", "value" })]
+        [TestCase("k: {\n k\n :\n v\n }", new[] { "k", "k", "v" })]
+        [TestCase("{ \"foo\"\n  :bar }", new[] { "foo", "bar" })]
+        [TestCase("{ \"foo\" # comment\n  :bar }", new[] { "foo", "bar" })]
+        public void FlowMappingImplicitKeySpanningLines(string yaml, string[] expectedScalars)
+        {
+            // Inside a flow mapping, an implicit key and its ':' may be on different lines,
+            // and after a JSON-like key the value may still be adjacent to the ':'.
+            CreateParser(yaml, out var parser);
+            var scalars = new List<string?>();
+            while (parser.Read())
+            {
+                if (parser.CurrentEventType == ParseEventType.Scalar)
+                {
+                    scalars.Add(parser.GetScalarAsString());
+                }
+            }
+            Assert.That(scalars, Is.EqualTo(expectedScalars));
+        }
+
+        [Test]
+        [TestCase("[ key\n  : value ]")]
+        [TestCase("[ \"key\"\n  :value ]")]
+        public void FlowSequencePairKeyMustNotSpanLines(string yaml)
+        {
+            // A single pair inside a flow sequence is still restricted to one line.
+            Assert.Throws<YamlParserException>(() => ReadToEnd(yaml));
+        }
+
         static void ReadToEnd(string yaml, int? maxDepth = null)
         {
             CreateParser(yaml, out var parser);
